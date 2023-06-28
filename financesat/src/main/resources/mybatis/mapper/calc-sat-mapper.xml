@@ -1,0 +1,685 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.samil.stdadt.mapper.CalcSatMapper">
+
+	<select id="getFactorValue" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT A.PRFL_ID,
+		       B.SATGRP_CD,
+		       B.FACTOR_CD,
+		       C.GRP_FACTOR_DIV,
+		       NVL(B.VAL1, C.VAL1) VAL1,
+		       B.VAL2
+		  FROM WEB_SAT_PRFL A, 
+		       WEB_SAT_PRFL_GRP_FCTR B,
+		       WEB_SAT_PRFL_GRP_FCTR_VAL C
+		 WHERE A.PRFL_ID = B.PRFL_ID 
+		 	   AND B.PRFL_ID = C.PRFL_ID(+)
+		       AND B.SATGRP_CD = C.SATGRP_CD(+)
+		       AND B.FACTOR_CD = C.FACTOR_CD(+)
+		       <choose>
+		       	<when test="prflId != null and !prflId.equals('')">
+		       		AND A.PRFL_ID = #{prflId}
+		       	</when>
+		       	<otherwise>
+		       		AND TO_CHAR(SYSDATE, 'YYYY-MM-DD') BETWEEN A.APLY_FRDT AND A.APLY_TODT
+		       	</otherwise>
+		       </choose>
+		       AND B.SATGRP_CD = #{satgrpCd}
+		       AND B.FACTOR_CD = #{factorCd}
+		       <if test="grpFactorDiv != null and !prflId.equals('')">
+		       AND C.GRP_FACTOR_DIV = #{grpFactorDiv}
+		       </if>
+	</select>
+
+	<select id="getSatgrpList" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT A.SATGRP_CD, 
+			   SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', A.SATGRP_CD, 'NM') SATGRP_NM,
+			   B.MAX_RATIO
+		  FROM WEB_SAT_PRFL_GRP_YEAR A, WEB_SAT_PRFL_GRP B
+		 WHERE A.SATGRP_CD = B.SATGRP_CD
+		   AND A.APLY_YEAR= #{year}
+		   AND B.PRFL_ID = #{prflId}
+	  	ORDER BY A.SATGRP_CD
+	</select>
+
+	<select id="getCalcSatMetaInfo" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT STAT, 
+			   FORM_DIV,   
+			   CAN_EDIT, 
+			   CAN_DELETE
+		FROM (<include refid="satSql.authCalcSatInfo" />) A
+	</select>	
+
+	<select id="getCalcSatList" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		  SELECT A.PRJTCD ID,
+				 A.PRJTCD BTN,
+				 A.PRJTCD PRJT_CD,
+				 A.BIZ_FRDT,
+				 A.BIZ_TODT,
+				 A.COMP_NM,
+			     NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LISTDV_V2', A.LIST_DV_CD, 'NM') LIST_DV_NM,
+			     NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', A.SATGRP_CD, 'NM') SATGRP_NM,
+			     NVL(A.BASE_WKMNSP, NVL((SELECT BASE_WKMNSP FROM WEB_SAT_PRFL_GRP WHERE PRFL_ID = A.PRFL_ID AND SATGRP_CD = A.SATGRP_CD), 1)) BASE_WKMNSP,
+			     A.FACTOR_VAL,
+				 A.CAL_ADT_TM,
+				 A.INTR_ADT_TM,
+				 A.CAL_RESULT * A.YEAR_RATE CAL_RATE_SAT,
+				 A.CAL_SAT,
+				 NVL(A.ET_DFN_SAT, 0) ET_DFN_SAT,
+             	 NVL(A.ET_TRGT_ADT_TM, 0) ET_TRGT_ADT_TM,
+             	 A.CREBY_NM
+			FROM (<include refid="satSql.authCalcSatInfo" />) A
+			<if test="year != null and !year.equals('')">
+			WHERE A.BIZ_TODT LIKE #{year}||'%'
+			</if>
+			ORDER BY A.BIZ_FRDT DESC, A.COMP_NM
+	</select>
+
+	<select id="getCalcSatInfo" parameterType="map" resultType="ProjectInfoV3VO">
+		SELECT 
+		<choose>
+			<when test=" !'sysadmin'.equals(session.roleCd) ">
+				CASE 
+					WHEN A.CREBY = #{session.emplNo}
+					 	OR A.RCRD_MGR = #{session.emplNo}
+					  	OR A.RCRD_MGR2 = #{session.emplNo}
+					 	OR A.RCRD_MGR3 = #{session.emplNo} 
+					THEN '1' 
+					ELSE '0' 
+				END CAN_EDIT,
+				CASE 
+					WHEN A.CREBY = #{session.emplNo} 
+					THEN '1' 
+					ELSE '0' 
+				END CAN_DELETE,
+			</when>
+			<otherwise>'1' CAN_EDIT, '1' CAN_DELETE,</otherwise>
+		</choose>
+			   A.*,
+			   (SELECT MAX_RATIO FROM WEB_SAT_PRFL_GRP B WHERE B.PRFL_ID = A.PRFL_ID AND B.SATGRP_CD = A.SATGRP_CD) MAX_RATIO,
+			   NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'DESIG_ADT_YN', A.DESIG_ADT_YN, 'NM') DESIG_ADT_YN_NM,
+	           ((SELECT SUM(CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT WHERE P_PRJTCD = A.PRJTCD) + A.CNTRT_FEE) TOT_CNTRT_FEE,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SAT_TRGT_YN', A.SAT_TRGT_YN, 'NM') SAT_TRGT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INDUS', A.INDUS_CD, 'NM') INDUS_NM,
+	           ROUND( (A.CONSO_SALES + A.CONSO_ASSET)/2, 0) COMP_SIZE,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LISTDV_V2', A.LIST_DV_CD, 'NM') LIST_DV_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'BIZRPRT_YN', A.BIZ_RPRT_YN, 'NM') BIZ_RPRT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP1_EXPT_YN', A.SATGRP1_EXPT_YN, 'NM') SATGRP1_EXPT_YN_NM,
+	           (SELECT MAX(SATGRP_CD) SATGRP_CD FROM WEB_SAT_PRFL_GRP_YEAR WHERE APLY_YEAR= SUBSTR(A.PRJT_FRDT, 0, 4)) MAX_SATGRP_CD, 
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', A.SATGRP_CD, 'NM') SATGRP_NM, 
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'USALIST_YN', A.USA_LIST_YN, 'NM') USA_LIST_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'HOLDINGS_DV', A.HOLDINGS_DIV_CD, 'NM') HOLDINGS_DIV_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'CONSO_YN', A.CONSO_FINSTAT_YN, 'NM') CONSO_FINSTAT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'FIRST_YN', A.FIRST_ADT_YN, 'NM') FIRST_ADT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'IFRS_YN', A.IFRS_YN, 'NM') IFRS_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LOSS_YN', A.CURR_CONSO_LOSS_YN, 'NM') CURR_CONSO_LOSS_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'ADTOPIN_YN', A.CURR_ADTOPIN_CD, 'NM') CURR_ADTOPIN_NM,
+	           NMSP.SF_EMP_NAME(A.CREBY) CREBY_NM, 
+		       NMSP.SF_EMP_NAME(A.MODBY) MODBY_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INTR_ADT_YN', A.INTR_ADT_YN, 'NM') INTR_ADT_YN_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'CONTI_ADT_CNT', A.CONTI_ADT_CNT, 'NM') CONTI_ADT_CNT_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INTR_ADT_YCNT', A.INTR_ADT_YCNT, 'NM') INTR_ADT_YCNT_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'KAM_YN', A.KAM_YN, 'NM') KAM_YN_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_ADTOPIN_CHG_YN', A.PRIOR_ADTOPIN_CHG_YN, 'NM') PRIOR_ADTOPIN_CHG_YN_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_LOSS_YN', A.PRIOR_LOSS_YN, 'NM') PRIOR_LOSS_YN_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'MIN_MAX_YN', A.MIN_MAX_YN, 'NM') MIN_MAX_YN_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'MIN_MAX_REASON', A.MIN_MAX_REASON_CD, 'NM') MIN_MAX_REASON_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'FST_ADT_TM_REASON', A.FST_ADT_TM_REASON_CD, 'NM') FST_ADT_TM_REASON_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'FST_WKMNSP_REASON', A.FST_WKMNSP_REASON_CD, 'NM') FST_WKMNSP_REASON_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_ADT_TM_REASON', A.PRIOR_ADT_TM_REASON_CD, 'NM') PRIOR_ADT_TM_REASON_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_WKMNSP_REASON', A.PRIOR_WKMNSP_REASON_CD, 'NM') PRIOR_WKMNSP_REASON_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'ADTR', A.PRIOR_ADTR_CD, 'NM') PRIOR_ADTR_NM
+		  FROM (<include refid="satSql.authCalcSatInfo" />) A
+	</select>
+	
+	<!-- <select id="getCalcSatInfo" parameterType="map" resultType="ProjectInfoVO">
+		SELECT 
+		<choose>
+			<when test=" !'sysadmin'.equals(session.roleCd) ">
+				CASE WHEN A.CREBY = #{session.emplNo} THEN '1' ELSE '0' END CAN_EDIT,
+				CASE WHEN A.CREBY = #{session.emplNo} THEN '1' ELSE '0' END CAN_DELETE,
+			</when>
+			<otherwise>'1' CAN_EDIT, '1' CAN_DELETE,</otherwise>
+		</choose>
+			   A.*,
+			   NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'DESIG_ADT_YN', A.DESIG_ADT_YN, 'NM') DESIG_ADT_YN_NM,
+	           ((SELECT SUM(CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT WHERE P_PRJTCD = A.PRJTCD) + A.CNTRT_FEE) TOT_CNTRT_FEE,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SAT_TRGT_YN', A.SAT_TRGT_YN, 'NM') SAT_TRGT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INDUS', A.INDUS_CD, 'NM') INDUS_NM,
+	           ROUND( (A.CONSO_SALES + A.CONSO_ASSET)/2, 0) COMP_SIZE,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LISTDV_V2', A.LIST_DV_CD, 'NM') LIST_DV_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'BIZRPRT_YN', A.BIZ_RPRT_YN, 'NM') BIZ_RPRT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP1_EXPT_YN', A.SATGRP1_EXPT_YN, 'NM') SATGRP1_EXPT_YN_NM,
+	           (SELECT MAX(SATGRP_CD) SATGRP_CD FROM WEB_SAT_PRFL_GRP_YEAR WHERE APLY_YEAR= SUBSTR(A.PRJT_FRDT, 0, 4)) MAX_SATGRP_CD, 
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', A.SATGRP_CD, 'NM') SATGRP_NM, 
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'USALIST_YN', A.USA_LIST_YN, 'NM') USA_LIST_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'HOLDINGS_DV', A.HOLDINGS_DIV_CD, 'NM') HOLDINGS_DIV_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'CONSO_YN', A.CONSO_FINSTAT_YN, 'NM') CONSO_FINSTAT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'FIRST_YN', A.FIRST_ADT_YN, 'NM') FIRST_ADT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'IFRS_YN', A.IFRS_YN, 'NM') IFRS_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LOSS_YN', A.CURR_CONSO_LOSS_YN, 'NM') CURR_CONSO_LOSS_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'ADTOPIN_YN', A.CURR_ADTOPIN_CD, 'NM') CURR_ADTOPIN_NM,
+	           NMSP.SF_EMP_NAME(A.CREBY) CREBY_NM, 
+		       NMSP.SF_EMP_NAME(A.MODBY) MODBY_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INTR_ADT_YN', A.INTR_ADT_YN, 'NM') INTR_ADT_YN_NM
+		  FROM (<include refid="satSql.authCalcSatInfo" />) A
+	</select> -->
+	
+	<insert id="addCalcSatInfo" parameterType="com.samil.stdadt.dto.ProjectInfoV3Dto">
+		INSERT INTO NMSP.WEB_SAT_PRJT(
+				  PRJTCD
+				, CALC_ONLY_YN
+				, PRFL_ID
+				, COMP_NM
+				, BIZ_FRDT
+				, BIZ_TODT
+				, RCRD_MGR
+				, RCRD_MGR2
+				, RCRD_MGR3
+				, INDUS_CD
+				, LIST_DV_CD
+				, INDIV_ASSET
+				, BIZ_RPRT_YN
+				, CONSO_ASSET
+				, SATGRP1_EXPT_YN
+				, CONSO_SALES
+				, CONSO_ACCNT_RECEIV
+				, RPRT_SCDL_DT
+				, CONSO_INVNT
+				, SATGRP_CD
+				, FIRST_BIZ_DT
+				, CONTI_ADT_CNT
+				, INTR_ADT_YCNT
+				, REVW_CNT
+				, SAME_ADTR_SBSID_YN
+				, INTR_TRAN_ASSET_SALES
+				, SBSID_ASSET_WITH_INTR_TRAN
+				, RELAT_COMP_ASSET
+				, SBSID_SALES_WITH_INTR_TRAN
+				, IFRS_YN
+				, IFRS_FCTR
+				, HOLDINGS_DIV_CD
+				, HOLDINGS_FCTR
+				, FIRST_ADT_YN
+				, FIRST_ADT_FCTR
+				, USA_LIST_YN
+				, USA_LIST_FCTR
+				, RISK_FCTR
+				, KAM_YN
+				, KAM_FCTR
+				, CONSO_FINSTAT_YN
+				, CONSO_FINSTAT_FCTR
+				, SBSID_CNT
+				, SBSID_CNT_FCTR
+				, CURR_ADTOPIN_CD
+				, CURR_ADTOPIN_FCTR
+				, CURR_CONSO_LOSS_YN
+				, CURR_CONSO_LOSS_FCTR
+				, PRIOR_ADTOPIN_CHG_YN
+				, PRIOR_ADTOPIN_CHG_FCTR
+				, PRIOR_LOSS_YN
+				, PRIOR_LOSS_FCTR
+				, ETC_FCTR
+				, FACTOR_VAL
+				, MIN_MAX_YN
+				, MIN_MAX_REASON_CD
+				, MIN_MAX_REASON_DSCRT
+				, FST_ADT_TM
+				, FST_ADTR_BASE_WKMNSP_YN
+				, FST_ADTR_WKMNSP
+				, FST_ADT_TM_REASON_CD
+				, FST_ADT_TM_REASON_DSCRT
+				, FST_WKMNSP_REASON_CD
+				, FST_WKMNSP_REASON_DSCRT
+				, PRIOR_ADTR_CD
+				, PRIOR_ADT_TM
+				, PRIOR_BASE_WKMNSP
+				, PRIOR_ADTR_BASE_WKMNSP_YN
+				, PRIOR_ADTR_WKMNSP
+				, PRIOR_ADT_TM_REASON_CD
+				, PRIOR_ADT_TM_REASON_DSCRT
+				, PRIOR_WKMNSP_REASON_CD
+				, PRIOR_WKMNSP_REASON_DSCRT
+				, INTR_ADT_YN
+				, INTR_ADT_TM
+				, MIN_TM
+				, MAX_TM
+				, INTPL_SAT
+				, CAL_RESULT
+				, YEAR_RATE
+				, CAL_ADT_TM
+				, INTR_ADT_FCTR
+				, BASE_WKMNSP
+				, ET_DFN_SAT
+				, FORM_DIV
+				, REMARK
+				, STAT
+				, CREBY
+				, CREDT
+				, MODBY
+				, MODDT
+				)
+		VALUES (
+				  #{prjtCd}
+				, 'Y'
+				, #{prflId}
+				, #{compNm}
+				, #{bizFrdt}
+				, #{bizTodt}
+				, #{rcrdMgr1.emplno}
+				, #{rcrdMgr2.emplno}
+				, #{rcrdMgr3.emplno}
+				, #{indusDv.cd}
+				, #{listDv.cd}
+				, #{indivAsset}
+				, #{bizRprtYn.cd}
+				, #{consoAsset}
+				, #{satgrp1ExptYn.cd}
+				, #{consoSales}
+				, #{consoAccntReceiv}
+				, #{rprtScdlDt}
+				, #{consoInvnt}
+				, #{satgrp.cd}
+				, #{firstBizDt}
+				, #{contiAdtCnt.cd}
+				, #{intrAdtYcnt.cd}
+				, #{revwCnt}
+				, #{sameAdtrSbsidYnNm}
+				, #{intrTranAssetSales}
+				, #{sbsidAssetWithIntrTran}
+				, #{relatCompAsset}
+				, #{sbsidSalesWithIntrTran}
+				, #{ifrsYn.cd}
+				, #{ifrsFctr}
+				, #{holdingsDv.cd}
+				, #{holdingsFctr}
+				, #{firstAdtYn.cd}
+				, #{firstAdtFctr}
+				, #{usaListYn.cd}
+				, #{usaListFctr}
+				, #{riskFctr}
+				, #{kamYn.cd}
+				, #{kamFctr}
+				, #{consoFinstatYn.cd}
+				, #{consoFinstatFctr}
+				, #{sbsidCnt}
+				, #{sbsidCntFctr}
+				, #{currAdtopin.cd}
+				, #{currAdtopinFctr}
+				, #{currConsoLossYn.cd}
+				, #{currConsoLossFctr}
+				, #{priorAdtopinChgYn.cd}
+				, #{priorAdtopinChgFctr}
+				, #{priorLossYn.cd}
+				, #{priorLossFctr}
+				, #{etcFctr}
+				, #{factorVal}
+				, #{minMaxYn.cd}
+				, #{minMaxReason.cd}
+				, #{minMaxReasonDscrt}
+				, #{fstAdtTm}
+				, #{fstAdtrBaseWkmnspYnNm}
+				, #{fstAdtrWkmnsp}
+				, #{fstAdtTmReason.cd}
+				, #{fstAdtTmReasonDscrt}
+				, #{fstWkmnspReason.cd}
+				, #{fstWkmnspReasonDscrt}
+				, #{priorAdtr.cd}
+				, #{priorAdtTm}
+				, #{priorBaseWkmnsp}
+				, #{priorAdtrBaseWkmnspYnNm}
+				, #{priorAdtrWkmnsp}
+				, #{priorAdtTmReason.cd}
+				, #{priorAdtTmReasonDscrt}
+				, #{priorWkmnspReason.cd}
+				, #{priorWkmnspReasonDscrt}
+				, #{intrAdtYn.cd}
+				, #{intrAdtTm}
+				, #{minTm}
+				, #{maxTm}
+				, #{intplSat}
+				, #{calResult}
+				, #{yearRate}
+				, #{calAdtTm}
+				, #{intrAdtFctr}
+				, #{baseWkmnsp}
+				, #{etDfnSat}
+				, TO_NCHAR(#{remark})
+				, 'v2'
+				, NVL(#{stat}, 'RG')
+				, #{session.emplNo}
+				, SYSDATE
+				, #{session.emplNo}
+				, SYSDATE
+		)      
+	</insert>
+	
+	
+	<update id="updateCalcSatInfo" parameterType="com.samil.stdadt.dto.ProjectInfoV3Dto">
+		UPDATE NMSP.WEB_SAT_PRJT A SET
+				  COMP_NM =  #{compNm}
+				, BIZ_FRDT =  #{bizFrdt}
+				, BIZ_TODT =  #{bizTodt}
+				, RCRD_MGR =  #{rcrdMgr1.emplno}
+				, RCRD_MGR2 =  #{rcrdMgr2.emplno}
+				, RCRD_MGR3 =  #{rcrdMgr3.emplno}
+				, INDUS_CD =  #{indusDv.cd}
+				, LIST_DV_CD =  #{listDv.cd}
+				, INDIV_ASSET =  #{indivAsset}
+				, BIZ_RPRT_YN =  #{bizRprtYn.cd}
+				, CONSO_ASSET =  #{consoAsset}
+				, SATGRP1_EXPT_YN =  #{satgrp1ExptYn.cd}
+				, CONSO_SALES =  #{consoSales}
+				, CONSO_ACCNT_RECEIV =  #{consoAccntReceiv}
+				, RPRT_SCDL_DT =  #{rprtScdlDt}
+				, CONSO_INVNT =  #{consoInvnt}
+				, SATGRP_CD =  #{satgrp.cd}
+				, FIRST_BIZ_DT =  #{firstBizDt}
+				, CONTI_ADT_CNT =  #{contiAdtCnt.cd}
+				, INTR_ADT_YCNT =  #{intrAdtYcnt.cd}
+				, REVW_CNT =  #{revwCnt}
+				, SAME_ADTR_SBSID_YN =  #{sameAdtrSbsidYnNm}
+				, INTR_TRAN_ASSET_SALES =  #{intrTranAssetSales}
+				, SBSID_ASSET_WITH_INTR_TRAN =  #{sbsidAssetWithIntrTran}
+				, RELAT_COMP_ASSET =  #{relatCompAsset}
+				, SBSID_SALES_WITH_INTR_TRAN =  #{sbsidSalesWithIntrTran}
+				, IFRS_YN =  #{ifrsYn.cd}
+				, IFRS_FCTR =  #{ifrsFctr}
+				, HOLDINGS_DIV_CD =  #{holdingsDv.cd}
+				, HOLDINGS_FCTR =  #{holdingsFctr}
+				, FIRST_ADT_YN =  #{firstAdtYn.cd}
+				, FIRST_ADT_FCTR =  #{firstAdtFctr}
+				, USA_LIST_YN =  #{usaListYn.cd}
+				, USA_LIST_FCTR =  #{usaListFctr}
+				, RISK_FCTR =  #{riskFctr}
+				, KAM_YN =  #{kamYn.cd}
+				, KAM_FCTR =  #{kamFctr}
+				, CONSO_FINSTAT_YN =  #{consoFinstatYn.cd}
+				, CONSO_FINSTAT_FCTR =  #{consoFinstatFctr}
+				, SBSID_CNT =  #{sbsidCnt}
+				, SBSID_CNT_FCTR =  #{sbsidCntFctr}
+				, CURR_ADTOPIN_CD =  #{currAdtopin.cd}
+				, CURR_ADTOPIN_FCTR =  #{currAdtopinFctr}
+				, CURR_CONSO_LOSS_YN =  #{currConsoLossYn.cd}
+				, CURR_CONSO_LOSS_FCTR =  #{currConsoLossFctr}
+				, PRIOR_ADTOPIN_CHG_YN =  #{priorAdtopinChgYn.cd}
+				, PRIOR_ADTOPIN_CHG_FCTR =  #{priorAdtopinChgFctr}
+				, PRIOR_LOSS_YN =  #{priorLossYn.cd}
+				, PRIOR_LOSS_FCTR =  #{priorLossFctr}
+				, ETC_FCTR =  #{etcFctr}
+				, FACTOR_VAL =  #{factorVal}
+				, MIN_MAX_YN =  #{minMaxYn.cd}
+				, MIN_MAX_REASON_CD =  #{minMaxReason.cd}
+				, MIN_MAX_REASON_DSCRT =  #{minMaxReasonDscrt}
+				, FST_ADT_TM =  #{fstAdtTm}
+				, FST_ADTR_BASE_WKMNSP_YN = #{fstAdtrBaseWkmnspYnNm}
+				, FST_ADTR_WKMNSP =  #{fstAdtrWkmnsp}
+				, FST_ADT_TM_REASON_CD =  #{fstAdtTmReason.cd}
+				, FST_ADT_TM_REASON_DSCRT =  #{fstAdtTmReasonDscrt}
+				, FST_WKMNSP_REASON_CD =  #{fstWkmnspReason.cd}
+				, FST_WKMNSP_REASON_DSCRT =  #{fstWkmnspReasonDscrt}
+				, PRIOR_ADTR_CD =  #{priorAdtr.cd}
+				, PRIOR_ADT_TM =  #{priorAdtTm}
+				, PRIOR_BASE_WKMNSP =  #{priorBaseWkmnsp}
+				, PRIOR_ADTR_BASE_WKMNSP_YN = #{priorAdtrBaseWkmnspYnNm}
+				, PRIOR_ADTR_WKMNSP =  #{priorAdtrWkmnsp}
+				, PRIOR_ADT_TM_REASON_CD =  #{priorAdtTmReason.cd}
+				, PRIOR_ADT_TM_REASON_DSCRT =  #{priorAdtTmReasonDscrt}
+				, PRIOR_WKMNSP_REASON_CD =  #{priorWkmnspReason.cd}
+				, PRIOR_WKMNSP_REASON_DSCRT =  #{priorWkmnspReasonDscrt}
+				, INTR_ADT_YN =  #{intrAdtYn.cd}
+				, INTR_ADT_TM =  #{intrAdtTm}
+				, MIN_TM =  #{minTm}
+				, MAX_TM =  #{maxTm}
+				, INTPL_SAT =  #{intplSat}
+				, CAL_RESULT =  #{calResult}
+				, YEAR_RATE =  #{yearRate}
+				, CAL_ADT_TM =  #{calAdtTm}
+				, INTR_ADT_FCTR =  #{intrAdtFctr}
+				, BASE_WKMNSP =  #{baseWkmnsp}
+				, ET_DFN_SAT =  #{etDfnSat}
+				, REMARK =  TO_NCHAR(#{remark})
+				, STAT = NVL(#{stat}, 'RG')
+				, PREV_STAT = STAT
+				, MODBY =  #{session.emplNo}
+				, MODDT =  SYSDATE
+		WHERE PRJTCD = #{prjtCd}
+		 <if test=" !'sysadmin'.equals(session.roleCd)">
+       	      AND 
+       	      (A.CREBY = #{session.emplNo}
+       	      	OR A.RCRD_MGR = #{session.emplNo}
+       	      	OR A.RCRD_MGR2 = #{session.emplNo}
+       	      	OR A.RCRD_MGR3 = #{session.emplNo}
+       	      )
+    	 </if>
+	</update>
+	
+	<!-- <insert id="addCalcSatInfo" parameterType="map">
+		<selectKey keyProperty="prjtCd,prjtCd1,prjtCd2,prjtCd3" resultType="com.samil.stdadt.comm.vo.CamelMap" order="BEFORE">
+			SELECT SUBSTR(PRJTCD, 0, 5)||'-'||SUBSTR(PRJTCD, 6, 2)||'-'||SUBSTR(PRJTCD, 8, 3) PRJT_CD,
+				   SUBSTR(PRJTCD, 0, 5) PRJT_CD1,
+			  	   SUBSTR(PRJTCD, 6, 2) PRJT_CD2,
+			  	   SUBSTR(PRJTCD, 8, 3) PRJT_CD3
+			FROM (SELECT 'CAL'||TO_CHAR(TO_NUMBER(REGEXP_REPLACE(REPLACE(NVL(MAX(PRJTCD), 'CAL00-00-000'), '-', ''), '[A-Z]', ''))+1, 'FM0000000') PRJTCD
+				  	FROM WEB_SAT_PRJT   
+				   WHERE STAT='CA')
+		</selectKey>
+		INSERT INTO NMSP.WEB_SAT_PRJT(
+				  PRJTCD
+				, PRFL_ID
+				, PRJTCD1
+				, PRJTCD2
+				, PRJTCD3
+				, PRJT_FRDT
+				, PRJT_TODT
+				, ET_DFN_SAT
+				, ET_TRGT_ADT_TM
+				, SATGRP_CD
+				, SATGRP1_EXPT_YN
+				, INDUS_CD
+				, LIST_DV_CD
+				, INDIV_ASSET
+				, CONSO_SALES
+				, CONSO_ASSET
+				, DESIG_ADT_YN
+				, BIZ_RPRT_YN
+				, PRIOR_ADT_TM
+				, USA_LIST_YN
+				, HOLDINGS_DIV_CD
+				, CONSO_FINSTAT_YN
+				, SBSID_CNT
+				, RPRT_SCDL_DT
+				, FIRST_ADT_YN
+				, FIRST_ADT_FCTR
+				, IFRS_YN
+				, CONSO_INVNT
+				, CONSO_ACCNT_RECEIV
+				, CURR_CONSO_LOSS_YN
+				, CURR_ADTOPIN_CD
+				, INTR_TRAN_ASSET_SALES
+				, RELAT_COMP_ASSET
+				, SBSID_ASSET_WITH_INTR_TRAN
+				, SBSID_SALES_WITH_INTR_TRAN
+				, RJCT_CMNT
+				, BASE_WKMNSP
+				, NEW_STF_WKMNSP
+				, OTHER_WKMNSP
+				, FACTOR_VAL
+				, CAL_ADT_TM
+				, INTR_ADT_YN
+				, INTR_ADT_TM
+				, STAT
+				, CREBY
+				, CREDT
+				, MODBY
+				, MODDT
+				)
+		VALUES (
+				  #{prjtCd}
+				, #{prflId}
+				, #{prjtCd1}
+				, #{prjtCd2}
+				, #{prjtCd3}
+				, #{prjtFrdt}
+				, #{prjtFrdt}
+				, #{etDfnSat}
+				, #{etTrgtAdtTm}
+				, #{satgrpCd}
+				, #{satgrp1ExptYn}
+				, #{indusCd}
+				, #{listDvCd}
+				, #{indivAsset}
+				, #{consoSales}
+				, #{consoAsset}
+				, #{desigAdtYn}
+				, #{bizRprtYn}
+				, #{priorAdtTm}
+				, #{usaListYn}
+				, #{holdingsDivCd}
+				, #{consoFinstatYn}
+				, #{sbsidCnt}
+				, #{rprtScdlDt}
+				, #{firstAdtYn}
+				, #{firstAdtFctr}
+				, #{ifrsYn}
+				, #{consoInvnt}
+				, #{consoAccntReceiv}
+				, #{currConsoLossYn}
+				, #{currAdtopinCd}
+				, #{intrTranAssetSales}
+				, #{relatCompAsset}
+				, #{sbsidAssetWithIntrTran}
+				, #{sbsidSalesWithIntrTran}
+				, #{rjctCmnt}
+				, #{baseWkmnsp}
+				, #{newStfWkmnsp}
+				, #{otherWkmnsp}
+				, #{factorVal}
+				, #{calAdtTm}
+				, #{intrAdtYn}
+				, #{intrAdtTm}
+				, 'CA'
+				, #{session.emplNo}
+				, SYSDATE
+				, #{session.emplNo}
+				, SYSDATE
+		)      
+	</insert> -->
+	
+	<!-- <update id="updateCalcSatInfo" parameterType="map">
+		UPDATE NMSP.WEB_SAT_PRJT A SET
+			  PRJT_FRDT = #{prjtFrdt}
+			, PRJT_TODT = #{prjtFrdt}
+			, ET_DFN_SAT = ROUND(#{etDfnSat}, 2)
+			, ET_TRGT_ADT_TM = ROUND(#{etTrgtAdtTm}, 2)
+			, SATGRP_CD = #{satgrpCd}
+			, SATGRP1_EXPT_YN = #{satgrp1ExptYn}
+			, INDUS_CD = #{indusCd}
+			, LIST_DV_CD = #{listDvCd}
+			, INDIV_ASSET = #{indivAsset}
+			, CONSO_SALES = #{consoSales}
+			, CONSO_ASSET = #{consoAsset}
+			, DESIG_ADT_YN = #{desigAdtYn}
+			, BIZ_RPRT_YN = #{bizRprtYn}
+			, PRIOR_ADT_TM = #{priorAdtTm}
+			, USA_LIST_YN = #{usaListYn}
+			, HOLDINGS_DIV_CD = #{holdingsDivCd}
+			, CONSO_FINSTAT_YN = #{consoFinstatYn}
+			, SBSID_CNT = #{sbsidCnt}
+			, RPRT_SCDL_DT = #{rprtScdlDt}
+			, FIRST_ADT_YN = #{firstAdtYn}
+			, FIRST_ADT_FCTR = #{firstAdtFctr}
+			, IFRS_YN = #{ifrsYn}
+			, CONSO_INVNT = #{consoInvnt}
+			, CONSO_ACCNT_RECEIV = #{consoAccntReceiv}
+			, CURR_CONSO_LOSS_YN = #{currConsoLossYn}
+			, CURR_ADTOPIN_CD = #{currAdtopinCd}
+			, INTR_TRAN_ASSET_SALES = #{intrTranAssetSales}
+			, RELAT_COMP_ASSET = #{relatCompAsset}
+			, SBSID_ASSET_WITH_INTR_TRAN = #{sbsidAssetWithIntrTran}
+			, SBSID_SALES_WITH_INTR_TRAN = #{sbsidSalesWithIntrTran}
+			, RJCT_CMNT = #{rjctCmnt}
+			, BASE_WKMNSP = #{baseWkmnsp}
+			, NEW_STF_WKMNSP = #{newStfWkmnsp}
+			, OTHER_WKMNSP = #{otherWkmnsp}
+			, FACTOR_VAL = #{factorVal}
+			, CAL_ADT_TM = #{calAdtTm}
+			, INTR_ADT_YN = #{intrAdtYn}
+			, INTR_ADT_TM = #{intrAdtTm}
+			, MODBY = #{session.emplNo}
+			, MODDT = SYSDATE
+		WHERE PRJTCD = #{prjtCd}
+		 <if test=" !'sysadmin'.equals(session.roleCd)">
+       	      AND A.CREBY = #{session.emplNo}
+    	 </if>
+	</update> -->
+	
+	
+	<select id="getGrpPrflInfo" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT  
+			BASE_WKMNSP,
+			MAX_RATIO,
+			DFLT_HLF_REVW_YN,
+			DFLT_QUAT_REVW_YN
+		FROM WEB_SAT_PRFL_GRP
+		WHERE PRFL_ID = #{prflId}
+		  AND SATGRP_CD = #{satgrpCd}
+	</select>
+	
+	<delete id="deleteCalcSatInfo" parameterType="map">
+		DELETE FROM NMSP.WEB_SAT_PRJT 
+		WHERE
+		<choose>
+			<when test="prjtCd != null and !''.equals(prjtCd)">
+				PRJTCD = #{prjtCd}		
+			</when>
+			<when test="prjtCdList != null">
+				PRJTCD IN (<foreach collection="prjtCdList" item="prjtCd" separator=", ">#{prjtCd}</foreach>)
+			</when>
+			<otherwise>
+				1=2
+			</otherwise>
+		</choose> 
+		<choose>
+			<when test="session.roleCd == 'sysadmin'"></when>
+			<otherwise>AND CREBY = #{session.emplNo}</otherwise>
+		</choose> 
+		
+	</delete>
+	
+	<select id="getGrpIndusPrfl" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+			SELECT BASE_SAT, INTPL_VAL 
+		  FROM WEB_SAT_PRFL_GRP_INDUS 
+		 WHERE PRFL_ID=#{prflId} 
+		       AND SATGRP_CD=#{satgrpCd} 
+		       AND INDUS_CD = #{indusCd} 
+		       AND BASE_COMP_SIZE = #{baseCompSize}
+	</select>
+	
+	<select id="getGrpYearPrfl" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+	SELECT * FROM WEB_SAT_PRFL_GRP_YEAR WHERE SATGRP_CD=#{satgrpCd} AND APLY_YEAR=${year}
+	</select>
+	
+	
+	<select id="getIntrAdtRatio" parameterType="map" resultType="double">
+		SELECT TO_NUMBER(VAL1) INTR_ADT_RATIO 
+		FROM NMSP.APPMNG_CD 
+ 		WHERE APP_CD= #{appCd} 
+		       AND GRP_CD = 'HOLDINGS_DV' 
+		       AND CD = CASE 
+		       				WHEN #{year} >= '2022' THEN #{year} || '_' || #{holdingsDvCd}||'_INTR_'||NVL(#{intrAdtYcnt}, '0')
+		       				ELSE #{holdingsDvCd}||'_INTR_'||NVL(#{intrAdtYcnt}, '0')
+		       			END
+	</select>
+	
+	<select id="getYear" parameterType="map" resultType="string">
+		SELECT DISTINCT SUBSTR(BIZ_TODT, 0, 4) 
+		  FROM NMSP.WEB_SAT_PRJT 
+		 WHERE BIZ_TODT IS NOT NULL
+		   AND STAT = 'RG'
+		   AND CALC_ONLY_YN = 'Y'
+		ORDER BY SUBSTR(BIZ_TODT, 0, 4) DESC
+	</select>
+</mapper>

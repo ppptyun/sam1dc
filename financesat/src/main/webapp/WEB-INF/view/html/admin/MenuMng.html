@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>표준감사시간관리</title>
+<link href="../../../resources/css/dhtmlx_custom.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc_mediaS.css" rel="stylesheet" type="text/css" media="(max-width:1600px)">
+</head>
+
+<!--[if ie]><body class="lt-ie"><![endif]-->
+<body>
+<div id="wrapper" class="wrapper">
+    <header>
+        <p class="logo">Pwc</p>
+        <p class="pageTitle"><a href="#">Admin Site</a></p>
+			<ul class="topUtil">
+				<li class="utilName"><a href="#">HG</a></li>
+			</ul>
+		<nav>
+			<button type="button" class="navBtn">Menu</button>
+			<div class="navArea">
+				<img src="../../../resources/images/dummy/@nav.gif" alt="">
+			</div>
+		</nav>
+    </header>
+    <hr>
+	
+    <section id="container" class="container">
+        
+        <div id="contents" class="contents">
+           	<!-- 컨텐츠 시작 -->
+            <h1 class="hidden">메뉴 관리</h1>
+			
+			<div class="boxWhite">
+				<div class="adminArea adminArea04">
+					<div class="left">
+						<div class="topArea">
+							<div class="selectbox" style="width:240px">
+								<select title="">
+									<option value="01">어플리케이션 명</option>
+								</select>
+							</div>
+							<div class="btnArea">
+								<button type="button" class="btnPwc btnM action">상위 메뉴 New</button>
+								<button type="button" class="btnPwc btnM action">하위 메뉴 New</button>
+								<button type="button" class="btnPwc btnM action">Delete</button>
+							</div>
+						</div>
+						
+						<div id="" class="empList empListScroll" style="background:#eee">메뉴 트리 영역</div>
+					</div>
+					<div class="right">
+						<div class="topArea">
+							<div class="btnArea">
+								<button type="button" class="btnPwc btnM action">Delete</button>
+								<button type="button" class="btnPwc btnM action">Save</button>
+							</div>
+						</div>
+						<table class="tblForm">
+							<caption>메뉴 등록</caption>
+							<colgroup><col style="width:20%"><col style="width:auto"></colgroup>
+							<tbody>
+								<tr>
+									<th scope="row">메뉴코드</th>
+									<td><input type="text" style="width:310px" title="Role ID 입력"></td>
+								</tr>
+								<tr>
+									<th scope="row">상위 메뉴</th>
+									<td><input type="text" style="width:310px" title="상위 메뉴 입력" readonly></td>
+								</tr>
+								<tr>
+									<th scope="row">메뉴명</th>
+									<td><input type="text" style="width:310px" title="메뉴명 입력"></td>
+								</tr>
+								<tr>
+									<th scope="row">순번</th>
+									<td><input type="text" style="width:310px" title="순번 입력"></td>
+								</tr>
+								<tr>
+									<th scope="row">랜딩페이지</th>
+									<td><div class="frmNowrap"><input type="text" style="width:310px" readonly><button type="button" class="btIco btnSearch gapL" data-path="../popup/Page_Pop.html">검색</button></div></td>
+								</tr>
+								<tr>
+									<th scope="row">Admin여부</th>
+									<td>
+										<div class="selectbox" style="width:310px">
+											<select title="">
+												<option value="01">예</option>
+												<option value="02">아니오</option>
+											</select>
+										</div>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row">사용여부</th>
+									<td>
+										<div class="selectbox" style="width:310px">
+											<select title="">
+												<option value="01">예</option>
+												<option value="02">아니오</option>
+											</select>
+										</div>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row">설명</th>
+									<td><textarea cols="10" rows="15" class="textSt01" placeholder="클릭하면 해당 페이지로 이동합니다."></textarea></td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+				
+			</div><!-- //boxWhite -->
+            <!-- //컨텐츠 끝 -->        
+        </div>
+    </section>
+</div>
+<div id="popInner">
+	
+</div><!-- 레이어팝업 들어가는 부분 -->
+<div class="dimmed"></div>
+<script type="text/javascript" src="../../../resources/lib/jquery/jquery-3.3.1.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery-ui.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery.jscrollpane.min.js"></script>
+<script type="text/javascript" src="../../../resources/js/selectbox_pwc.js"></script>
+<script type="text/javascript" src="../../../resources/js/pwc_ui.js"></script>
+
+</body>
+</html>

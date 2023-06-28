@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:p="http://www.springframework.org/schema/p" 
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+						http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+					    http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+					    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+	
+	
+	<context:component-scan base-package="com.samil.*" >
+		<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+	</context:component-scan>
+	
+	<!-- Common 설정 -->
+	<import resource="./application-comm.xml"/>
+	
+	
+	<!-- ====================== Oracle  ====================== -->
+	<!-- Sql Log Formatter -->
+	<bean id="dataSource-oracle-formatter" class="net.sf.log4jdbc.Log4jdbcProxyDataSource">
+		<constructor-arg ref="dataSourceOracle"/>
+		<property name="logFormatter">
+			<bean class="net.sf.log4jdbc.tools.Log4JdbcCustomFormatter">
+				<property name="loggingType" value="MULTI_LINE" />
+               	<property name="sqlPrefix" value="" />
+			</bean>
+		</property>
+	</bean>
+
+	<!-- Sql Session Factory -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource-oracle-formatter" />
+		<property name="mapperLocations">
+			<list>
+				<value>classpath:mybatis/mapper/*-mapper.xml</value>
+			</list>
+		</property>
+		<property name="configLocation">
+			<value>classpath:mybatis/config/mybatis-config.xml</value>
+		</property>
+	</bean>
+	<!-- Scanner -->
+	<bean id="dsScanner" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.samil.stdadt.mapper" />
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" />
+	</bean>
+	<!-- AOP : Transaction 설정 -->
+    <bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource-oracle-formatter" />
+	</bean>
+	<tx:advice id="txAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="get*" read-only="true" />
+			<tx:method name="check*" read-only="true" />
+			<tx:method name="select*" read-only="true" />
+			<tx:method name="*" rollback-for="Exception" />
+		</tx:attributes>
+	</tx:advice>
+	<aop:config>
+		<aop:advisor advice-ref="txAdvice" pointcut="execution(* com.samil..service..impl.*Impl.*(..))" />
+	</aop:config>	
+	
+	
+	
+	<!-- ====================== Retain  ====================== -->
+	<!-- Sql Log Formatter -->
+	<bean id="dataSource-retain-formatter" class="net.sf.log4jdbc.Log4jdbcProxyDataSource">
+		<constructor-arg ref="dataSourceRetain"/>
+		<property name="logFormatter">
+			<bean class="net.sf.log4jdbc.tools.Log4JdbcCustomFormatter">
+				<property name="loggingType" value="MULTI_LINE" />
+               	<property name="sqlPrefix" value="" />
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- Sql Session Factory -->
+	<bean id="sqlSessionFactoryRetain" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource-retain-formatter" />
+		<property name="mapperLocations">
+			<list>
+				<value>classpath:mybatis/mapper/retain/*-mapper.xml</value>
+			</list>
+		</property>
+		<property name="configLocation">
+			<value>classpath:mybatis/config/mybatis-retain-config.xml</value>
+		</property>
+	</bean>
+	
+	<!-- Scanner -->
+	<bean id="dsScannerRetain" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.samil.stdadt.retain.mapper" />
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactoryRetain" />
+	</bean>
+	
+	<!-- AOP : Transaction 설정 -->
+	<bean id="txManagerRetain" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource-retain-formatter" />
+	</bean>
+    <tx:advice id="txAdviceRetain" transaction-manager="txManagerRetain">
+		<tx:attributes>
+			<tx:method name="get*" read-only="true" />
+			<tx:method name="check*" read-only="true" />
+			<tx:method name="select*" read-only="true" />
+			<tx:method name="*" rollback-for="Exception" />
+		</tx:attributes>
+	</tx:advice>
+	<aop:config>
+		<aop:advisor advice-ref="txAdviceRetain" pointcut="execution(* com.samil.stdadt.retain.service.impl.*Impl.*(..))" />
+	</aop:config>
+	
+</beans>

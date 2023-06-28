@@ -1,0 +1,515 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.samil.stdadt.mapper.ProjectInfoMapper">
+
+	<!-- 20230216 Budget 입력주기(BUDGET_INPUT_CYCLE) 추가 V4 를 위해서...  -->
+	<select id="getPrjtMetaInfo" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT STAT, 
+			   FORM_DIV,
+			   NVL(CMPLT_CNT, 0) CMPLT_CNT, 
+			   RETAIN_TRAN_YN, 
+			   DECODE(CHARGPTR, #{session.emplNo}, '1', '0') IS_EL, 
+			   CAN_EDIT, 
+			   CAN_DELETE,
+			   CAN_RESTORE,
+			   CAN_DELETE_PERMANENTLY,
+			   BUDGET_INPUT_CYCLE
+		FROM (<include refid="satSql.authProjectInfo" />)
+	</select>
+	
+	<select id="getPrjtInfoSimple" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT A.PRJTCD PRJT_CD, 
+		       A.SATGRP_CD, 
+		       A.PRFL_ID, 
+		       REPLACE(A.PRJT_FRDT, '-', '') PRJT_FRDT, 
+		       REPLACE(A.PRJT_TODT, '-', '') PRJT_TODT, 
+		       A.BASE_WKMNSP,
+		       A.STAT,
+		       B.PRJTNM,
+		       B.SHRTNM,
+		       B.PRJTPNM
+		  FROM WEB_SAT_PRJT A, PMPRJTBS B 
+		 WHERE A.PRJTCD = #{prjtCd}
+		 	AND A.PRJTCD1 = B.PRJTCD1
+		 	AND A.PRJTCD2 = B.PRJTCD2
+		 	AND A.PRJTCD3 = B.PRJTCD3 
+	</select>
+	
+	<select id="getWkmnsp" parameterType="string" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'NEWSTAFF', 'VAL1')) NEW_STF_WKMNSP, 
+	       TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'OHTER', 'VAL1')) OTHER_WKMNSP 
+	  	FROM DUAL
+	</select>
+	
+	
+	<select id="getProjectInfo" parameterType="map" resultType="ProjectInfoVO">
+		SELECT 
+			   A.*,
+			   NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'DESIG_ADT_YN', A.DESIG_ADT_YN, 'NM') DESIG_ADT_YN_NM,
+	           ((SELECT SUM(CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT WHERE P_PRJTCD = A.PRJTCD) + A.CNTRT_FEE) TOT_CNTRT_FEE,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SAT_TRGT_YN', A.SAT_TRGT_YN, 'NM') SAT_TRGT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INDUS', A.INDUS_CD, 'NM') INDUS_NM,
+	           ROUND( (A.CONSO_SALES + A.CONSO_ASSET)/2, 0) COMP_SIZE,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LISTDV', A.LIST_DV_CD, 'NM') LIST_DV_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'BIZRPRT_YN', A.BIZ_RPRT_YN, 'NM') BIZ_RPRT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP1_EXPT_YN', A.SATGRP1_EXPT_YN, 'NM') SATGRP1_EXPT_YN_NM,
+	           (SELECT MAX(SATGRP_CD) SATGRP_CD FROM WEB_SAT_PRFL_GRP_YEAR WHERE APLY_YEAR= SUBSTR(A.PRJT_FRDT, 0, 4)) MAX_SATGRP_CD, 
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', A.SATGRP_CD, 'NM') SATGRP_NM, 
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'USALIST_YN', A.USA_LIST_YN, 'NM') USA_LIST_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'HOLDINGS_DV', A.HOLDINGS_DIV_CD, 'NM') HOLDINGS_DIV_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'CONSO_YN', A.CONSO_FINSTAT_YN, 'NM') CONSO_FINSTAT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'FIRST_YN', A.FIRST_ADT_YN, 'NM') FIRST_ADT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'IFRS_YN', A.IFRS_YN, 'NM') IFRS_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LOSS_YN', A.CURR_CONSO_LOSS_YN, 'NM') CURR_CONSO_LOSS_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'ADTOPIN_YN', A.CURR_ADTOPIN_CD, 'NM') CURR_ADTOPIN_NM,
+	           (A.WKMNSP_SAT + A.ETC_BDGT_TM) TOT_PRJT_BDGT, 
+	           NMSP.SF_EMP_NAME(A.RA_BDGT_MGR) RA_BDGT_MGR_NM, 
+		       NMSP.SF_EMP_GRADNM(A.RA_BDGT_MGR) RA_BDGT_MGR_GRAD_NM,
+	           NMSP.SF_EMP_NAME(A.FLCM_BDGT_MGR) FLCM_BDGT_MGR_NM, 
+		       NMSP.SF_EMP_GRADNM(A.FLCM_BDGT_MGR) FLCM_BDGT_MGR_GRAD_NM,
+	           NMSP.SF_EMP_NAME(A.CREBY) CREBY_NM, 
+		       NMSP.SF_EMP_NAME(A.MODBY) MODBY_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INTR_ADT_YN', A.INTR_ADT_YN, 'NM') INTR_ADT_YN_NM
+		  FROM (<include refid="satSql.authProjectInfo" />) A
+	</select>
+	
+	<select id="checkExistProject" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT    STAT
+				, CREBY
+				, NMSP.SF_EMP_NAME(CREBY) CREBY_NM 
+				, CREDT
+				, MODBY
+				, NMSP.SF_EMP_NAME(MODBY) MODBY_NM
+				, MODDT
+		 FROM NMSP.WEB_SAT_PRJT
+		 WHERE PRJTCD = #{prjtCd}
+	</select>
+	
+	<insert id="addProjectInfo" parameterType="map">
+		INSERT INTO NMSP.WEB_SAT_PRJT(
+				  PRJTCD
+				, PRFL_ID
+				, PRJTCD1
+				, PRJTCD2
+				, PRJTCD3
+				, PRJT_TODT
+				, PRJT_FRDT
+				, CNTRT_FEE
+				, RCRD_MGR
+				, RCRD_MGR2
+				, RCRD_MGR3
+				, SAT_TRGT_YN
+				, ET_DFN_SAT
+				, ET_TRGT_ADT_TM
+				, ETC_BDGT_TM
+				, SATGRP_CD
+				, SATGRP1_EXPT_YN
+				, INDUS_CD
+				, LIST_DV_CD
+				, INDIV_ASSET
+				, CONSO_SALES
+				, CONSO_ASSET
+				, DESIG_ADT_YN
+				, BIZ_RPRT_YN
+				, PRIOR_ADT_TM
+				, USA_LIST_YN
+				, HOLDINGS_DIV_CD
+				, CONSO_FINSTAT_YN
+				, SBSID_CNT
+				, RPRT_SCDL_DT
+				, FIRST_ADT_YN
+				, FIRST_ADT_FCTR
+				, IFRS_YN
+				, CONSO_INVNT
+				, CONSO_ACCNT_RECEIV
+				, CURR_CONSO_LOSS_YN
+				, CURR_ADTOPIN_CD
+				, INTR_TRAN_ASSET_SALES
+				, RELAT_COMP_ASSET
+				, SBSID_ASSET_WITH_INTR_TRAN
+				, SBSID_SALES_WITH_INTR_TRAN
+				, RA_BDGT_TM
+				, RA_BDGT_MGR
+				, FLCM_BDGT_TM
+				, FLCM_BDGT_MGR
+				, OTHER_BDGT_TM
+				, RJCT_CMNT
+				, BASE_WKMNSP
+				, NEW_STF_WKMNSP
+				, OTHER_WKMNSP
+				, FACTOR_VAL
+				, CAL_ADT_TM
+				, INTR_ADT_YN
+				, INTR_ADT_TM
+				, STAT
+				, CREBY
+				, CREDT
+				, MODBY
+				, MODDT
+				)
+		VALUES (
+				  #{prjtCd}
+				, #{prflId}
+				, #{prjtCd1}
+				, #{prjtCd2}
+				, #{prjtCd3}
+				, #{prjtTodt}
+				, #{prjtFrdt}
+				, #{cntrtFee}
+				, #{rcrdMgr}
+				, #{rcrdMgr2}
+				, #{rcrdMgr3}
+				, #{satTrgtYn}
+				, #{etDfnSat}
+				, #{etTrgtAdtTm}
+				, #{etcBdgtTm}
+				, #{satgrpCd}
+				, #{satgrp1ExptYn}
+				, #{indusCd}
+				, #{listDvCd}
+				, #{indivAsset}
+				, #{consoSales}
+				, #{consoAsset}
+				, #{desigAdtYn}
+				, #{bizRprtYn}
+				, #{priorAdtTm}
+				, #{usaListYn}
+				, #{holdingsDivCd}
+				, #{consoFinstatYn}
+				, #{sbsidCnt}
+				, #{rprtScdlDt}
+				, #{firstAdtYn}
+				, #{firstAdtFctr}
+				, #{ifrsYn}
+				, #{consoInvnt}
+				, #{consoAccntReceiv}
+				, #{currConsoLossYn}
+				, #{currAdtopinCd}
+				, #{intrTranAssetSales}
+				, #{relatCompAsset}
+				, #{sbsidAssetWithIntrTran}
+				, #{sbsidSalesWithIntrTran}
+				, #{raBdgtTm}
+				, #{raBdgtMgr}
+				, #{flcmBdgtTm}
+				, #{flcmBdgtMgr}
+				, #{otherBdgtTm}
+				, #{rjctCmnt}
+				, #{baseWkmnsp}
+				, #{newStfWkmnsp}
+				, #{otherWkmnsp}
+				, #{factorVal}
+				, #{calAdtTm}
+				, #{intrAdtYn}
+				, #{intrAdtTm}
+				, NVL(#{stat}, 'RG')
+				, #{session.emplNo}
+				, SYSDATE
+				, #{session.emplNo}
+				, SYSDATE
+		)      
+	</insert>
+	
+	<update id="updateProjectInfo" parameterType="map">
+		UPDATE NMSP.WEB_SAT_PRJT A SET
+			  PRJT_TODT = #{prjtTodt}
+			, PRJT_FRDT = #{prjtFrdt}
+			, CNTRT_FEE = #{cntrtFee}
+			, RCRD_MGR = #{rcrdMgr}
+			, RCRD_MGR2 = #{rcrdMgr2}
+			, RCRD_MGR3 = #{rcrdMgr3}
+			, SAT_TRGT_YN = #{satTrgtYn}
+			, ET_DFN_SAT = ROUND(#{etDfnSat}, 2)
+			, ET_TRGT_ADT_TM = ROUND(#{etTrgtAdtTm}, 2)
+			, ETC_BDGT_TM = #{etcBdgtTm}
+			, SATGRP_CD = #{satgrpCd}
+			, SATGRP1_EXPT_YN = #{satgrp1ExptYn}
+			, INDUS_CD = #{indusCd}
+			, LIST_DV_CD = #{listDvCd}
+			, INDIV_ASSET = #{indivAsset}
+			, CONSO_SALES = #{consoSales}
+			, CONSO_ASSET = #{consoAsset}
+			, DESIG_ADT_YN = #{desigAdtYn}
+			, BIZ_RPRT_YN = #{bizRprtYn}
+			, PRIOR_ADT_TM = #{priorAdtTm}
+			, USA_LIST_YN = #{usaListYn}
+			, HOLDINGS_DIV_CD = #{holdingsDivCd}
+			, CONSO_FINSTAT_YN = #{consoFinstatYn}
+			, SBSID_CNT = #{sbsidCnt}
+			, RPRT_SCDL_DT = #{rprtScdlDt}
+			, FIRST_ADT_YN = #{firstAdtYn}
+			, FIRST_ADT_FCTR = #{firstAdtFctr}
+			, IFRS_YN = #{ifrsYn}
+			, CONSO_INVNT = #{consoInvnt}
+			, CONSO_ACCNT_RECEIV = #{consoAccntReceiv}
+			, CURR_CONSO_LOSS_YN = #{currConsoLossYn}
+			, CURR_ADTOPIN_CD = #{currAdtopinCd}
+			, INTR_TRAN_ASSET_SALES = #{intrTranAssetSales}
+			, RELAT_COMP_ASSET = #{relatCompAsset}
+			, SBSID_ASSET_WITH_INTR_TRAN = #{sbsidAssetWithIntrTran}
+			, SBSID_SALES_WITH_INTR_TRAN = #{sbsidSalesWithIntrTran}
+			, RA_BDGT_TM = #{raBdgtTm}
+			, RA_BDGT_MGR = #{raBdgtMgr}
+			, FLCM_BDGT_TM = #{flcmBdgtTm}
+			, FLCM_BDGT_MGR = #{flcmBdgtMgr}
+			, OTHER_BDGT_TM = #{otherBdgtTm}
+			, RJCT_CMNT = #{rjctCmnt}
+			, BASE_WKMNSP = #{baseWkmnsp}
+			, NEW_STF_WKMNSP = #{newStfWkmnsp}
+			, OTHER_WKMNSP = #{otherWkmnsp}
+			, FACTOR_VAL = #{factorVal}
+			, CAL_ADT_TM = #{calAdtTm}
+			, INTR_ADT_YN = #{intrAdtYn}
+			, INTR_ADT_TM = #{intrAdtTm}
+			, STAT = #{stat}
+			, PREV_STAT = STAT
+			, MODBY = #{session.emplNo}			
+			, MODDT = SYSDATE
+		WHERE PRJTCD = #{prjtCd}
+		 <if test=" !'sysadmin'.equals(session.roleCd) and !'admin'.equals(session.roleCd)">
+       	      AND (EXISTS (SELECT 1 
+       	      				FROM PMPRJTBS B 
+       	      			  WHERE B.PRJTCD1 = A.PRJTCD1 
+       	      			  	AND B.PRJTCD2 = A.PRJTCD2
+       	      			  	AND B.PRJTCD3 = A.PRJTCD3
+       	      			  	AND (B.CHARGPTR = #{session.emplNo} OR B.CHARGMGR = #{session.emplNo}))
+       	      		OR A.RCRD_MGR = #{session.emplNo}
+       	      		OR A.RCRD_MGR2 = #{session.emplNo}
+       	      		OR A.RCRD_MGR3 = #{session.emplNo}
+					OR A.CREBY = #{session.emplNo} )
+    	 </if>
+	</update>
+
+	<select id="getSubProject" parameterType="map" resultType="SubProjectVO">
+		SELECT A.P_PRJTCD,
+			   A.PRJTCD,
+		       B.PRJTNM,
+		       B.CHARGPTR,
+		       NMSP.SF_EMP_NAME(B.CHARGPTR) CHARGPTR_NM,
+		       NMSP.SF_EMP_GRADNM(B.CHARGPTR) CHARGPTR_GRAD_NM,
+		       B.CHARGMGR,
+		       NMSP.SF_EMP_NAME(B.CHARGMGR) CHARGMGR_NM,
+		       NMSP.SF_EMP_GRADNM(B.CHARGMGR) CHARGMGR_GRAD_NM,
+		       A.CNTRT_FEE,
+		       A.ORDBY
+		  FROM nmsp.WEB_SAT_SUB_PRJT A,
+		       NMSP.PMPRJTBS B
+		  WHERE A.PRJTCD1 = B.PRJTCD1
+		       AND A.PRJTCD2 = B.PRJTCD2
+		       AND A.PRJTCD3 = B.PRJTCD3
+		       AND A.P_PRJTCD = #{prjtCd}
+		  ORDER BY ORDBY
+	</select>
+	
+	<insert id="addSubProject" parameterType="map">
+		INSERT INTO NMSP.WEB_SAT_SUB_PRJT(P_PRJTCD, PRJTCD, PRJTCD1, PRJTCD2, PRJTCD3, CNTRT_FEE, ORDBY, CREDT, CREBY, MODDT, MODBY)
+		VALUES (#{pPrjtCd}, #{prjtCd}, #{prjtCd1}, #{prjtCd2}, #{prjtCd3}, #{cntrtFee}, #{ordby}, SYSDATE, #{session.emplNo}, SYSDATE, #{session.emplNo})
+	</insert>
+		
+ <!-- ===========================================================
+		[시작] 20220215 남웅주  표준감사시간대상 적용 연차 : SAT_TRGT_YCNT 추가 
+			20230131 Budget 입력 주기 : BUDGET_INPUT_CYCLE 추가
+	  =========================================================== -->		
+	<select id="getSelOption" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT A.GRP_CD,
+		       A.GRP_NM,
+		       B.CD,
+		       B.NM 
+		  FROM NMSP.APPMNG_GRPCD A, 
+		       APPMNG_CD B 
+		 WHERE A.APP_CD = B.APP_CD 
+		       AND A.GRP_CD = B.GRP_CD 
+		       AND A.APP_CD= #{appCd} 
+		       AND A.GRP_CD IN ('DESIG_ADT_YN', 'INDUS', 'LISTDV', 'LISTDV_V2', 'BIZRPRT_YN' , 'SATGRP1_EXPT_YN' , 'SATGRP' , 
+		       					'USALIST_YN' , 'HOLDINGS_DV' , 'CONSO_YN' , 'IFRS_YN' , 'FIRST_YN' , 'LOSS_YN' , 'ADTOPIN_YN', 
+		       					'SAT_TRGT_YN', 'CONTI_ADT_CNT', 'INTR_ADT_YCNT', 'KAM_YN', 'PRIOR_ADTOPIN_CHG_YN', 'PRIOR_LOSS_YN',
+		       					'MIN_MAX_YN', 'MIN_MAX_REASON', 'FST_ADT_TM_REASON', 'FST_WKMNSP_REASON', 'PRIOR_ADT_TM_REASON', 
+		       					'PRIOR_WKMNSP_REASON', 'INTR_ADT_YN', 'SAT_TRGT_YCNT', 'ETC_FCTR_YN', 'LISTDV_V4', 'BUDGET_INPUT_CYCLE')
+		       AND B.P_CD = 'root'  
+		       AND A.USE_YN = 'Y' 
+		       AND B.USE_YN = 'Y' 
+		ORDER BY a.ORDBY, 
+		       b.ORDBY
+	</select>
+ <!-- ===========================================================
+		[종료] 20220215 남웅주  표준감사시간대상 적용 연차 : SAT_TRGT_YCNT 추가
+			20230131 Budget 입력 주기 : BUDGET_INPUT_CYCLE 추가 
+	  =========================================================== -->	
+	
+	<select id="getToolTipColumnStr" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT LISTAGG('''' || CD || ''' AS ' || CD,',') WITHIN GROUP (ORDER BY ORDBY) COL_STR 
+		FROM (SELECT CD, ORDBY FROM APPMNG_CD 
+		WHERE APP_CD= #{appCd} AND GRP_CD = 'TOOLTIP' AND USE_YN = 'Y')
+	</select>
+	
+	<select id="getTooltip" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT * 
+		  FROM 
+		       (SELECT CD,
+		               DSCRT
+		         FROM APPMNG_CD 
+		        WHERE APP_CD= #{appCd} 
+		              AND GRP_CD = 'TOOLTIP' 
+		              AND USE_YN = 'Y' 
+		       ) PIVOT (MAX(DSCRT) FOR CD IN (${columnStr}))
+	</select>
+	
+	<select id="getFactorVal" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT A.FACTOR_CD,
+		       NVL(CASE WHEN A.FACTOR_CD='SBSID' OR A.FACTOR_CD='RSKACNT' THEN  B.VAL1 ELSE A.VAL1 END, 1) VAL1,
+		       A.VAL2 
+		  FROM WEB_SAT_PRFL_GRP_FCTR A , 
+		       (SELECT PRFL_ID,
+		              SATGRP_CD,
+		              FACTOR_CD,
+		              VAL1 
+		         FROM WEB_SAT_PRFL_GRP_FCTR_VAL 
+		        WHERE (
+		        		(FACTOR_CD = 'SBSID' AND GRP_FACTOR_DIV= #{sbsid}) 
+		                OR 
+		                (FACTOR_CD = 'RSKACNT' AND GRP_FACTOR_DIV= #{rskacnt}) 
+		              ) 
+		       ) B 
+		 WHERE a.PRFL_ID = b.PRFL_ID(+) 
+		       AND a.SATGRP_CD= b.SATGRP_CD(+) 
+		       AND a.FACTOR_CD = b.FACTOR_CD(+) 
+		       AND a.SATGRP_CD = #{satgrpCd}
+		       AND A.PRFL_ID = #{prflId}
+	</select>
+	
+	<select id="getInterpolation" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT BASE_SAT,INTPL_VAL 
+		  FROM WEB_SAT_PRFL_GRP_INDUS 
+		 WHERE PRFL_ID = #{prflId} 
+		       AND SATGRP_CD= #{satgrpCd} 
+		       AND BASE_COMP_SIZE= #{intpCompSize}
+		       AND INDUS_CD= #{indusCd}
+	</select>
+	
+	
+	<select id="getYearRate" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT APLY_RATE 
+		  FROM WEB_SAT_PRFL_GRP_YEAR 
+		 WHERE SATGRP_CD = #{satgrpCd} 
+		       AND APLY_YEAR= #{year}
+	</select>
+	
+	<select id="getSatgrpInfo" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT BASE_WKMNSP,MAX_RATIO 
+		  FROM WEB_SAT_PRFL_GRP 
+		 WHERE PRFL_ID=1 
+		       AND SATGRP_CD = #{satgrpCd}
+	</select>
+	
+	<select id="getSatgrpList" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT SATGRP_CD, SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', SATGRP_CD, 'NM') SATGRP_NM
+		  FROM WEB_SAT_PRFL_GRP_YEAR 
+		 WHERE APLY_YEAR= #{year} 
+		ORDER BY SATGRP_CD
+	</select>
+	
+	<select id="getSatgrpListByPrjtCd" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT SATGRP_CD, SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', SATGRP_CD, 'NM') SATGRP_NM
+		  FROM WEB_SAT_PRFL_GRP_YEAR 
+		 WHERE APLY_YEAR= (SELECT SUBSTR(PRJT_FRDT, 0, 4) FROM WEB_SAT_PRJT WHERE PRJTCD = #{prjtCd}) 
+		ORDER BY SATGRP_CD
+	</select>
+	
+	
+	<select id="getProfileId" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT PRFL_ID FROM WEB_SAT_PRFL WHERE TO_CHAR(SYSDATE, 'YYYY-MM-DD') BETWEEN APLY_FRDT AND APLY_TODT
+	</select>
+	
+	<update id="updateStatus" parameterType="map">
+		UPDATE NMSP.WEB_SAT_PRJT A
+		SET A.STAT = #{stat},
+			A.PREV_STAT = A.STAT,
+			A.APRV_REQ_EMPLNO = #{session.emplNo},
+			A.MOD_REASON_CD = #{modReasonCd},
+			A.MOD_REASON_CMNT = TO_NCHAR(#{modReasonCmnt}),
+			A.APRV_REQ_DT = SYSDATE
+		WHERE A.PRJTCD = #{prjtCd}
+	</update>
+	
+	<delete id="delPrjt" parameterType="map">
+		DELETE FROM NMSP.WEB_SAT_PRJT WHERE
+		<choose>
+			<when test="prjtCd != null and !prjtCd.equals('')">
+			PRJTCD = #{prjtCd}
+			</when>
+			<when test="prjtCdList != null">
+			PRJTCD IN (<foreach collection="prjtCdList" item="prjtCd" separator=",">#{prjtCd}</foreach>)
+			</when>
+			<otherwise>1=2</otherwise>
+		</choose>
+	</delete>
+	<delete id="delSubPrjt" parameterType="map">
+		DELETE FROM NMSP.WEB_SAT_SUB_PRJT WHERE
+		<choose>
+			<when test="prjtCd != null and !prjtCd.equals('')">
+			P_PRJTCD = #{prjtCd}
+			</when>
+			<when test="prjtCdList != null">
+			P_PRJTCD IN (<foreach collection="prjtCdList" item="prjtCd" separator=",">#{prjtCd}</foreach>)
+			</when>
+			<otherwise>1=2</otherwise>
+		</choose>
+	</delete>
+	<delete id="delMemb" parameterType="map">
+		DELETE FROM NMSP.WEB_SAT_MEMB WHERE
+		<choose>
+			<when test="prjtCd != null and !prjtCd.equals('')">
+			PRJTCD = #{prjtCd}
+			</when>
+			<when test="prjtCdList != null">
+			PRJTCD IN (<foreach collection="prjtCdList" item="prjtCd" separator=",">#{prjtCd}</foreach>)
+			</when>
+			<otherwise>1=2</otherwise>
+		</choose>
+	</delete>
+	<delete id="delMembBdgt" parameterType="map">
+		DELETE FROM NMSP.WEB_SAT_MEMB_BDGT WHERE
+		<choose>
+			<when test="prjtCd != null and !prjtCd.equals('')">
+			PRJTCD = #{prjtCd}
+			</when>
+			<when test="prjtCdList != null">
+			PRJTCD IN (<foreach collection="prjtCdList" item="prjtCd" separator=",">#{prjtCd}</foreach>)
+			</when>
+			<otherwise>1=2</otherwise>
+		</choose>
+	</delete>
+	<update id="initPrjtOfAuditDashboard" parameterType="map">
+		UPDATE NMSP.WEB_ADPRJT SET
+		        ET_DFN_SAT = NULL
+		      , WKMNSP_TEAM = NULL
+		      , WKMNSP_SAT_TEAM = NULL
+		      , ACTUAL_TIME = NULL
+		      , PROGRESS = NULL
+		      , SATGRP_CD = NULL
+		      , BASE_WKMNSP = 0
+		      , ET_TRGT_ADT_TM = NULL
+		      , BDGT_TM = NULL
+		WHERE PRJTCD = #{prjtCd}
+	</update>
+	
+<!-- ===========================================================
+	[시작] 20230131 Budget 입력 주기 : Budget v4에서 저장시에 최도 
+	        BUDGET_INPUT_CYCLE 가 비어 있을때만 업데이트 한다.
+		매주 Weekly
+		월별 Monthly
+		분기별 Quarterly
+		매년 Annually
+	=========================================================== -->
+	<update id="updateBudgetInputCycle" parameterType="map">
+		UPDATE NMSP.WEB_SAT_PRJT A
+		   SET A.BUDGET_INPUT_CYCLE = #{budgetInputCycle}
+		 WHERE A.PRJTCD = #{prjtCd}
+		   AND A.BUDGET_INPUT_CYCLE IS NULL		   
+	</update>
+<!-- ===========================================================
+	[종료] 20230131 Budget 입력 주기
+    =========================================================== -->		
+</mapper>

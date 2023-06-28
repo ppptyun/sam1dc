@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>표준감사시간관리</title>
+<link href="../../../resources/css/dhtmlx_custom.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc_mediaS.css" rel="stylesheet" type="text/css" media="(max-width:1600px)">
+</head>
+
+<!--[if ie]><body class="lt-ie"><![endif]-->
+<body>
+<div id="wrapper" class="wrapper">
+    <header>
+        <p class="logo">Pwc</p>
+        <p class="pageTitle"><a href="#">표준감사시간관리</a></p>
+			<ul class="topUtil">
+				<li class="utilName"><a href="#">HG</a></li>
+				<li class="utilHelp"><a href="#">도움말</a></li>
+			</ul>
+		<nav>
+			<button type="button" class="navBtn">Menu</button>
+			<div class="navArea">
+				<img src="../../../resources/images/dummy/@nav.gif" alt="">
+			</div>
+		</nav>
+    </header>
+    <hr>
+	
+    <section id="container" class="container">
+        
+        <div id="contents" class="contents">
+           	<!-- 컨텐츠 시작 -->
+            <h1 class="hidden">Budget Hour</h1>
+			
+			<div class="boxWhite">
+				
+				<ul class="tabType01">
+					<li><a href="#">프로젝트 정보</a></li>
+					<li class="on"><a href="#">Budget Hour</a></li>
+				</ul>
+				
+				<div class="btnArea">
+					<button type="button" class="btnPwc btnM action" data-path="./popup/ReasonReject_Pop.html">반려의견 보기</button>
+					<button type="button" class="btnPwc btnM action">승인</button>
+					<button type="button" class="btnPwc btnM action">반려</button>
+					<button type="button" class="btnPwc btnM action">Close</button>
+				</div>
+			
+				<div class="boxLine sumArea toggleOpen">
+					<p class="proTitle">아모레퍼시픽/2019재무구조개선<span>12345-12-123</span></p>
+					
+					<div class="sumList">
+						<ul>
+							<!-- 2019-02-28 수정 -->
+							<li class="info01"><b>계약금액(백만원)</b>10,000,000</li>
+							<li class="info02"><b>Project 총예산</b>100,000,000</li>
+							<li class="info03"><b>Total Budget Hour
+								<!-- 2019-03-26 추가 -->
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										Engagement Team에서 입력한 시간이 집계됩니다.<br>(Fulcrum, RA 배부 시간 등이 포함)
+									</div>
+								</div>
+								<!-- //2019-03-26 추가 -->
+							</b><span class="colPoint01">00,000.00</span> hr</li><!-- 2019-03-27 수정 -->
+							<li class="info04"><b>Total Budget Hour<br>(연차별 가중치고려)
+								<!-- 2019-03-26 추가 -->
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										Engagement Team에서 입력한 시간이 집계됩니다.<br>(Fulcrum, RA 배부 시간 등이 포함)
+									</div>
+								</div>
+								<!-- //2019-03-26 추가 -->
+							</b><span class="colPoint01">xx,000.00</span> hr</li><!-- 2019-03-27 수정 -->
+							<li class="info05"><b>기준 숙련도 기준<br>표준감사시간</b>XX,000,000</li>
+							<li class="info06"><b>예상 CM(백만원)</b>10,000,000</li>
+						</ul>
+					</div>
+					<button type="button" class="btnTog" aria-expanded="false">열기</button>
+				</div>
+				
+				<div class="titArea marT20">
+					<h2 class="titDep2">Budget Hour</h2>
+					<!-- 2019-03-04 수정 -->
+					<ul class="txtInfo02">
+						<li><em>New Staff 예측 투입시간</em> : 11,125.00 hr * 0.4 (숙련도) = <span>4,450.00</span> hr </li>
+						<li><em>Other 투입시간</em> : 11,125.00 hr * 0.4 (숙련도) = <span>4,450.00</span> hr </li>
+						<li><em>RA 배부예산</em> : XX,000.00 hr * 0.4 (숙련도) = <span>4,450.00</span> hr </li>
+						<li><em>Fulcrum 배부예산</em> : XX,000.00 hr * 0.4 (숙련도) = <span>4,450.00</span> hr </li>
+					</ul>
+					<!-- //2019-03-04 수정 -->
+					
+					<div class="btnArea side">
+						<button type="button" class="btnPwc btnS">도움말</button>
+					</div>
+				</div>
+				
+				<div class="gridbox gridHp03">그리드 영역</div>
+					
+			
+			</div><!-- //boxWhite -->
+            <!-- //컨텐츠 끝 -->        
+        </div>
+    </section>
+</div>
+<div id="popInner">
+	
+</div><!-- 레이어팝업 들어가는 부분 -->
+<div class="dimmed"></div>
+<script type="text/javascript" src="../../../resources/lib/jquery/jquery-3.3.1.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery-ui.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery.jscrollpane.min.js"></script>
+<script type="text/javascript" src="../../../resources/js/selectbox_pwc.js"></script>
+<script type="text/javascript" src="../../../resources/js/pwc_ui.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>표준감사시간관리</title>
+<link href="../../../resources/css/dhtmlx_custom.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc_mediaS.css" rel="stylesheet" type="text/css" media="(max-width:1600px)">
+</head>
+
+<!--[if ie]><body class="lt-ie"><![endif]-->
+<body>
+<div id="wrapper" class="wrapper">
+    <header>
+        <p class="logo">Pwc</p>
+        <p class="pageTitle"><a href="#">표준감사시간관리</a></p>
+			<ul class="topUtil">
+				<li class="utilName"><a href="#">HG</a></li>
+				<li class="utilHelp"><a href="#">도움말</a></li>
+			</ul>
+		<nav>
+			<button type="button" class="navBtn">Menu</button>
+			<div class="navArea">
+				<img src="../../../resources/images/dummy/@nav.gif" alt="">
+			</div>
+		</nav>
+    </header>
+    <hr>
+	
+    <section id="container" class="container">
+        
+        <div id="contents" class="contents">
+           	<!-- 컨텐츠 시작 -->
+            <h1 class="hidden">Project Form</h1>
+			
+			<div class="boxWhite">
+				<div class="pageFixed">
+					<div class="inner">
+						<ul class="tabType01">
+							<li class="on"><a href="#">프로젝트 정보</a></li>
+							<li><a href="#">Budget Hour</a></li>
+						</ul>
+						<!-- 2019-03-08 수정 -->
+						<div class="btnArea">
+							<button type="button" class="btnPwc btnM action">반려의견 보기</button>
+							<button type="button" class="btnPwc btnM action">Edit</button>
+							<button type="button" class="btnPwc btnM action">Delete</button>
+							<button type="button" class="btnPwc btnM action">Close</button>
+						</div>
+						<!-- //2019-03-08 수정 -->
+					</div>
+				</div>
+			
+				<h2 class="titDep2">Project 생성</h2>
+					
+				<table class="tblForm">
+					<caption>프로젝트 생성 테이블</caption>
+					<colgroup><col style="width:auto"><col style="width:27%"><col style="width:24%"><col style="width:27%"></colgroup>
+					<tbody>
+						<tr>
+							<th scope="row">Project Name</th>
+							<td colspan="3">㈜삼성전자엔진주)/2019회계감사</td>
+						</tr>
+						<tr>
+							<th scope="row">Client Name</th>
+							<td>㈜삼성전자</td>
+							<th scope="row">Project Code</th>
+							<td>xxxxx-xx-xxx</td>
+						</tr>
+						<tr>
+							<th scope="row">용역명</th>
+							<td>2019회계감사</td>
+							<th scope="row">계약보수</th>
+							<td class="tright">x,000,000 원</td>
+						</tr>
+						<tr>
+							<th scope="row">Engagement Leader</th>
+							<td>홍길동(123456) / Partner</td>
+							<th scope="row">Project Manager</th>
+							<td>홍길동(123456) / Manager</td>
+						</tr>
+						<tr>
+							<th scope="row">Record Manager</th>
+							<td>홍길동(123456) / Manager</td>
+							<th scope="row">지정감사 여부</th>
+							<td>O</td>
+						</tr>
+						<tr>
+							<th scope="row">Project 시작일</th>
+							<td>2019-01-02</td>
+							<th scope="row">Project 종료일
+								<!-- 2019-03-29 추가 -->
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										 모니터링(Dashboard 포함) 시간 집계 종료일
+									</div>
+								</div>
+								<!-- //2019-03-29 추가 -->
+							</th>
+							<td>2019-03-31</td>
+						</tr>
+					</tbody>                     
+				</table>
+				
+				<div class="titArea">
+					<h3 class="titDep3">합산 대상 코드 추가</h3>
+				</div>
+				
+				<table class="tblForm tblAdd">
+					<caption>합산 대상 코드 테이블</caption>
+					<colgroup><col style="width:50px"><col style="width:19%"><col style="width:auto"><col style="width:24%"><col style="width:27%"></colgroup><!-- 2019-03-06 수정 -->
+					<!-- loof 영역 -->
+					<!-- 2019-03-06 수정 -->
+					<tbody>
+						<tr>
+							<th scope="row" rowspan="3" class="lineR thDel">1</th>
+							<th scope="row">Projedt Name</th>
+							<td>삼성전자/2019회계감사</td>
+							<th scope="row">Project Code</th>
+							<td>xxxxx-xx-xxx</td>
+						</tr>
+						<tr>
+							<th scope="row">Engagement Leader(합산코드)</th>
+							<td>이길동(123456) / Partner</td>
+							<th scope="row">Project Manager</th>
+							<td>김길동(123456) / Manager</td>
+						</tr>
+						<tr>
+							<th scope="row">보수</th>
+							<td class="tdRight" colspan="3">100,000,000 원</td><!-- 2019-03-07 수정 -->
+						</tr>
+					</tbody>
+					<!-- //loof 영역 -->
+					<tbody>
+						<tr>
+							<th scope="row" rowspan="3" class="lineR thDel">2</th>
+							<th scope="row">Projedt Name</th>
+							<td>삼성전자/2019회계감사</td>
+							<th scope="row">Project Code</th>
+							<td>xxxxx-xx-xxx</td>
+						</tr>
+						<tr>
+							<th scope="row">Engagement Leader(합산코드)</th>
+							<td>이길동(123456) / Partner</td>
+							<th scope="row">Project Manager</th>
+							<td>김길동(123456) / Manager</td>
+						</tr>
+						<tr>
+							<th scope="row">보수</th>
+							<td class="tdRight" colspan="3">100,000,000 원</td><!-- 2019-03-07 수정 -->
+						</tr>
+					</tbody>
+					<!-- //2019-03-06 수정 -->
+					<tfoot>
+						<tr>
+							<th scope="row" colspan="2">총 보수</th>
+							<td colspan="3">00,000,000 원</td>
+						</tr>
+					</tfoot>   
+				</table>
+				
+				<h2 class="titDep2">표준감사시간 산출</h2>
+					
+				<table class="tblForm">
+					<caption>표준감사시간 산출 테이블</caption>
+					<colgroup><col style="width:auto"><col style="width:27%"><col style="width:24%"><col style="width:27%"></colgroup><!-- 2019-03-06 수정 -->
+					<tbody>
+						
+						<tr>
+							<th scope="row">표준산업 분류</th>
+							<td>제조업</td>
+							<th scope="row">상장 구분</th>
+							<td>상장</td>
+						</tr>
+						<tr>
+							<th scope="row">개별 자산</th>
+							<td>금융지주사</td>
+							<th scope="row">사업보고서 제출 대상</th>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<th scope="row">연결 매출</th>
+							<td class="tright">10,000,000 원</td>
+							<th scope="row">그룹1의 예외사항 여부<span class="ness">*</span>
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										 비상장인데 모회사가 지주회사이고, 모회사와 비상장사 모두 기업규모가 5조 이상일 경우에는 Yes를 선택
+									</div>
+								</div>
+							</th>
+							<td>Yes</td>
+						</tr>
+						<tr>
+							<th scope="row">연결 자산</th>
+							<td class="tright">10,000,000 원</td>
+							<th scope="row">전기 감사 시간<span class="ness">*</span>
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										 비교대상업무의 범위와 동일해야 함.
+									</div>
+								</div>
+							</th>
+							<td class="tright" >1.10</td>
+						</tr>
+						<tr>
+							<th scope="row">기업 규모
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										 (연결자산 + 연결매출)/2
+									</div>
+								</div>
+							</th>
+							<td class="tright">525,500,000,000  원</td>
+							<!-- 2019-03-08 수정 및 추가 -->
+							<th scope="row">표준 감사 시간 그룹 정보
+								<div class="tipArea tipLeft">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont tipW02">
+										 <table class="tblH">
+										 	<caption>표준 감사 시간 그룹 정보 설명 테이블입니다.</caption>
+											<colgroup><col style="width:12%"><col style="width:17%"><col style="width:20%" span="2"><col style="width:auto"></colgroup>
+											<thead>
+												<tr>
+													<th scope="col">구분</th>
+													<th scope="col">기업구분</th>
+													<th scope="col">기업자산</th>
+													<th scope="col">개별자산</th>
+													<th scope="col">사업보고서 제출대상</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr>
+													<td>그룹1</td>
+													<td class="tleft">상장</td>
+													<td class="tright">5조원 이상</td>
+													<td class="tright">2조원 이상</td>
+													<td class="tleft">-</td>
+												</tr>
+												<tr>
+													<td>그룹2</td>
+													<td class="tleft">상장</td>
+													<td class="tright">-</td>
+													<td class="tright">-</td>
+													<td class="tleft">-</td>
+												</tr>
+												<tr>
+													<td>그룹3</td>
+													<td class="tleft">상장</td>
+													<td class="tright">-</td>
+													<td class="tright">5,000억원 이상</td>
+													<td class="tleft">-</td>
+												</tr>
+												<tr>
+													<td>그룹4</td>
+													<td class="tleft">상장</td>
+													<td class="tright">-</td>
+													<td class="tright">1,000억원 이상</td>
+													<td class="tleft">-</td>
+												</tr>
+												<tr>
+													<td>그룹5</td>
+													<td class="tleft">상장</td>
+													<td class="tright">-</td>
+													<td class="tright">500억원 이상</td>
+													<td class="tleft">-</td>
+												</tr>
+												<tr>
+													<td>그룹6</td>
+													<td class="tleft">상장</td>
+													<td class="tright">-</td>
+													<td class="tright">500억원 미만</td>
+													<td class="tleft">-</td>
+												</tr>
+												<tr>
+													<td>그룹7</td>
+													<td class="tleft">코넥스상장</td>
+													<td class="tright">-</td>
+													<td class="tright">-</td>
+													<td class="tleft">Yes</td>
+												</tr>
+												<tr>
+													<td>그룹8</td>
+													<td class="tleft">비상장</td>
+													<td class="tright">-</td>
+													<td class="tright">1,000억원 이상</td>
+													<td class="tleft">-</td>
+												</tr>
+												<tr>
+													<td>그룹9</td>
+													<td class="tleft">비상장</td>
+													<td class="tright">-</td>
+													<td class="tright">500억원 이상</td>
+													<td class="tleft">-</td>
+												</tr>
+												<tr>
+													<td>그룹10</td>
+													<td class="tleft">비상장</td>
+													<td class="tright">-</td>
+													<td class="tright">200억원 이상</td>
+													<td class="tleft">-</td>
+												</tr>
+												<tr>
+													<td>그룹11</td>
+													<td colspan="4">1~10 그룹에 포함되지 않으면 11그룹임</td>
+												</tr>
+											</tbody>
+										 </table>
+									</div>
+								</div>
+							</th>
+							<!-- //2019-03-08 수정 및 추가 -->
+							<td>그룹1</td>
+						</tr>
+						<tr>
+							<th scope="row">미국 상장 여부 </th>
+							<td>X</td>
+							<th scope="row">지주사 분류 </th>
+							<td>금융지주사</td>
+						</tr>
+						<tr>
+							<th scope="row">연결 작성 여부</th>
+							<td>X</td>
+							<th scope="row">자회사 수
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										 연결대상 총 자회사 수
+									</div>
+								</div>
+							</th>
+							<td class="tright">10</td>
+						</tr>
+						<tr>
+							<th scope="row">보고서 발행 예정일 </th>
+							<td>2019-03-02</td>
+							<th scope="row">초도 감사 가산</th>
+							<td class="tright">1.10</td>
+						</tr>
+						<tr>
+							<th scope="row">IFRS 여부</th>
+							<td>O</td>
+							<th scope="row"></th>
+							<td>1</td>
+						</tr>
+						<tr>
+							<th scope="row">연결 매출채권<span class="ness">*</span>
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										 금융업의 경우 대출채권, 건설업의 경우 미청구공사금액 포함
+									</div>
+								</div>
+							</th>
+							<td class="tright">10,000,000 원</td>
+							<th scope="row">연결 재고자산
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										 금융업의 경우 유가증권과 파생상품금액을 고려하는 것이 합리적이라고 판단된다면 포함 가능 
+									</div>
+								</div>
+							</th>
+							<td class="tright">10,000,000 원</td>
+						</tr>
+						<tr>
+							<th scope="row">당기 연결 당기순손실 예상 여부 </th>
+							<td>O</td>
+							<th scope="row">당기 예상 감사의견 비적정 여부</th>
+							<td>적정</td>
+						</tr>
+						<tr>
+							<th scope="row">연결 조정시 제거된 내부거래(매출+자산)
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										 동일감사인이 존재하는 경우 동일감사인인 회사와 연결과정에서 제거된 매출액 및 자산총액 입력
+									</div>
+								</div>
+							</th>
+							<td class="tright">10,000,000 원</td>
+							<th scope="row">관계회사의 자산금액
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										 연결자산총액에서 동일 감사인이 감사하는 관계회사장부금액
+									</div>
+								</div>
+							</th>
+							<td class="tright">10,000,000 원</td>
+						</tr>
+						<tr>
+							<th scope="row">내부거래제거전 자회사 자산
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										연결자산총액에서 동일 감사인이 감사하는 관계회사장부금액
+									</div>
+								</div>
+							</th>
+							<td class="tright">10,000,000 원</td>
+							<th scope="row">내부거래제거전 자회사 매출
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										동일 감사인이 감사하는 종속회사의 내부거래제거 전 장부금액
+									</div>
+								</div>
+							</th>
+							<td class="tright">10,000,000 원</td>
+						</tr>
+				<!-- 2019-03-18 추가 -->
+					</tbody>
+				</table>
+				
+				<table class="tblForm marT40 lineT">
+					<caption>표준감사시간 산출 테이블</caption>
+					<colgroup><col style="width:auto"><col style="width:27%"><col style="width:24%"><col style="width:27%"></colgroup>
+					<tbody>
+				<!-- //2019-03-18 추가 -->
+						<tr>
+							<th scope="row">가감률</th>
+							<td class="tright">1.26</td>
+							<th scope="row">숙련도 반영전 표준감사시간
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										산출된 감사시간 + 내부감사시간
+									</div>
+								</div>
+							</th>
+							<td class="tright"><b class="colPoint01">3,250.00</b> hr</td>
+						</tr>
+						<tr>
+							<th scope="row">산출된 감사시간(a)
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										2차 * 적용율, 상하한 적용 후 계산된 감사시간
+									</div>
+								</div>
+							</th>
+							<td class="tright">3,500.00 hr</td>
+							<th scope="row">ET에서 판단한 숙련도 반영전 표준감사시간(A)<span class="ness">*</span>
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										"Simulation Excel File Download"을 다운받아 Simulation 하여 입력해 주시기 바랍니다.
+									</div>
+								</div>
+							</th>
+							<td class="tright"><b class="colPoint01">3,500.00</b> hr</td><!-- 2019-03-18 수정 -->
+						</tr>
+						<tr>
+							<th scope="row">내부회계감사(2조 이상) 여부</th>
+							<td>No</td>
+							<th scope="row">기준 숙련도(B)
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										그룹에 따른 숙련도 지수 
+									</div>
+								</div>
+							</th>
+							<td class="tright">0.767</td>
+						</tr>
+						<tr>
+							<th scope="row">내부 감사시간(b)</th>
+							<td class="tright"><b class="colPoint01">0.00</b> hr</td>
+							<th scope="row"><b>기준숙련도 기준 표준감사시간 (A X B)</b>
+								<div class="tipArea">
+									<button type="button" class="btnTip">도움말</button>
+									<div class="tipCont">
+										팀의 숙련도를 1로 가정한 표준감사시간
+									</div>
+								</div>
+							</th>
+							<td class="tright">200,000,000 hr</td><!-- 2019-03-18 수정 -->
+						</tr>
+					</tbody>
+				</table>
+				
+				<h2 class="titDep2">표준감사시간외 예산입력</h2>
+				<table class="tblForm">
+					<caption>표준감사시간외 예산입력 테이블</caption>
+					<colgroup><col style="width:auto"><col style="width:78%"></colgroup><!-- 2019-03-06 수정 -->
+					<tbody>
+						<tr>
+							<th scope="row">표준감사시간외 감사등 예산 시간</th>
+							<td class="tright">
+								<p class="txtInfo tblInfo">동일코드로 Retain에 반영하고자 하는 시간 입력시, Budget Tab 상 표준감사시간 충족여부는 개별적으로 확인해야 합니다.</p>
+								10,000.00 hr
+							</td><!-- 2019-03-29 수정 -->
+						</tr>
+					</tbody>
+				</table>
+				
+				<h2 class="titDep2">예산 배분</h2>
+					
+				<table class="tblForm">
+					<caption>프로젝트 생성 테이블</caption>
+					<colgroup><col style="width:auto"><col style="width:27%"><col style="width:24%"><col style="width:27%"></colgroup><!-- 2019-03-06 수정 -->
+					<tbody>
+						<tr>
+							<th scope="row">Project 총 예산</th>
+							<td colspan="3" class="tright">00,000.00 hr</td>
+						</tr>
+						<tr>
+							<th scope="row">RA 배부 예산</th>
+							<td class="tright">10,000.00 hr</td>
+							<th scope="row">RA Manager</th>
+							<td>홍길동(000000) / Manager</td>
+						</tr>
+						<tr>
+							<th scope="row">Fulcrum 배부 예산</th>
+							<td class="tright">10,000.00 hr</td>
+							<th scope="row">Fulcrum Manager</th>
+							<td>홍길동(000000) / Manager</td>
+						</tr>
+						<tr>
+							<th scope="row">잔여 예산</th>
+							<td class="tright">10,000.00 hr</td>
+							<th scope="row"></th>
+							<td></td>
+						</tr>
+					</tbody>
+				</table>
+			
+			</div><!-- //boxWhite -->
+            <!-- //컨텐츠 끝 -->        
+        </div>
+    </section>
+</div>
+<div id="popInner">
+	
+</div><!-- 레이어팝업 들어가는 부분 -->
+<div class="dimmed"></div>
+<script type="text/javascript" src="../../../resources/lib/jquery/jquery-3.3.1.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery-ui.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery.jscrollpane.min.js"></script>
+<script type="text/javascript" src="../../../resources/js/selectbox_pwc.js"></script>
+<script type="text/javascript" src="../../../resources/js/pwc_ui.js"></script>
+
+</body>
+</html>

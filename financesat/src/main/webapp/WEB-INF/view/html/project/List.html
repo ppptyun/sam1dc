@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>표준감사시간관리</title>
+
+
+<link href="../../../resources/css/pwc.css" rel="stylesheet" type="text/css">
+<!-- link href="../../../resources/lib/dhtmlx/codebase/dhtmlx.css" rel="stylesheet" type="text/css" -->
+<link href="../../../resources/lib/dhtmlx/skins/web/dhtmlx.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc_mediaS.css" rel="stylesheet" type="text/css" media="(max-width:1600px)">
+
+<script type="text/javascript" src="../../../resources/lib/jquery/jquery-3.3.1.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/dhtmlx/codebase/dhtmlx.js"></script>
+<script type="text/javascript" src="../../../resources/js/dhtmlxCustom.js"></script>
+
+</head>
+
+<!--[if ie]><body class="lt-ie"><![endif]-->
+<body>
+<div id="wrapper" class="wrapper">
+    <header>
+        <p class="logo">Pwc</p>
+        <p class="pageTitle"><a href="#">표준감사시간관리</a></p>
+			<ul class="topUtil">
+				<li class="utilName"><a href="#">HG</a></li>
+				<li class="utilHelp"><a href="#">도움말</a></li>
+			</ul>
+		<nav>
+			<button type="button" class="navBtn">Menu</button>
+			<div class="navArea">
+				<img src="../../../resources/images/dummy/@nav.gif" alt="">
+			</div>
+		</nav>
+    </header>
+    <hr>
+	
+    <section id="container" class="container">
+        
+        <div id="contents" class="contents">
+           	<!-- 컨텐츠 시작 -->
+            <h1 class="hidden">Project List</h1>
+			
+			<div class="boxWhite">
+				<div class="btnArea">
+					<button type="button" class="btnPwc btnM action">New</button>
+					<button type="button" class="btnPwc btnM action">Delete</button>
+				</div>
+				
+				<div id="project-grid" class="gridbox gridHp01">그리드 영역</div>
+			</div>
+            
+            
+            
+            <script>
+				function openPrjt(prjtCd){
+					alert("openPrjt: " + prjtCd)
+				}
+				function openBdgt(prjtCd){
+					alert("openBdgt: " + prjtCd)
+				}
+					
+				$(document).ready(function(){
+					const testData = [
+						{id:"00001-00-000", prjtCd:"00001-00-000", prjtNm:"테스트 기업명1(주)/2019회계감사", "listedYn":"상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.553424", actualTm:"5344.25", weightSat:"6472.55534", achvRate:("" + (5344.25/8472.55*100)), statNm:"작성", btn:"00001-00-000"},
+						{id:"00002-00-000", prjtCd:"00002-00-000", prjtNm:"테스트 기업명2/2019회계감사", "listedYn":"상장 예정", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"7472.5542", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"결재 요청", btn:"00002-00-000"},
+						{id:"00003-00-000", prjtCd:"00003-00-000", prjtNm:"테스트 하하하 기업명3(주)", "listedYn":"코넥스", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"결재 완료", btn:"00003-00-000"},
+						{id:"00004-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00004-00-000"},
+						{id:"00005-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00005-00-000"},
+						{id:"00006-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00006-00-000"},
+						{id:"00007-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00004-00-000"},
+						{id:"00008-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00004-00-000"},
+						{id:"00009-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00004-00-000"},
+						{id:"000011-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00004-00-000"},
+						{id:"00012-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00004-00-000"},
+						{id:"00013-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00004-00-000"},
+						{id:"00014-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00004-00-000"},
+						{id:"00015-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00004-00-000"},
+						{id:"00016-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00004-00-000"},
+						{id:"00017-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00004-00-000"},
+						{id:"00018-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00004-00-000"},
+						{id:"00019-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00004-00-000"},
+						{id:"00020-00-000", prjtCd:"00004-00-000", prjtNm:"가나다라마바사", "listedYn":"비상장", chargPtrNm:"홍길동", chargMgrNm:"가나다", sat:"8472.55", actualTm:"5344.25", weightSat:"6472.55", achvRate:("" + (5344.25/8472.55*100)), statNm:"반려", btn:"00004-00-000"},
+					]
+					const prjtGrid = {
+							parent: "project-grid",
+							image_path: "../../../resources/lib/dhtmlx/skins/web/imgs/",
+							skin: "dhx_web",
+							columns: [
+								{id:"chk", label:["#master_checkbox", "#rspan"], type:"ch", align:"center"},
+								{id:"prjtCd", label:["Project Code", "#text_filter"], type:"ro", align:"center"},
+								{id:"prjtNm", label:["프로젝트 명", "#text_filter"], type:"ro", align:"left"},
+								{id:"listedYn", label:["상장여부", "#select_filter"], type:"ro", align:"left"},
+								{id:"chargPtrNm", label:["EL", "#text_filter"], type:"ro", align:"left"},
+								{id:"chargMgrNm", label:["PM", "#text_filter"], type:"ro", align:"left"},
+								{id:"sat", label:["표준감사시간(hr)", "#text_filter"], type:"ron", align:"right"},
+								{id:"actualTm", label:["누적 단순<br>투입시간(hr)", "#text_filter"], type:"ron", align:"right"},
+								{id:"weightSat", label:["가중치 고려<br>표준감사시간(hr)", "#text_filter"], type:"ron", align:"right"},
+								{id:"achvRate", label:["달성률", "#text_filter"], type:"ron", align:"right", format:"0.00"},
+								{id:"statNm", label:["Status", "#text_filter"], type:"ron", align:"left"},
+								{id:"btn", label:["바로가기", "#rspan"], type:"btnopen", align:"center"}
+							]
+					};
+					
+					let prjtGridObj = new dhtmlXGridObject(prjtGrid);
+					prjtGridObj.setInitWidthsP("3,8,16,7,6,6,9,9,9,6,6,15");
+					prjtGridObj.setStyle("text-align:center", "", "", "");
+					prjtGridObj.setNumberFormat("0,000.00",prjtGridObj.getColIndexById("sat"),".",",");
+					prjtGridObj.setNumberFormat("0,000.00",prjtGridObj.getColIndexById("actualTm"),".",",");
+					prjtGridObj.setNumberFormat("0,000.00",prjtGridObj.getColIndexById("weightSat"),".",",");
+					prjtGridObj.setNumberFormat("0,000.00 %",prjtGridObj.getColIndexById("achvRate"),".",",");
+					prjtGridObj.parse(testData, 'js')
+					
+					let RS = new ResizeSensor($('#contents'), function(){prjtGridObj.setSizes();});
+					
+				});
+			</script>
+            <!-- //컨텐츠 끝 -->        
+        </div>
+    </section>
+</div>
+<div id="popInner">
+	
+</div><!-- 레이어팝업 들어가는 부분 -->
+<div class="dimmed"></div>
+
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery-ui.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery.jscrollpane.min.js"></script>
+<script type="text/javascript" src="../../../resources/js/selectbox_pwc.js"></script>
+<script type="text/javascript" src="../../../resources/js/pwc_ui.js"></script>
+<script type="text/javascript" src="../../../resources/lib/css-element-queries/ElementQueries.js"></script>
+<script type="text/javascript" src="../../../resources/lib/css-element-queries/ResizeSensor.js"></script>
+
+</body>
+</html>

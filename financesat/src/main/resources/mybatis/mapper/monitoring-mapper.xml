@@ -1,0 +1,899 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.samil.stdadt.mapper.MonitoringMapper">
+	
+	<select id="getMonitoringYearList" resultType="string">
+		SELECT DISTINCT SUBSTR(BIZ_TODT, 0, 4) 
+		  FROM NMSP.WEB_SAT_PRJT 
+		 WHERE BIZ_TODT IS NOT NULL
+		   AND STAT IN ('RG', 'CO')
+		   AND APRV_CMPLT_DT IS NOT NULL
+		   AND SAT_TRGT_YN = 'Y' 
+		   AND CALC_ONLY_YN = 'N'
+		ORDER BY SUBSTR(BIZ_TODT, 0, 4) DESC
+	</select>
+	
+	<select id="getStandardAuditTimeList" parameterType="hashmap" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT A.PRJTCD 
+		     , A.PRJTNM 
+		     , A.CHARGPTR_NM 
+		     , A.CHARGMGR_NM 
+		     , ROUND(A.ET_DFN_SAT) AS ET_DFN_SAT /* 한공회표준감사시간 */ 
+		     , A.BASE_WKMNSP                     /* 기준 숙련도 */
+		     , A.CNTRT_ADT_TM                    /* 합의시간 */
+		     , B.TEAM_WKMNSP                     /* 팀숙련도 */
+		     , ROUND(B.ACTUAL_TIME) AS ACTUAL_TIME -- Actual Time 
+		     , ROUND(B.ACTUAL_TIME/DECODE(A.CNTRT_ADT_TM, 0, NULL, A.CNTRT_ADT_TM) *100, 2) AS COMPL_RATE /* 달성률 */ 
+		  FROM 
+		       (SELECT A.* 
+		            , DECODE(A.FORM_DIV, 'v3', 
+		              (SELECT SUM(AA.CNTRT_ADT_TM) 
+		                FROM (<include refid="satSql.baseCisPrjt" />) AA 
+		                   , PMAUDITPJTD BB 
+		               WHERE AA.PRJTCD1 = BB.PRJTCD1 
+		                     AND AA.PRJTCD2 = BB.PRJTCD2 
+		                     AND AA.PRJTCD3 = BB.PRJTCD3 
+		                     AND BB.AUDITGB = 1 
+		                     AND AA.MAIN_PRJTCD = A.PRJTCD 
+		              ), A.ET_TRGT_ADT_TM) CNTRT_ADT_TM 
+		         FROM (<include refid="satSql.authProjectInfo" />) A
+		       ) A 
+		     , (SELECT PRJTCD 
+		            , PRJTCD1 
+		            , PRJTCD2 
+		            , PRJTCD3 
+		            , ROUND(SUM(AUDITTMSMAFT_TOT * WKMNSP) / DECODE(SUM(AUDITTMSMAFT_TOT), 0, NULL, SUM(AUDITTMSMAFT_TOT)), 3) AS TEAM_WKMNSP 
+		            , SUM(AUDITTMSMAFT_TOT)                                                                                    AS ACTUAL_TIME 
+		         FROM 
+		              (SELECT D.PRJTCD 
+		                   , D.PRJTCD1 
+		                   , D.PRJTCD2 
+		                   , D.PRJTCD3 
+		                   , A.YMDTO 
+		                   , NVL(A.AUDITTMSM_F, 0) + NVL(A.AUDITTMSM_Q, 0) + NVL(A.AUDITTMADJ_F, 0) + NVL(A.AUDITTMADJ_Q, 0) AS AUDITTMSMAFT_TOT 
+		                   , B.WKMNSP 
+		                   , NVL(C.LOCKYN, 'N') AS LOCKYN 
+		                   , C.LOCKDT 
+		                   , DECODE(D.LNKADTREPRTDT, NULL, DECODE(D.SEPADTREPRTDT, NULL, D.EMWREPRTDT, D.SEPADTREPRTDT), D.LNKADTREPRTDT) AS REPRTDT 
+		                FROM PMAUDITTMDT A 
+		                   , PMAUDITSTAFF B 
+		                   , PMAUDITPJTM C 
+		                   , 
+		                     (SELECT A.PRJTCD 
+		                          , A.PRJTCD1 
+		                          , A.PRJTCD2 
+		                          , A.PRJTCD3 
+		                          , NVL(A.SEPADTREPRTDT, REPLACE(C.SEP_REPORT_DT, '-')) SEPADTREPRTDT
+		                          , NVL(A.LNKADTREPRTDT, REPLACE(C.LNK_REPORT_DT, '-')) LNKADTREPRTDT
+		                          , TO_CHAR(B.ADTREPRTDT, 'yyyymmdd') AS EMWREPRTDT 
+		                       FROM NMSP.WEB_ADPRJT A 
+		                          , NMSP.WEB_ADAURA B 
+		                          , 
+		                            (SELECT PRJTCD 
+		                                 , MAX(SEP_REPORT_DT) SEP_REPORT_DT 
+		                                 , MAX(LNK_REPORT_DT) LNK_REPORT_DT 
+		                              FROM NMSP.WEB_ADREPRTPRNT 
+		                               GROUP BY PRJTCD 
+		                            ) C 
+		                      WHERE A.PRJTCD1 = B.PRJTCD1(+) 
+		                            AND A.PRJTCD2 = B.PRJTCD2(+) 
+		                            AND A.PRJTCD3 = B.PRJTCD3(+) 
+		                            AND A.PRJTCD  = C.PRJTCD(+) 
+		                     ) D 
+		               WHERE A.PRJTCD1_B = B.PRJTCD1(+) 
+		                     AND A.PRJTCD2_B = B.PRJTCD2(+) 
+		                     AND A.PRJTCD3_B = B.PRJTCD3(+) 
+		                     AND A.EMPNO     = B.EMPNO(+) 
+		                     AND A.PRJTCD1_B = C.PRJTCD1 
+		                     AND A.PRJTCD2_B = C.PRJTCD2 
+		                     AND A.PRJTCD3_B = C.PRJTCD3 
+		                     AND C.PRJTCD1   = D.PRJTCD1 
+		                     AND C.PRJTCD2   = D.PRJTCD2 
+		                     AND C.PRJTCD3   = D.PRJTCD3 
+		              ) 
+		        WHERE YMDTO = DECODE(LOCKYN, 'N', CASE 
+		                WHEN TO_CHAR(SYSDATE, 'YYYYMMDD') <![CDATA[<]]> NVL(REPRTDT, '29991231') 
+		                THEN TO_CHAR(SYSDATE, 'YYYYMMDD') 
+		                ELSE REPRTDT 
+		              END, REPRTDT) 
+		          GROUP BY PRJTCD 
+		            , PRJTCD1 
+		            , PRJTCD2 
+		            , PRJTCD3 
+		       ) B 
+		 WHERE A.PRJTCD = B.PRJTCD(+) 
+		       AND A.SAT_TRGT_YN = 'Y' 
+		       AND A.CALC_ONLY_YN ='N' 
+		       AND A.STAT IN('CO', 'RG', 'RQ') 
+		       AND A.APRV_CMPLT_DT IS NOT NULL 
+		       <if test="year != null and !''.equals(year)">
+		 	   AND A.BIZ_TODT LIKE #{year}||'%'
+		 	   </if>
+	  ORDER BY CNTRT_ADT_TM DESC
+	</select>
+	<!-- 
+	[20191218] 모니터링 쿼리수정. 팀숙련도(WKMNSP_TEAM)와 합계시간(ACTUAL_TIME)는 FLink에서 관리하는 값 참조로 변경
+	-->
+	<select id="getStandardAuditTimeList_BK20200526" parameterType="hashmap" resultType="hashmap">
+		SELECT A.PRJTCD, 
+			   A.PRJTNM, 
+			   A.EL_EMPNO, 
+			   A.EL_KORNM, 
+			   A.PM_EMPNO, 
+			   A.PM_KORNM, 
+			   A.SATGRP_CD, 
+			   A.ET_DFN_SAT, 
+			   A.TOT_PRJT_BDGT, 
+			   A.TOT_MEMB_BDGT, 
+			   A.BASE_WKMNSP, 
+			   B.WKMNSP_TEAM, 
+			   NVL(ROUND(A.ET_DFN_SAT * A.BASE_WKMNSP / B.WKMNSP_TEAM, 3), 0) WKMNSP_SAT_TEAM, 
+			   NVL(B.ACTUAL_TIME, 0) ACTUAL_TIME, 
+			   NVL(ROUND((B.ACTUAL_TIME / ROUND(A.ET_DFN_SAT * A.BASE_WKMNSP / B.WKMNSP_TEAM, 3) * 100), 2), 0) PROGRESS
+		  FROM 
+			   (SELECT PRJTCD, 
+					  PRJTNM, 
+					  BIZ_TODT,
+					  CHARGPTR EL_EMPNO, 
+					  CHARGPTR_NM EL_KORNM, 
+					  CHARGMGR PM_EMPNO, 
+					  CHARGMGR_NM PM_KORNM, 
+					  SATGRP_CD, 
+					  ROUND(ET_DFN_SAT, 2) ET_DFN_SAT, 
+					  ET_TRGT_ADT_TM TOT_PRJT_BDGT, 
+					  BASE_WKMNSP,
+					  WKMNSP_SAT,
+					  NVL((SELECT SUM(ASGN_TM) FROM NMSP.WEB_SAT_MEMB_BDGT WHERE PRJTCD = A.PRJTCD), 0) 
+						 + NVL(A.RA_BDGT_TM, 0) 
+						 + NVL(A.FLCM_BDGT_TM, 0) 
+						 + NVL(A.NEW_STF_BDGT_TM, 0) 
+						 + NVL(A.OTHER_BDGT_TM, 0) TOT_MEMB_BDGT 
+					FROM (<include refid="satSql.authProjectInfo" />) A
+				   WHERE SAT_TRGT_YN = 'Y' 
+						 AND STAT IN ('CO', 'RG', 'RQ')
+						 AND APRV_CMPLT_DT IS NOT NULL
+						 <if test="year != null and ''.equals(year)">
+						 AND BIZ_TODT LIKE #{year}||'%'
+						 </if>
+				  ) A, 
+				  (SELECT PRJTCD, 
+						 ROUND(SUM(AUDITTMSMAFT_TOT * WKMNSP) / SUM(AUDITTMSMAFT_TOT),3) AS WKMNSP_TEAM, --팀숙련도 
+						 SUM(AUDITTMSMAFT_TOT) AS ACTUAL_TIME --감사시간합계 
+					FROM 
+						 (SELECT D.prjtcd, 
+								A.YMDTO, 
+								NVL(A.AUDITTMSM_F,0) + NVL(A.AUDITTMSM_Q,0) + NVL(A.AUDITTMADJ_F,0) + NVL(A.AUDITTMADJ_Q ,0) AS AUDITTMSMAFT_TOT, 
+								B.WKMNSP, 
+								NVL(C.LOCKYN,'N') AS LOCKYN, 
+								C.LOCKDT, 
+								DECODE( NVL(D.LNKADTREPRTDT,'N'), 'N', DECODE(NVL(D.SEPADTREPRTDT,'N'), 'N', D.EMWREPRTDT , D.SEPADTREPRTDT) , D.LNKADTREPRTDT) AS REPRTDT 
+						   FROM PMAUDITTMDT A, 
+								PMAUDITSTAFF B, 
+								PMAUDITPJTM C, 
+								(SELECT A.PRJTCD, 
+									   A.PRJTCD1, 
+									   A.PRJTCD2, 
+									   A.PRJTCD3, 
+									   CASE 
+										   WHEN A.SEPADTREPRTDT IS NULL 
+										   THEN 
+											   (SELECT replace(MAX(S.SEP_REPORT_DT),'-','') 
+												 FROM NMSP.WEB_ADREPRTPRNT S 
+												WHERE S.PRJTCD = A.PRJTCD 
+													  AND S.DOCUMENT_TYPE IN('1') 
+											   ) 
+										   ELSE TO_CHAR(TO_DATE(A.SEPADTREPRTDT), 'YYYYMMDD') 
+									   END AS SEPADTREPRTDT , 
+									   CASE 
+										   WHEN LNKADTREPRTDT IS NULL 
+										   THEN 
+											   (SELECT replace(MAX(L.LNK_REPORT_DT),'-','') 
+												 FROM NMSP.WEB_ADREPRTPRNT L 
+												WHERE L.PRJTCD = A.PRJTCD 
+													  AND L.DOCUMENT_TYPE IN('2') 
+											   ) 
+										   ELSE TO_CHAR(TO_DATE(A.LNKADTREPRTDT), 'YYYYMMDD') 
+									   END AS LNKADTREPRTDT , 
+									   TO_CHAR(B.ADTREPRTDT,'yyyymmdd') AS EMWREPRTDT 
+								  FROM NMSP.WEB_ADPRJT A, 
+									   NMSP.WEB_ADAURA B 
+								 WHERE A.PRJTCD1 = B.PRJTCD1(+) 
+									   AND A.PRJTCD2 = B.PRJTCD2(+) 
+									   AND A.PRJTCD3 = B.PRJTCD3(+) 
+								) D, 
+								WEB_SAT_PRJT E 
+						  WHERE A.PRJTCD1_B = B.PRJTCD1(+) 
+								AND A.PRJTCD2_B = B.PRJTCD2(+) 
+								AND A.PRJTCD3_B = B.PRJTCD3(+) 
+								AND A.EMPNO = B.EMPNO(+) 
+								AND A.PRJTCD1_B = C.PRJTCD1 
+								AND A.PRJTCD2_B = C.PRJTCD2 
+								AND A.PRJTCD3_B = C.PRJTCD3 
+								AND C.PRJTCD1 = D.PRJTCD1 
+								AND C.PRJTCD2 = D.PRJTCD2 
+								AND C.PRJTCD3 = D.PRJTCD3 
+								AND C.PRJTCD1 = E.PRJTCD1 
+								AND C.PRJTCD2 = E.PRJTCD2 
+								AND C.PRJTCD3 = E.PRJTCD3 
+								AND E.SAT_TRGT_YN = 'Y'
+								AND E.STAT IN ('CO', 'RG')
+						 		AND E.APRV_CMPLT_DT IS NOT NULL
+						 		<if test="year != null and ''.equals(year)">
+						 		AND E.BIZ_TODT LIKE #{year}||'%'
+						 		</if>
+						 ) 
+				   WHERE YMDTO = DECODE(LOCKYN, 'N', 
+						 CASE 
+							 WHEN TO_CHAR(SYSDATE, 'YYYYMMDD') <![CDATA[<]]> NVL(REPRTDT, '29991231') 
+							 THEN TO_CHAR(SYSDATE, 'YYYYMMDD') 
+							 ELSE REPRTDT 
+						 END, REPRTDT) 
+				   GROUP BY PRJTCD 
+				  ) B 
+			WHERE A.PRJTCD = B.PRJTCD(+)
+			ORDER BY NVL(A.WKMNSP_SAT * B.WKMNSP_TEAM, 0) DESC, A.WKMNSP_SAT DESC, A.PRJTCD
+	</select>
+	
+	<select id="getStandardAuditTimeList_20191218" parameterType="hashmap" resultType="hashmap">
+		SELECT  A.PRJTNM,
+				A.PRJTCD,
+				A.CHARGPTR_NM EL_KORNM,
+				A.CHARGPTR EL_EMPNO,
+				A.CHARGMGR_NM PM_KORNM,
+				A.CHARGMGR PM_EMPNO,
+				A.ET_DFN_SAT,
+				A.BASE_WKMNSP,
+				NVL(ROUND(B.ACTUAL_WKMNSP, 3), 0) WKMNSP_TEAM,
+				NVL(ROUND(A.ET_DFN_SAT * A.BASE_WKMNSP / NULLIF(B.ACTUAL_WKMNSP, 0)), 0) WKMNSP_SAT_TEAM, 
+				NVL(ROUND(B.ACTUAL_TIME), 0) ACTUAL_TIME,
+				NVL(ROUND(ROUND(B.ACTUAL_TIME) / ROUND(NULLIF(A.ET_DFN_SAT * A.BASE_WKMNSP, 0) / NULLIF(B.ACTUAL_WKMNSP, 0)) * 100, 2), 0) PROGRESS
+		 FROM (SELECT PRJTNM, PRJTCD, CHARGPTR_NM, CHARGPTR, CHARGMGR_NM, CHARGMGR, ET_DFN_SAT, WKMNSP_SAT
+				    , NVL(A.BASE_WKMNSP, NVL((SELECT BASE_WKMNSP FROM WEB_SAT_PRFL_GRP WHERE PRFL_ID = A.PRFL_ID AND SATGRP_CD = A.SATGRP_CD), 1)) BASE_WKMNSP
+				FROM  (<include refid="satSql.authProjectInfo" />) A
+				WHERE A.SAT_TRGT_YN = 'Y' AND A.STAT = 'CO') A,
+			(SELECT   TW.PRJTCD
+			 		, NVL(SUM(TW.USE_TIME), 0) AS ACTUAL_TIME
+					, CASE WHEN SUM(TW.USE_TIME) IS NOT NULL THEN NVL(SUM(TW.USE_TIME * TW.ACTUAL_WKMNSP) / SUM(TW.USE_TIME), 0) ELSE 0 END AS ACTUAL_WKMNSP
+				FROM (SELECT TI.PRJTCD
+				        , TI.EMPNO
+				        , TI.USE_TIME
+				        <![CDATA[
+				        , CASE
+				              WHEN TI.TEAMCD IN('AY1', 'AZ5') THEN TI.BASE_WKMNSP
+				              WHEN TI.L2_YEAR >= 0  THEN NVL((SELECT MIN(W.WKMNSP)
+				                                                FROM    NMSP.WEB_SAT_PRFL_WKMNSP W
+				                                                WHERE   W.PRFL_ID = TI.PRFL_ID
+				                                                 AND     W.CERT_DV = '002'
+				                                                 AND     W.CERT_YCNT > TI.L2_YEAR), 0)
+				              WHEN TI.L2_YEAR < 0 AND TI.L1_YEAR >= 0 THEN NVL((SELECT MIN(W.WKMNSP)
+				                                                FROM    NMSP.WEB_SAT_PRFL_WKMNSP W
+				                                                WHERE   W.PRFL_ID = TI.PRFL_ID
+				                                                AND     W.CERT_DV = '001'
+				                                                AND     W.CERT_YCNT > TI.L1_YEAR), 0)
+				              WHEN TI.L1_YEAR < 0 THEN TI.BASE_WKMNSP
+				              ELSE 0
+				          END AS ACTUAL_WKMNSP
+				       ]]>
+				  FROM(SELECT P.PRJTCD ,
+				           P.PRFL_ID , 
+				           T.EMPNO ,  
+				           T.USE_TIME , 
+				           HA.TEAMCD , 
+				           P.BASE_WKMNSP, 
+				           CASE 
+				               WHEN L2.EMP_ID IS NULL 
+				               THEN - 1 -- 등록 정보 없는 경우 
+				               WHEN L1.PROB_END_YMD IS NOT NULL 
+				               THEN GREATEST(FLOOR(MONTHS_BETWEEN(TO_DATE(CONCAT(T.INPUTDATE, T.INPUTDAY), 'YYYYMMDD'), L1.PROB_END_YMD) / 12), 0) 
+				               WHEN L2.PROB_END_YMD IS NOT NULL 
+				               THEN GREATEST(FLOOR(MONTHS_BETWEEN(TO_DATE(CONCAT(T.INPUTDATE, T.INPUTDAY), 'YYYYMMDD'), L2.PROB_END_YMD) / 12), 0) 
+				               WHEN L2.REG_YMD IS NULL 
+				               THEN - 1 -- 등록일 정보 없는 경우(이런 경우는 없지만, ELSE문에서 오류 방지 용으로 넣어둠) 
+				               ELSE GREATEST(FLOOR(MONTHS_BETWEEN(TO_DATE(CONCAT(T.INPUTDATE, T.INPUTDAY), 'YYYYMMDD'), ADD_MONTHS(L2.REG_YMD, 12)) / 12), 0) 
+				           END AS L2_YEAR , 
+				           CASE 
+				               WHEN L1.EMP_ID IS NULL 
+				                   AND L2.EMP_ID IS NULL 
+				               THEN - 1 -- 수습/등록정보 모두 없는 경우 
+				               WHEN L1.EMP_ID IS NOT NULL 
+				                   AND L1.REG_YMD IS NULL 
+				               THEN - 1 -- 수습 정보 있는데 수습등록일 없는 경우 
+				               ELSE GREATEST(FLOOR(MONTHS_BETWEEN(TO_DATE(CONCAT(T.INPUTDATE, T.INPUTDAY), 'YYYYMMDD'), L1.REG_YMD) / 12), 0) 
+				           END AS L1_YEAR 
+				      FROM 
+				     (SELECT P.PRJTCD , 
+				             SB.PRJTCD1 AS PRJTCD1 , 
+				             SB.PRJTCD2 AS PRJTCD2 , 
+				             SB.PRJTCD3 AS PRJTCD3 ,
+				             P.PRFL_ID , 
+				             NVL(P.BASE_WKMNSP, NVL((SELECT BASE_WKMNSP FROM WEB_SAT_PRFL_GRP WHERE PRFL_ID = P.PRFL_ID AND SATGRP_CD = P.SATGRP_CD), 1)) BASE_WKMNSP,
+				             P.RPRT_SCDL_DT 
+				        FROM NMSP.WEB_SAT_PRJT P , 
+				             NMSP.WEB_SAT_SUB_PRJT SB 
+				       WHERE P.PRJTCD = SB.P_PRJTCD 
+				         AND SB.PRJTCD2 = '01' 
+				         AND P.SAT_TRGT_YN = 'Y'
+				         AND P.STAT = 'CO'
+				       UNION ALL
+				      SELECT P.PRJTCD , 
+				             P.PRJTCD1 AS PRJTCD1 , 
+				             P.PRJTCD2 AS PRJTCD2 , 
+				             P.PRJTCD3 AS PRJTCD3 ,
+				             P.PRFL_ID , 
+				             NVL(P.BASE_WKMNSP, NVL((SELECT BASE_WKMNSP FROM WEB_SAT_PRFL_GRP WHERE PRFL_ID = P.PRFL_ID AND SATGRP_CD = P.SATGRP_CD), 1)) BASE_WKMNSP,
+				             P.RPRT_SCDL_DT 
+				        FROM NMSP.WEB_SAT_PRJT P 
+				       WHERE P.SAT_TRGT_YN = 'Y' AND P.STAT = 'CO') P,
+				      NMSP.TIME_DAILY T , 
+				      NMSP.HREMP H , 
+				      NMSP.HRANNC HA ,
+				      (SELECT LI.EMP_ID,LI.REG_YMD,LI.PROB_END_YMD FROM SAC_HR.PHM_LICENSE LI WHERE LI.LICENSE_CD = '001') L1 ,
+				      (SELECT LI.EMP_ID,LI.REG_YMD,LI.PROB_END_YMD FROM SAC_HR.PHM_LICENSE LI WHERE LI.LICENSE_CD = '002') L2 
+				    WHERE P.PRJTCD1 = T.PRJTCD1 
+				      AND P.PRJTCD2 = T.PRJTCD2 
+				      AND P.PRJTCD3 = T.PRJTCD3 
+				      AND CONCAT(T.INPUTDATE, T.INPUTDAY) <![CDATA[<=]]> REPLACE(P.RPRT_SCDL_DT, '-', '') /*감사 보고서 예정일까지의 사용된 TIME만*/ 
+				      AND T.EMPNO = H.EMPLNO 
+				      AND H.EMP_ID = L1.EMP_ID(+) 
+				      AND H.EMP_ID = L2.EMP_ID(+) 
+				      AND T.EMPNO = HA.EMPLNO 
+				      AND CONCAT(T.INPUTDATE, T.INPUTDAY) BETWEEN HA.ANNDT AND HA.ENDDT 
+				      AND HA.DSEQ = 0
+				   ) TI
+				 ) TW
+				 GROUP BY TW.PRJTCD
+			) B
+			WHERE A.PRJTCD = B.PRJTCD(+)
+			ORDER BY NVL(A.WKMNSP_SAT * B.ACTUAL_WKMNSP, 0) DESC, A.WKMNSP_SAT DESC, A.PRJTCD
+	</select>
+	
+	<select id="getStandardAuditTimeList_BK2" parameterType="hashmap" resultType="hashmap">
+	SELECT  I.PRJTNM
+	      , I.SATGRP_CD
+	      , I.PRFL_ID
+	      , I.PRJTCD
+	      , I.PRJTCD1
+	      , I.PRJTCD2
+	      , I.PRJTCD3
+	      , I.EL_EMPNO
+	      , I.EL_KORNM
+	      , I.PM_EMPNO
+	      , I.PM_KORNM
+	      , I.RCRD_MGR
+	      , ROUND(I.WKMNSP_SAT, 0) AS WKMNSP_SAT
+	      , ROUND(I.ET_DFN_SAT, 0) AS ET_DFN_SAT
+	      , ROUND(P.BASE_WKMNSP, 3) AS BASE_WKMNSP
+	      , ROUND(I.ACTUAL_WKMNSP, 3) AS WKMNSP_TEAM
+	      , CASE
+                WHEN NVL(I.ACTUAL_WKMNSP, 0) = 0 THEN 0
+                ELSE ROUND(I.ET_DFN_SAT * P.BASE_WKMNSP / I.ACTUAL_WKMNSP, 0)
+	        END AS WKMNSP_SAT_TEAM
+	      , ROUND(I.ACTUAL_TIME, 0) AS ACTUAL_TIME
+	      , CASE
+                WHEN ROUND(I.ACTUAL_WKMNSP, 3) = 0                        THEN 0
+                WHEN ROUND(I.ET_DFN_SAT, 0) * ROUND(P.BASE_WKMNSP, 3) = 0 THEN 0
+                ELSE ROUND(ROUND(I.ACTUAL_TIME, 0) / ROUND(I.ET_DFN_SAT * P.BASE_WKMNSP / I.ACTUAL_WKMNSP, 0) * 100, 2)
+        	END AS PROGRESS
+	FROM   (SELECT SI.PRJTNM
+	              , SI.PRJTCD
+	              , SI.PRJTCD1
+	              , SI.PRJTCD2
+	              , SI.PRJTCD3
+	              , SI.EL_KORNM
+	              , SI.EL_EMPNO
+	              , SI.PM_KORNM
+	              , SI.PM_EMPNO
+	              , SI.RCRD_MGR
+	              , SI.SATGRP_CD
+	              , SI.PRFL_ID
+	              , SI.ET_DFN_SAT
+	              , SI.WKMNSP_SAT AS WKMNSP_SAT       -- 기준 숙련도 기준 표준감사시간
+	              , SI.ACTUAL_WKMNSP AS ACTUAL_WKMNSP -- 팀의 숙련도(ACTUAL 기준)
+	              , SI.ACTUAL_TIME AS ACTUAL_TIME     -- ACTUAL TIME
+	        FROM   (SELECT SAT.PRJTNM
+	                      , SAT.PRJTCD
+	                      , SAT.PRJTCD1
+	                      , SAT.PRJTCD2
+	                      , SAT.PRJTCD3
+	                      , EL.KORNM EL_KORNM
+	                      , EL.EMPLNO EL_EMPNO
+	                      , PM.KORNM PM_KORNM
+	                      , PM.EMPLNO PM_EMPNO
+	                      , SAT.RCRD_MGR
+	                      , SAT.SATGRP_CD
+	                      , SAT.PRFL_ID
+	                      , SAT.ET_DFN_SAT
+	                      , NVL(SAT.WKMNSP_SAT, 0) AS WKMNSP_SAT
+	                      , NVL(CASE
+	                                WHEN SUM(SAT.ACTUAL_TIME) IS NOT NULL THEN SUM(SAT.ACTUAL_WKMNSP_TIME) / SUM(SAT.ACTUAL_TIME)
+	                                ELSE 0
+	                        END, 0) AS ACTUAL_WKMNSP
+	                      , NVL(SUM(SAT.ACTUAL_TIME), 0) AS ACTUAL_TIME
+	                FROM   (SELECT PI.PRJTCD
+	                              , PI.PRJTNM
+	                              , PI.PRJTCD1
+	                              , PI.PRJTCD2
+	                              , PI.PRJTCD3
+	                              , PI.CHARGBON
+	                              , PI.CHARGPTR
+	                              , PI.CHARGMGR
+	                              , PI.RCRD_MGR
+	                              , PI.PRJT_FRDT
+	                              , PI.PRJT_TODT
+	                              , PI.WKMNSP_SAT
+	                              , PI.SATGRP_CD
+	                              , PI.PRFL_ID
+	                              , PI.ET_DFN_SAT
+	                              , SUM(TD.ACTUAL_TIME) AS ACTUAL_TIME
+	                              , SUM(TD.ACTUAL_WKMNSP_TIME) AS ACTUAL_WKMNSP_TIME
+	                        FROM   (<include refid="satSql.authProjectInfo" />) PI
+		<![CDATA[
+	                              ,(SELECT TW.PRJTCD
+	                                      , TW.EMPNO
+	                                      , NVL(SUM(TW.USE_TIME), 0) AS ACTUAL_TIME
+	                                      , NVL(SUM(TW.USE_TIME * TW.ACTUAL_WKMNSP), 0) AS Z
+	                                FROM   (SELECT TI.PRJTCD
+	                                              , TI.PRJTCD1
+	                                              , TI.PRJTCD2
+	                                              , TI.PRJTCD3
+	                                              , TI.EMPNO
+	                                              , TI.INPUTDATE
+	                                              , TI.INPUTDAY
+	                                              , TI.USE_TIME
+	                                              , TI.TEAMCD
+	                                              , TI.BASE_WKMNSP
+	                                              , TI.L2_YEAR
+	                                              , CASE
+	                                                        WHEN TI.TEAMCD IN('AY1'
+	                                                                        , 'AZ5') THEN TI.BASE_WKMNSP
+	                                                        WHEN TI.L2_YEAR >= 0     THEN NVL((SELECT MIN(W.WKMNSP)
+	                                                                                           FROM    NMSP.WEB_SAT_PRFL_WKMNSP W
+	                                                                                           WHERE   W.PRFL_ID = TI.PRFL_ID
+	                                                                                           AND     W.CERT_DV = '002'
+	                                                                                           AND     W.CERT_YCNT > TI.L2_YEAR), 0)
+	                                                        WHEN TI.L2_YEAR < 0
+	                                                        AND     TI.L1_YEAR >= 0 THEN NVL((SELECT MIN(W.WKMNSP)
+	                                                                                          FROM    NMSP.WEB_SAT_PRFL_WKMNSP W
+	                                                                                          WHERE   W.PRFL_ID = TI.PRFL_ID
+	                                                                                          AND     W.CERT_DV = '001'
+	                                                                                          AND     W.CERT_YCNT > TI.L1_YEAR), 0)
+	                                                        WHEN TI.L1_YEAR < 0 THEN TI.BASE_WKMNSP
+	                                                        ELSE 0
+	                                                END AS ACTUAL_WKMNSP
+	                                              , TI.L1_YEAR
+	                                        FROM   (SELECT P.PRJTCD
+	                                                      , P.PRJTCD1
+	                                                      , P.PRJTCD2
+	                                                      , P.PRJTCD3
+	                                                      , P.PRFL_ID
+	                                                      , T.EMPNO
+	                                                      , T.INPUTDATE
+	                                                      , T.INPUTDAY
+	                                                      , T.ACTIVITYTITLE
+	                                                      , T.USE_TIME
+	                                                      , HA.TEAMCD
+	                                                      , P.BASE_WKMNSP
+	                                                      , CASE
+	                                                                WHEN L2.EMP_ID IS NULL           THEN - 1 -- 등록 정보 없는 경우
+	                                                                WHEN L1.PROB_END_YMD IS NOT NULL THEN GREATEST(FLOOR(MONTHS_BETWEEN(TO_DATE(CONCAT(T.INPUTDATE, T.INPUTDAY), 'YYYYMMDD'), L1.PROB_END_YMD) / 12), 0)
+	                                                                WHEN L2.PROB_END_YMD IS NOT NULL THEN GREATEST(FLOOR(MONTHS_BETWEEN(TO_DATE(CONCAT(T.INPUTDATE, T.INPUTDAY), 'YYYYMMDD'), L2.PROB_END_YMD) / 12), 0)
+	                                                                WHEN L2.REG_YMD IS NULL          THEN - 1 -- 등록일 정보 없는 경우(이런 경우는 없지만, ELSE문에서 오류 방지 용으로 넣어둠)
+	                                                                ELSE GREATEST(FLOOR(MONTHS_BETWEEN(TO_DATE(CONCAT(T.INPUTDATE, T.INPUTDAY), 'YYYYMMDD'), ADD_MONTHS(L2.REG_YMD, 12)) / 12), 0)
+	                                                        END AS L2_YEAR
+	                                                      , CASE
+	                                                                WHEN L1.EMP_ID IS NULL
+	                                                                AND     L2.EMP_ID IS NULL THEN - 1 -- 수습/등록정보 모두 없는 경우
+	                                                                WHEN L1.EMP_ID IS NOT NULL
+	                                                                AND     L1.REG_YMD IS NULL THEN - 1 -- 수습 정보 있는데 수습등록일 없는 경우
+	                                                                ELSE GREATEST(FLOOR(MONTHS_BETWEEN(TO_DATE(CONCAT(T.INPUTDATE, T.INPUTDAY), 'YYYYMMDD'), L1.REG_YMD) / 12), 0)
+	                                                        END AS L1_YEAR
+	                                                FROM   (SELECT P.PRJTCD
+	                                                              , SB.PRJTCD1 AS PRJTCD1
+	                                                              , SB.PRJTCD2 AS PRJTCD2
+	                                                              , SB.PRJTCD3 AS PRJTCD3
+	                                                              , P.PRJT_FRDT
+	                                                              , P.PRJT_TODT
+	                                                              , 0 AS WKMNSP_SAT
+	                                                              , NVL(P.BASE_WKMNSP, NVL((SELECT BASE_WKMNSP FROM WEB_SAT_PRFL_GRP WHERE PRFL_ID = P.PRFL_ID AND SATGRP_CD = P.SATGRP_CD), 1)) BASE_WKMNSP
+	                                                              , P.PRFL_ID
+	                                                              , P.SATGRP_CD
+	                                                              , P.RPRT_SCDL_DT
+	                                                        FROM    NMSP.WEB_SAT_PRJT P
+	                                                              , NMSP.WEB_SAT_SUB_PRJT SB
+	                                                        WHERE   P.PRJTCD = SB.P_PRJTCD
+	                                                        AND     SB.PRJTCD2 = '01'
+	                                                        AND     P.SAT_TRGT_YN = 'Y'
+	                                                        UNION
+	                                                        SELECT  P.PRJTCD
+	                                                              , P.PRJTCD1 AS PRJTCD1
+	                                                              , P.PRJTCD2 AS PRJTCD2
+	                                                              , P.PRJTCD3 AS PRJTCD3
+	                                                              , P.PRJT_FRDT
+	                                                              , P.PRJT_TODT
+	                                                              , P.ET_DFN_SAT * NVL(P.BASE_WKMNSP, NVL((SELECT BASE_WKMNSP FROM WEB_SAT_PRFL_GRP WHERE PRFL_ID = P.PRFL_ID AND SATGRP_CD = P.SATGRP_CD), 1)) WKMNSP_SAT
+	                                                              , NVL(P.BASE_WKMNSP, NVL((SELECT BASE_WKMNSP FROM WEB_SAT_PRFL_GRP WHERE PRFL_ID = P.PRFL_ID AND SATGRP_CD = P.SATGRP_CD), 1)) BASE_WKMNSP
+	                                                              , P.PRFL_ID
+	                                                              , P.SATGRP_CD
+	                                                              , P.RPRT_SCDL_DT
+	                                                        FROM    NMSP.WEB_SAT_PRJT P
+	                                                        WHERE   P.SAT_TRGT_YN = 'Y') P
+	                                                      , NMSP.WEB_SAT_PRFL_GRP I
+	                                                      , NMSP.TIME_DAILY T
+	                                                      , NMSP.HREMP H
+	                                                      , NMSP.HRANNC HA
+	                                                      ,(SELECT LI.EMP_ID
+	                                                              , LI.REG_YMD
+	                                                              , LI.PROB_END_YMD
+	                                                        FROM    SAC_HR.PHM_LICENSE LI
+	                                                        WHERE   LI.LICENSE_CD = '001') L1
+	                                                      ,(SELECT LI.EMP_ID
+	                                                              , LI.REG_YMD
+	                                                              , LI.PROB_END_YMD
+	                                                        FROM    SAC_HR.PHM_LICENSE LI
+	                                                        WHERE   LI.LICENSE_CD = '002') L2
+	                                                WHERE   P.PRJTCD1 = T.PRJTCD1
+	                                                AND     P.PRJTCD2 = T.PRJTCD2
+	                                                AND     P.PRJTCD3 = T.PRJTCD3
+	                                                AND 	CONCAT(T.INPUTDATE, T.INPUTDAY) <= REPLACE(P.RPRT_SCDL_DT, '-', '') /*감사 보고서 예정일까지의 사용된 TIME만*/
+	                                                AND     T.EMPNO = H.EMPLNO
+	                                                AND     H.EMP_ID = L1.EMP_ID(+)
+	                                                AND     H.EMP_ID = L2.EMP_ID(+)
+	                                                AND     T.EMPNO = HA.EMPLNO
+	                                                AND     CONCAT(T.INPUTDATE, T.INPUTDAY) BETWEEN HA.ANNDT AND     HA.ENDDT
+	                                                AND     HA.DSEQ = 0
+	                                                ORDER BY T.EMPNO
+	                                                      , T.INPUTDATE
+	                                                      , T.INPUTDAY) TI) TW
+	                                GROUP BY TW.PRJTCD
+	                                      , TW.EMPNO) TD
+	                        WHERE   1 = 1
+	                        AND     PI.PRJTCD = TD.PRJTCD(+)
+	                        GROUP BY PI.PRJTCD
+	                              , PI.PRJTNM
+	                              , PI.PRJTCD1
+	                              , PI.PRJTCD2
+	                              , PI.PRJTCD3
+	                              , PI.CHARGBON
+	                              , PI.CHARGPTR
+	                              , PI.CHARGMGR
+	                              , PI.RCRD_MGR
+	                              , PI.PRJT_FRDT
+	                              , PI.PRJT_TODT
+	                              , PI.WKMNSP_SAT
+	                              , PI.ET_DFN_SAT
+	                              , PI.SATGRP_CD
+	                              , PI.PRFL_ID) SAT
+	                      , NMSP.HREMP EL
+	                      , NMSP.HREMP PM
+	                WHERE   1 = 1
+	                AND     SAT.CHARGPTR = EL.EMPLNO
+	                AND     SAT.CHARGMGR = PM.EMPLNO
+	                GROUP BY SAT.PRJTNM
+	                      , SAT.PRJTCD
+	                      , SAT.PRJTCD1
+	                      , SAT.PRJTCD2
+	                      , SAT.PRJTCD3
+	                      , SAT.CHARGBON
+	                      , SAT.CHARGPTR
+	                      , SAT.CHARGMGR
+	                      , SAT.RCRD_MGR
+	                      , EL.KORNM
+	                      , EL.EMPLNO
+	                      , PM.KORNM
+	                      , PM.EMPLNO
+	                      , SAT.WKMNSP_SAT
+	                      , SAT.PRFL_ID
+	                      , SAT.ET_DFN_SAT
+	                      , SAT.SATGRP_CD
+	                      , SAT.PRJT_FRDT
+	                      , SAT.PRJT_TODT) SI) I
+	      , NMSP.WEB_SAT_PRFL_GRP P
+	WHERE   1 = 1
+	AND     P.PRFL_ID = I.PRFL_ID
+	AND     P.SATGRP_CD = I.SATGRP_CD
+	ORDER BY I.WKMNSP_SAT * I.ACTUAL_WKMNSP DESC
+	      , I.WKMNSP_SAT DESC
+	      , I.PRJTCD
+		]]>
+	</select>
+	
+	
+	<select id="getStandardAuditTimeList_bk" parameterType="hashmap" resultType="hashmap">
+		<![CDATA[
+SELECT  I.PRJTNM
+      , I.SATGRP_CD
+      , I.PRFL_ID
+      , I.PRJTCD
+      , I.PRJTCD1
+      , I.PRJTCD2
+      , I.PRJTCD3
+      , I.EL_EMPNO
+      , I.EL_KORNM
+      , I.PM_EMPNO
+      , I.PM_KORNM
+      , I.RCRD_MGR
+      , ROUND(I.WKMNSP_SAT, 0) AS WKMNSP_SAT
+      , ROUND(I.ET_DFN_SAT, 0) AS ET_DFN_SAT
+      , ROUND(P.BASE_WKMNSP, 3) AS BASE_WKMNSP
+      , ROUND(I.ACTUAL_WKMNSP, 3) AS WKMNSP_TEAM
+      , CASE
+                WHEN NVL(I.ACTUAL_WKMNSP, 0) = 0 THEN 0
+                ELSE ROUND(I.ET_DFN_SAT * P.BASE_WKMNSP / I.ACTUAL_WKMNSP, 0)
+        END AS WKMNSP_SAT_TEAM
+      , ROUND(I.ACTUAL_TIME, 0) AS ACTUAL_TIME
+      , CASE
+                WHEN ROUND(I.ACTUAL_WKMNSP, 3) = 0                        THEN 0
+                WHEN ROUND(I.ET_DFN_SAT, 0) * ROUND(P.BASE_WKMNSP, 3) = 0 THEN 0
+                ELSE ROUND(ROUND(I.ACTUAL_TIME, 0) / ROUND(I.ET_DFN_SAT * P.BASE_WKMNSP / I.ACTUAL_WKMNSP, 0) * 100, 2)
+        END AS PROGRESS
+FROM   (SELECT SI.PRJTNM
+              , SI.PRJTCD
+              , SI.PRJTCD1
+              , SI.PRJTCD2
+              , SI.PRJTCD3
+              , SI.EL_KORNM
+              , SI.EL_EMPNO
+              , SI.PM_KORNM
+              , SI.PM_EMPNO
+              , SI.RCRD_MGR
+              , SI.SATGRP_CD
+              , SI.PRFL_ID
+              , SI.ET_DFN_SAT
+              , SI.WKMNSP_SAT AS WKMNSP_SAT       -- 기준 숙련도 기준 표준감사시간
+              , SI.ACTUAL_WKMNSP AS ACTUAL_WKMNSP -- 팀의 숙련도(ACTUAL 기준)
+              , SI.ACTUAL_TIME AS ACTUAL_TIME     -- ACTUAL TIME
+        FROM   (SELECT SAT.PRJTNM
+                      , SAT.PRJTCD
+                      , SAT.PRJTCD1
+                      , SAT.PRJTCD2
+                      , SAT.PRJTCD3
+                      , EL.KORNM EL_KORNM
+                      , EL.EMPLNO EL_EMPNO
+                      , PM.KORNM PM_KORNM
+                      , PM.EMPLNO PM_EMPNO
+                      , SAT.RCRD_MGR
+                      , SAT.SATGRP_CD
+                      , SAT.PRFL_ID
+                      , SAT.ET_DFN_SAT
+                      , NVL(SAT.WKMNSP_SAT, 0) AS WKMNSP_SAT
+                      , NVL(CASE
+                                WHEN SUM(SAT.ACTUAL_TIME) IS NOT NULL THEN SUM(SAT.ACTUAL_WKMNSP_TIME) / SUM(SAT.ACTUAL_TIME)
+                                ELSE 0
+                        END, 0) AS ACTUAL_WKMNSP
+                      , NVL(SUM(SAT.ACTUAL_TIME), 0) AS ACTUAL_TIME
+                FROM   (SELECT PI.PRJTCD
+                              , PI.PRJTNM
+                              , PI.PRJTCD1
+                              , PI.PRJTCD2
+                              , PI.PRJTCD3
+                              , PI.CHARGBON
+                              , PI.CHARGPTR
+                              , PI.CHARGMGR
+                              , PI.RCRD_MGR
+                              , PI.PRJT_FRDT
+                              , PI.PRJT_TODT
+                              , PI.WKMNSP_SAT
+                              , PI.SATGRP_CD
+                              , PI.PRFL_ID
+                              , PI.ET_DFN_SAT
+                              , SUM(TD.ACTUAL_TIME) AS ACTUAL_TIME
+                              , SUM(TD.ACTUAL_WKMNSP_TIME) AS ACTUAL_WKMNSP_TIME
+                        FROM   (SELECT P.PRJTCD
+                                      , PB.PRJTNM
+                                      , P.PRJTCD1
+                                      , P.PRJTCD2
+                                      , P.PRJTCD3
+                                      , P.PRJT_FRDT
+                                      , P.PRJT_TODT
+                                      , P.WKMNSP_SAT
+                                      , P.PRFL_ID
+                                      , P.SATGRP_CD
+                                      , P.ET_DFN_SAT
+                                      , PB.CHARGBON
+                                      , PB.CHARGPTR
+                                      , PB.CHARGMGR
+                                      , P.RCRD_MGR
+                                FROM    NMSP.WEB_SAT_PRJT P
+                                      , NMSP.PMPRJTBS PB
+                                      , NMSP.CMTEAMCD T
+                                WHERE   1 = 1
+                                AND     P.STAT = 'CO'
+                                AND     PB.CHARGBON = T.TEAMCD
+  ]]>
+       <choose>
+        <when test=" 'sysadmin'.equals(roleCd) or 'admin'.equals(roleCd)">
+                                AND     1 = 1
+        </when>
+        <when test=" 'los'.equals(roleCd)">
+                                AND     T.LINEDV = '10'
+        </when>
+        <when test=" 'bonb'.equals(roleCd)">
+                                AND     T.BONBCD =(SELECT HT.BONBCD
+                                        FROM    NMSP.HREMP H
+                                              , NMSP.CMTEAMCD HT
+                                        WHERE   H.EMPLNO = #{sessEmplNo}
+                                        AND     H.TEAMCD = HT.TEAMCD)
+        </when>
+        <when test=" 'user'.equals(roleCd)">
+                                AND     PB.CHARGPTR ||'^'|| PB.CHARGMGR ||'^'|| P.RCRD_MGR LIKE '%'||#{sessEmplNo}||'%'
+        </when>
+        <otherwise>
+        AND  1 = 2
+        </otherwise>
+       </choose>
+  <![CDATA[
+                                AND     P.SAT_TRGT_YN = 'Y'
+                                AND     P.PRJTCD1 = PB.PRJTCD1
+                                AND     P.PRJTCD2 = PB.PRJTCD2
+                                AND     P.PRJTCD3 = PB.PRJTCD3) PI
+                              ,(SELECT TW.PRJTCD
+                                      , TW.EMPNO
+                                      , NVL(SUM(TW.USE_TIME), 0) AS ACTUAL_TIME
+                                      , NVL(SUM(TW.USE_TIME * TW.ACTUAL_WKMNSP), 0) AS ACTUAL_WKMNSP_TIME
+                                FROM   (SELECT TI.PRJTCD
+                                              , TI.PRJTCD1
+                                              , TI.PRJTCD2
+                                              , TI.PRJTCD3
+                                              , TI.EMPNO
+                                              , TI.INPUTDATE
+                                              , TI.INPUTDAY
+                                              , TI.USE_TIME
+                                              , TI.TEAMCD
+                                              , TI.BASE_WKMNSP
+                                              , TI.L2_YEAR
+                                              , CASE
+                                                        WHEN TI.TEAMCD IN('AY1'
+                                                                        , 'AZ5') THEN TI.BASE_WKMNSP
+                                                        WHEN TI.L2_YEAR >= 0     THEN NVL((SELECT MIN(W.WKMNSP)
+                                                                                           FROM    NMSP.WEB_SAT_PRFL_WKMNSP W
+                                                                                           WHERE   W.PRFL_ID = TI.PRFL_ID
+                                                                                           AND     W.CERT_DV = '002'
+                                                                                           AND     W.CERT_YCNT > TI.L2_YEAR), 0)
+                                                        WHEN TI.L2_YEAR < 0
+                                                        AND     TI.L1_YEAR >= 0 THEN NVL((SELECT MIN(W.WKMNSP)
+                                                                                          FROM    NMSP.WEB_SAT_PRFL_WKMNSP W
+                                                                                          WHERE   W.PRFL_ID = TI.PRFL_ID
+                                                                                          AND     W.CERT_DV = '001'
+                                                                                          AND     W.CERT_YCNT > TI.L1_YEAR), 0)
+                                                        WHEN TI.L1_YEAR < 0 THEN TI.BASE_WKMNSP
+                                                        ELSE 0
+                                                END AS ACTUAL_WKMNSP
+                                              , TI.L1_YEAR
+                                        FROM   (SELECT P.PRJTCD
+                                                      , P.PRJTCD1
+                                                      , P.PRJTCD2
+                                                      , P.PRJTCD3
+                                                      , P.PRFL_ID
+                                                      , T.EMPNO
+                                                      , T.INPUTDATE
+                                                      , T.INPUTDAY
+                                                      , T.ACTIVITYTITLE
+                                                      , T.USE_TIME
+                                                      , HA.TEAMCD
+                                                      , I.BASE_WKMNSP
+                                                      , CASE
+                                                                WHEN L2.EMP_ID IS NULL           THEN - 1 -- 등록 정보 없는 경우
+                                                                WHEN L1.PROB_END_YMD IS NOT NULL THEN GREATEST(FLOOR(MONTHS_BETWEEN(TO_DATE(CONCAT(T.INPUTDATE, T.INPUTDAY), 'YYYYMMDD'), L1.PROB_END_YMD) / 12), 0)
+                                                                WHEN L2.PROB_END_YMD IS NOT NULL THEN GREATEST(FLOOR(MONTHS_BETWEEN(TO_DATE(CONCAT(T.INPUTDATE, T.INPUTDAY), 'YYYYMMDD'), L2.PROB_END_YMD) / 12), 0)
+                                                                WHEN L2.REG_YMD IS NULL          THEN - 1 -- 등록일 정보 없는 경우(이런 경우는 없지만, ELSE문에서 오류 방지 용으로 넣어둠)
+                                                                ELSE GREATEST(FLOOR(MONTHS_BETWEEN(TO_DATE(CONCAT(T.INPUTDATE, T.INPUTDAY), 'YYYYMMDD'), ADD_MONTHS(L2.REG_YMD, 12)) / 12), 0)
+                                                        END AS L2_YEAR
+                                                      , CASE
+                                                                WHEN L1.EMP_ID IS NULL
+                                                                AND     L2.EMP_ID IS NULL THEN - 1 -- 수습/등록정보 모두 없는 경우
+                                                                WHEN L1.EMP_ID IS NOT NULL
+                                                                AND     L1.REG_YMD IS NULL THEN - 1 -- 수습 정보 있는데 수습등록일 없는 경우
+                                                                ELSE GREATEST(FLOOR(MONTHS_BETWEEN(TO_DATE(CONCAT(T.INPUTDATE, T.INPUTDAY), 'YYYYMMDD'), L1.REG_YMD) / 12), 0)
+                                                        END AS L1_YEAR
+                                                FROM   (SELECT P.PRJTCD
+                                                              , SB.PRJTCD1 AS PRJTCD1
+                                                              , SB.PRJTCD2 AS PRJTCD2
+                                                              , SB.PRJTCD3 AS PRJTCD3
+                                                              , P.PRJT_FRDT
+                                                              , P.PRJT_TODT
+                                                              , 0 AS WKMNSP_SAT
+                                                              , P.PRFL_ID
+                                                              , P.SATGRP_CD
+                                                        FROM    NMSP.WEB_SAT_PRJT P
+                                                              , NMSP.WEB_SAT_SUB_PRJT SB
+                                                        WHERE   P.PRJTCD = SB.P_PRJTCD
+                                                        AND     SB.PRJTCD2 = '01'
+                                                        AND     P.SAT_TRGT_YN = 'Y'
+                                                        UNION
+                                                        SELECT  P.PRJTCD
+                                                              , P.PRJTCD1 AS PRJTCD1
+                                                              , P.PRJTCD2 AS PRJTCD2
+                                                              , P.PRJTCD3 AS PRJTCD3
+                                                              , P.PRJT_FRDT
+                                                              , P.PRJT_TODT
+                                                              , P.WKMNSP_SAT
+                                                              , P.PRFL_ID
+                                                              , P.SATGRP_CD
+                                                        FROM    NMSP.WEB_SAT_PRJT P
+                                                        WHERE   1 = 1
+                                                        AND     P.SAT_TRGT_YN = 'Y') P
+                                                      , NMSP.WEB_SAT_PRFL_GRP I
+                                                      , NMSP.TIME_DAILY T
+                                                      , NMSP.HREMP H
+                                                      , NMSP.HRANNC HA
+                                                      ,(SELECT LI.EMP_ID
+                                                              , LI.REG_YMD
+                                                              , LI.PROB_END_YMD
+                                                        FROM    SAC_HR.PHM_LICENSE LI
+                                                        WHERE   LI.LICENSE_CD = '001') L1
+                                                      ,(SELECT LI.EMP_ID
+                                                              , LI.REG_YMD
+                                                              , LI.PROB_END_YMD
+                                                        FROM    SAC_HR.PHM_LICENSE LI
+                                                        WHERE   LI.LICENSE_CD = '002') L2
+                                                WHERE   1 = 1
+                                                AND     P.PRFL_ID = I.PRFL_ID(+)
+                                                AND     P.SATGRP_CD = I.SATGRP_CD(+)
+                                                AND     P.PRJTCD1 = T.PRJTCD1
+                                                AND     P.PRJTCD2 = T.PRJTCD2
+                                                AND     P.PRJTCD3 = T.PRJTCD3
+                                                AND     CONCAT(T.INPUTDATE, T.INPUTDAY) BETWEEN REPLACE(P.PRJT_FRDT, '-', '') AND     REPLACE(P.PRJT_TODT, '-', '') -- 프로젝트 기간 내 사용된 TIME만
+                                                AND     T.EMPNO = H.EMPLNO
+                                                AND     H.EMP_ID = L1.EMP_ID(+)
+                                                AND     H.EMP_ID = L2.EMP_ID(+)
+                                                AND     T.EMPNO = HA.EMPLNO
+                                                AND     CONCAT(T.INPUTDATE, T.INPUTDAY) BETWEEN HA.ANNDT AND     HA.ENDDT
+                                                AND     HA.DSEQ = 0
+                                                ORDER BY T.EMPNO
+                                                      , T.INPUTDATE
+                                                      , T.INPUTDAY) TI) TW
+                                GROUP BY TW.PRJTCD
+                                      , TW.EMPNO) TD
+                        WHERE   1 = 1
+                        AND     PI.PRJTCD = TD.PRJTCD(+)
+                        GROUP BY PI.PRJTCD
+                              , PI.PRJTNM
+                              , PI.PRJTCD1
+                              , PI.PRJTCD2
+                              , PI.PRJTCD3
+                              , PI.CHARGBON
+                              , PI.CHARGPTR
+                              , PI.CHARGMGR
+                              , PI.RCRD_MGR
+                              , PI.PRJT_FRDT
+                              , PI.PRJT_TODT
+                              , PI.WKMNSP_SAT
+                              , PI.ET_DFN_SAT
+                              , PI.SATGRP_CD
+                              , PI.PRFL_ID) SAT
+                      , NMSP.HREMP EL
+                      , NMSP.HREMP PM
+                WHERE   1 = 1
+                AND     SAT.CHARGPTR = EL.EMPLNO
+                AND     SAT.CHARGMGR = PM.EMPLNO
+                GROUP BY SAT.PRJTNM
+                      , SAT.PRJTCD
+                      , SAT.PRJTCD1
+                      , SAT.PRJTCD2
+                      , SAT.PRJTCD3
+                      , SAT.CHARGBON
+                      , SAT.CHARGPTR
+                      , SAT.CHARGMGR
+                      , SAT.RCRD_MGR
+                      , EL.KORNM
+                      , EL.EMPLNO
+                      , PM.KORNM
+                      , PM.EMPLNO
+                      , SAT.WKMNSP_SAT
+                      , SAT.PRFL_ID
+                      , SAT.ET_DFN_SAT
+                      , SAT.SATGRP_CD
+                      , SAT.PRJT_FRDT
+                      , SAT.PRJT_TODT) SI) I
+      , NMSP.WEB_SAT_PRFL_GRP P
+WHERE   1 = 1
+AND     P.PRFL_ID = I.PRFL_ID
+AND     P.SATGRP_CD = I.SATGRP_CD
+ORDER BY I.WKMNSP_SAT * I.ACTUAL_WKMNSP DESC
+      , I.WKMNSP_SAT DESC
+      , I.PRJTCD
+		]]>
+	</select>
+</mapper>

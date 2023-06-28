@@ -1,0 +1,643 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="satSql">
+
+	<sql id="getBonbList">
+		SELECT VAL1 
+		  FROM APPMNG_CD 
+		 WHERE APP_CD = #{appCd} 
+		       AND GRP_CD='ROLE_VIEW_RANGE' 
+		       AND LEVEL >= 2 
+		 START WITH P_CD = 'root' AND CD = #{session.roleCd} 
+		 CONNECT BY PRIOR CD = P_CD
+	</sql>
+	
+	<sql id="baseProjectInfo">
+		SELECT A.*,
+			   DECODE(A.SAT_TRGT_YN, 'Y', A.ET_DFN_SAT * A.BASE_WKMNSP, NULL) WKMNSP_SAT,
+		       DECODE(A.SAT_TRGT_YN, 'Y', DECODE(A.FORM_DIV, 'v1', A.CAL_ADT_TM + A.INTR_ADT_TM, A.CAL_ADT_TM * A.INTR_ADT_FCTR)) CAL_SAT,
+			   B.PRJTNM,
+		       (SELECT HANGNM FROM NMSP.PMCLNTBS WHERE CLIENT = A.PRJTCD1) CLNT_NM, 
+		       B.SHRTNM , 
+		       B.PRDTCD,
+		       B.CHARGBON,
+		       B.CHARGPTR,
+		       EL.KORNM CHARGPTR_NM, 
+		       NMSP.SF_EMP_GRADNM(B.CHARGPTR) CHARGPTR_GRAD_NM,
+		       EL.TEAMCD CHARGPTR_TEAMCD,
+		       (SELECT BONBCD FROM CMTEAMCD WHERE TEAMCD = EL.TEAMCD) CHARGPTR_BONBCD,
+		       B.CHARGMGR, 
+		       NMSP.SF_EMP_NAME(B.CHARGMGR) CHARGMGR_NM, 
+		       NMSP.SF_EMP_GRADNM(B.CHARGMGR) CHARGMGR_GRAD_NM,
+		       NMSP.SF_EMP_NAME(A.RCRD_MGR) RCRD_MGR_NM,
+			   NMSP.SF_EMP_GRADNM(A.RCRD_MGR) RCRD_MGR_GRAD_NM,
+			   NMSP.SF_EMP_NAME(A.RCRD_MGR2) RCRD_MGR_NM2,
+			   NMSP.SF_EMP_GRADNM(A.RCRD_MGR2) RCRD_MGR_GRAD_NM2,
+			   NMSP.SF_EMP_NAME(A.RCRD_MGR3) RCRD_MGR_NM3,
+			   NMSP.SF_EMP_GRADNM(A.RCRD_MGR3) RCRD_MGR_GRAD_NM3 
+		  FROM NMSP.WEB_SAT_PRJT A, 
+		       NMSP.PMPRJTBS B,
+		       NMSP.HREMP EL
+		 WHERE A.PRJTCD1 = B.PRJTCD1 
+		       AND A.PRJTCD2 = B.PRJTCD2 
+		       AND A.PRJTCD3 = B.PRJTCD3
+		       AND B.CHARGPTR = EL.EMPLNO
+		       AND A.CALC_ONLY_YN = 'N'
+       <if test=" prjtCd != null and !''.equals(prjtCd)">
+			   AND A.PRJTCD = #{prjtCd}
+	   </if>
+	   <if test=" stat != null and !''.equals(stat)">
+			   AND A.STAT = #{stat}
+	   </if>
+	   <if test=" satTrgtYn != null and !''.equals(satTrgtYn)">
+			   AND A.SAT_TRGT_YN = #{satTrgtYn}
+	   </if>
+	   <if test=" formDiv != null">
+	   		   AND A.FORM_DIV IN <foreach collection="formDiv" item="div" separator="," open="(" close=")">#{div}</foreach>
+	   </if>
+	</sql>
+	
+	<sql id="baseMemberBudget">
+		SELECT M.PRJTCD 
+             , A.CHARGPTR 
+             , A.YEARLY 
+             , LEAST(SF_PM_GET_CYEARLY('01', SUBSTR(REPLACE(B.WEEK_FRDT, '-', ''), 0, 6), '2'), SF_PM_GET_CYEARLY('01', TO_CHAR(SYSDATE, 'YYYYMMDD'), '2')) YEARLY_BY_WEEK 
+             , A.PRDTCD 
+             , M.SUB_PRJTCD 
+             , M.ACTV_CD 
+             , M.LOCA_CD 
+             , M.TBD 
+             , M.WKMNSP 
+             , M.MEMB_EMPLNO 
+             , M.KORNM 
+             , D.BONBCD 
+             , D.TEAMCD 
+             , E.GRADCD 
+             , DECODE(E.PNTDV, 'Y', 'P', 'N') PN 
+             , E.CMGRADCD 
+             , M.GRADCD SAVE_GRADCD 
+             , B.WEEK_FRDT 
+             , B.ASGN_TM 
+             , G.AUDITGB 
+          FROM PMPRJTBS A 
+             , (SELECT A.* 
+                    , B.EMPLNO EMP_EMPLNO 
+                    , B.GRADCD EMP_GRADCD 
+                    , B.TEAMCD EMP_TEAMCD 
+                    , B.EMP_ID 
+                    , B.KORNM 
+                 FROM WEB_SAT_MEMB A 
+                    , HREMP B 
+                WHERE A.MEMB_EMPLNO = B.EMPLNO(+) 
+               ) M 
+             , WEB_SAT_MEMB_BDGT B 
+             , CMTEAMCD D 
+             , HRGRAD E 
+             , (SELECT 'Y' TBD 
+                    , CD CODE 
+                    , 'system' EMPLNO 
+                    , VAL1 GRADCD 
+                    , VAL2 TEAMCD 
+                 FROM NMSP.APPMNG_CD 
+                WHERE APP_CD = #{appCd} 
+                      AND GRP_CD = 'DFT_BDGT_ROLE' 
+               ) F 
+             , PMAUDITPJTD G 
+         WHERE A.PRJTCD1 = SUBSTR(B.PRJTCD, 0, 5) 
+               AND A.PRJTCD2= SUBSTR(B.PRJTCD, 7, 2) 
+               AND A.PRJTCD3= SUBSTR(B.PRJTCD, 10, 3) 
+               AND M.PRJTCD = B.PRJTCD(+) 
+               AND M.SUB_PRJTCD = B.SUB_PRJTCD(+) 
+               AND M.ACTV_CD = B.ACTV_CD(+) 
+               AND M.LOCA_CD = B.LOCA_CD(+) 
+               AND M.MEMB_EMPLNO = B.MEMB_EMPLNO(+) 
+               AND M.TBD = F.TBD(+) 
+               AND M.ACTV_CD = F.CODE(+) 
+               AND D.TEAMCD = DECODE(M.EMP_EMPLNO, NULL, DECODE(F.TEAMCD, 'PTR', SF_ACWEMPTEAMCD(A.CHARGPTR), F.TEAMCD), M.EMP_TEAMCD) 
+               AND E.GRADCD      = DECODE(M.EMP_EMPLNO, NULL, F.GRADCD, NVL(M.GRADCD, M.EMP_GRADCD)) 
+               AND B.PRJTCD =(G.PRJTCD1_B(+)||'-'||G.PRJTCD2_B(+)||'-'||G.PRJTCD3_B(+))
+               AND B.SUB_PRJTCD =(G.PRJTCD1(+)||'-'||G.PRJTCD2(+)||'-'||G.PRJTCD3(+))
+               <if test="prjtCd != null and !''.equals(prjtCd)">
+               AND M.PRJTCD = #{prjtCd} 
+               </if> 
+	</sql>
+	
+	<sql id="baseCisPrjt">
+		SELECT NVL(A.PRJTCD_B, B.MAIN_PRJTCD) MAIN_PRJTCD 
+		     , NVL(A.PRJTCD, B.SUB_PRJTCD) SUB_PRJTCD 
+		     , NVL(A.PRJTCD1, B.PRJTCD1) PRJTCD1 
+		     , NVL(A.PRJTCD2, B.PRJTCD2) PRJTCD2 
+		     , NVL(A.PRJTCD3, B.PRJTCD3) PRJTCD3 
+		     , A.INADJUST 
+		     , A.AUDITGB 
+		     , B.DIV 
+		     , BDGT_TRGT_YN 
+		     , CNTRT_ADT_TM 
+		  FROM 
+		       (SELECT A.PRJTCD1_B||'-'||A.PRJTCD2_B||'-'||A.PRJTCD3_B PRJTCD_B 
+		            , A.PRJTCD1||'-'||A.PRJTCD2||'-'||A.PRJTCD3 PRJTCD 
+		            , A.* 
+		         FROM PMAUDITPJTD A 
+		       ) A 
+		     FULL OUTER JOIN 
+		       (SELECT PRJTCD MAIN_PRJTCD 
+		            , PRJTCD SUB_PRJTCD 
+		            , PRJTCD1 
+		            , PRJTCD2 
+		            , PRJTCD3 
+		            , 'main' DIV 
+		            , BDGT_TRGT_YN 
+		            , NVL(ET_TRGT_ADT_TM, 0) CNTRT_ADT_TM 
+		         FROM NMSP.WEB_SAT_PRJT A 
+		        WHERE CALC_ONLY_YN = 'N' 
+		             UNION ALL 
+		       SELECT P_PRJTCD 
+		            , PRJTCD1||'-'||PRJTCD2||'-'||PRJTCD3 SUB_PRJTCD 
+		            , PRJTCD1 
+		            , PRJTCD2 
+		            , PRJTCD3 
+		            , 'sub' 
+		            , BDGT_TRGT_YN 
+		            , NVL(CNTRT_ADT_TM, 0) 
+		         FROM NMSP.WEB_SAT_SUB_PRJT A 
+		       ) B 
+		         ON A.PRJTCD_B = B.MAIN_PRJTCD 
+		       AND A.PRJTCD    = B.SUB_PRJTCD
+	</sql>
+	
+	<sql id="baseCalcSatInfo">
+		SELECT A.*,
+			   NMSP.SF_EMP_NAME(A.RCRD_MGR) RCRD_MGR_NM,
+			   NMSP.SF_EMP_GRADNM(A.RCRD_MGR) RCRD_MGR_GRAD_NM,
+			   NMSP.SF_EMP_NAME(A.RCRD_MGR2) RCRD_MGR_NM2,
+			   NMSP.SF_EMP_GRADNM(A.RCRD_MGR2) RCRD_MGR_GRAD_NM2,
+			   NMSP.SF_EMP_NAME(A.RCRD_MGR3) RCRD_MGR_NM3,
+			   NMSP.SF_EMP_GRADNM(A.RCRD_MGR3) RCRD_MGR_GRAD_NM3,
+			   A.ET_DFN_SAT * A.BASE_WKMNSP WKMNSP_SAT,
+		       DECODE(A.FORM_DIV, 'v1', A.CAL_ADT_TM + A.INTR_ADT_TM, 'v2', A.CAL_ADT_TM * A.INTR_ADT_FCTR) CAL_SAT,
+		       NMSP.SF_EMP_NAME(A.CREBY) CREBY_NM,
+			   NMSP.SF_EMP_GRADNM(A.CREBY) CREBY_GRAD_NM
+		  FROM NMSP.WEB_SAT_PRJT A
+		 WHERE A.CALC_ONLY_YN='Y' 
+		 <if test="prjtCd != null and !''.equals(prjtCd)">
+			AND A.PRJTCD = #{prjtCd}
+		</if>
+	</sql>
+	
+	
+	<sql id="authCalcSatInfo">
+		SELECT
+			 <choose>
+				<when test="'sysadmin'.equals(session.roleCd)">
+					'1' CAN_EDIT, '1' CAN_DELETE,
+				</when>
+				<otherwise>
+					CASE 
+						WHEN A.CREBY = #{session.emplNo}
+			       	      	OR A.RCRD_MGR = #{session.emplNo}
+			       	      	OR A.RCRD_MGR2 = #{session.emplNo}
+			       	      	OR A.RCRD_MGR3 = #{session.emplNo} 
+			       	    THEN '1'
+						ELSE '0' 
+					END CAN_EDIT,
+					CASE
+						WHEN A.CREBY = #{session.emplNo} 
+						THEN '1'
+						ELSE '0'
+					END CAN_DELETE,
+				</otherwise>
+			</choose>
+			A.*
+		FROM (<include refid="satSql.baseCalcSatInfo" />) A
+		WHERE 
+		 <choose>
+		 	<when test="session == null">1 = 2</when>
+		 	<when test="isDraft">    	   
+	       	   A.STAT = 'DR' 
+	       	   AND (A.RCRD_MGR = #{session.emplNo} 
+	       	   		OR A.RCRD_MGR2 = #{session.emplNo} 
+	       	   		OR A.RCRD_MGR3 = #{session.emplNo} 
+	       	   		OR A.CREBY = #{session.emplNo}
+	       	   		<if test="'sysadmin'.equals(session.roleCd) or 'admin'.equals(session.roleCd)">OR 1 = 1</if>
+	       	   	)	   
+	        </when>
+	        <otherwise>
+	        	A.STAT = 'RG'
+	        	AND (A.CREBY = #{session.emplNo}
+	       	      	OR A.RCRD_MGR = #{session.emplNo}
+	       	      	OR A.RCRD_MGR2 = #{session.emplNo}
+	       	      	OR A.RCRD_MGR3 = #{session.emplNo}
+	       	      	<if test="'sysadmin'.equals(session.roleCd) or 'admin'.equals(session.roleCd)">OR 1 = 1</if>
+	       	      )
+	        </otherwise>
+	 	 </choose>
+	</sql>
+	
+	<sql id="getPolicy">
+	SELECT NVL(B.BONBCD, A.BONBCD) CD 
+	     , NVL(B.RETAIN_YN, A.RETAIN_YN) RETAIN_YN 
+	     , NVL(B.RETAIN_ADM_YN, A.RETAIN_ADM_YN) RETAIN_ADM_YN 
+	     , NVL(B.SAT_YN, A.SAT_YN) SAT_YN 
+	     , NVL(B.SAT_ADM_YN, A.SAT_ADM_YN) SAT_ADM_YN 
+	     , NVL(B.BDGT_YN, A.BDGT_YN) BDGT_YN 
+	     , NVL(B.BDGT_ADM_YN, A.BDGT_ADM_YN) BDGT_ADM_YN 
+	  FROM 
+	       (SELECT BONBCD 
+	            , 'N' RETAIN_YN 
+	            , 'Y' RETAIN_ADM_YN 
+	            , 'N' SAT_YN 
+	            , 'Y' SAT_ADM_YN 
+	            , 'N' BDGT_YN 
+	            , 'Y' BDGT_ADM_YN 
+	         FROM 
+	              (SELECT BONBCD 
+	                   , TEAMCD 
+	                   , TEAMNM 
+	                   , LINEDV 
+	                   , PRNT02 ORDBY 
+	                FROM CMTEAMCD A 
+	               WHERE LINEDV='10' 
+	                     AND EXISTS 
+	                     (SELECT 1 
+	                       FROM NMSP.HREMP 
+	                      WHERE TEAMCD = A.TEAMCD 
+	                            AND OFFIST='001' 
+	                     ) 
+	              ) 
+	          GROUP BY BONBCD 
+	       ) A 
+	     FULL OUTER JOIN 
+	       (SELECT BONBCD 
+	            , RETAIN_YN 
+	            , RETAIN_ADM_YN 
+	            , SAT_YN 
+	            , SAT_ADM_YN 
+	            , BDGT_YN 
+	            , BDGT_ADM_YN 
+	         FROM 
+	              (SELECT P_CD BONBCD 
+	                   , REPLACE(CD, SUBSTR(CD, -4), '') GRP 
+	                   , VAL1 
+	                   , VAL2 
+	                FROM APPMNG_CD 
+	               WHERE APP_CD = #{appCd} 
+	                     AND GRP_CD = 'POLICY_BY_BONB' 
+	                     AND USE_YN = 'Y' 
+	                     AND P_CD  != 'root' 
+	            ORDER BY P_CD 
+	                   , ORDBY 
+	              ) A PIVOT(MAX(VAL1) YN, MAX(VAL2) ADM_YN FOR GRP IN('RETAIN_YN' RETAIN, 'SAT_EDIT_YN' SAT, 'BDGT_EDIT_YN' BDGT)) 
+	       ) B 
+	         ON A.BONBCD = B.BONBCD
+	</sql>
+	
+	<sql id="profileAuthByPrjt">
+	SELECT PRJTCD
+		 , PROF_RETAIN_YN PROF_RETAIN_TRAN_YN
+	     , CASE 
+	         WHEN LOCK_PROF_BIZ_FRDT_YN = 'Y'
+	         THEN 'N'
+	         WHEN LOCK_PROF_APLY_YN = 'Y' 
+	         THEN PROF_SAT_YN 
+	         ELSE 'Y'
+	       END PROF_SAT_YN
+	     , CASE 
+	         WHEN LOCK_PROF_BIZ_FRDT_YN = 'Y'
+	         THEN 'LOCKBIZTODT'||'_'||LOCK_PROF_YYMM
+	         WHEN LOCK_PROF_APLY_YN = 'Y' 
+	         THEN DECODE(PROF_SAT_YN, 'N', 'NEARBIZTODT'||'_'||LOCK_PROF_MONTHS) 
+	         ELSE NULL
+	       END PROF_SAT_REASON
+	     , CASE 
+	         WHEN LOCK_PROF_BIZ_FRDT_YN = 'Y' 
+	         THEN 'N'
+	         WHEN LOCK_PROF_APLY_YN = 'Y' 
+	         THEN PROF_BDGT_YN
+	         ELSE 'Y'
+	       END PROF_BDGT_YN
+	     , CASE 
+	         WHEN LOCK_PROF_BIZ_FRDT_YN = 'Y' 
+	         THEN 'LOCKBIZTODT'||'_'||LOCK_PROF_YYMM
+	         WHEN LOCK_PROF_APLY_YN = 'Y' 
+	         THEN DECODE(PROF_BDGT_YN, 'N', 'NEARBIZTODT'||'_'||LOCK_PROF_MONTHS) 
+	         ELSE NULL
+	       END PROF_BDGT_REASON
+	  FROM
+	  <![CDATA[
+	  	 (SELECT  A.PRJTCD
+	  	        , NVL(C.RETAIN_YN, 'N') PROF_RETAIN_YN 
+	            , NVL(C.SAT_YN, 'N') PROF_SAT_YN 
+	            , NVL(C.BDGT_YN, 'N') PROF_BDGT_YN 
+	            , SF_APPMNG_GET_COMMCD(#{appCd}, 'PROF_LOCK', 'LOCK_PROF_YYMM', 'VAL1') LOCK_PROF_YYMM
+	            , SF_APPMNG_GET_COMMCD(#{appCd}, 'PROF_LOCK', 'LOCK_PROF_MONTHS', 'VAL1') LOCK_PROF_MONTHS
+	            , STAT
+	            , CASE 
+	                WHEN A.BIZ_TODT <= SF_APPMNG_GET_COMMCD(#{appCd}, 'PROF_LOCK', 'LOCK_PROF_YYMM', 'VAL1') 
+	                THEN 'Y' 
+	                ELSE 'N' 
+	              END LOCK_PROF_BIZ_FRDT_YN /* 프로파일의 결산월 기준으로 이전에 프로젝트는 Lock이 된다 */ 
+	            , CASE 
+	            	WHEN INSTR(SF_APPMNG_GET_COMMCD(#{appCd}, 'PROF_LOCK', 'LOCK_TRGT_STAT', 'VAL1'), A.STAT) = 0 /* STAT 대상이 아닐경우는 본부별 프로파일은 따르지 않는다. */
+	            	THEN 'N'
+	                WHEN TO_CHAR(SYSDATE, 'YYYY-MM') > TO_CHAR(ADD_MONTHS(TO_DATE(A.BIZ_TODT, 'YYYY-MM'), -TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'PROF_LOCK', 'LOCK_PROF_MONTHS', 'VAL1'))), 'YYYY-MM') 
+	                THEN 'Y' 
+	                ELSE 'N' 
+	              END LOCK_PROF_APLY_YN /* 본부별 LOCK 프로파일 적용 여부 : (프로젝트의 결산월  - 프로파일 개월수) 이후 기간에는 본부별 lock 프로파일 적용   */
+	   ]]> 
+	         FROM WEB_SAT_PRJT A 
+	            , PMPRJTBS B 
+	            , (<include refid="satSql.getPolicy" />) C 
+	            , CMTEAMCD D
+	        WHERE A.PRJTCD  = #{prjtCd} 
+	        	  AND A.PRJTCD1 = B.PRJTCD1 
+	              AND A.PRJTCD2 = B.PRJTCD2 
+	              AND A.PRJTCD3 = B.PRJTCD3 
+	              AND B.CHARGBON = D.TEAMCD 
+              	  AND D.BONBCD = C.CD(+)
+        )
+	</sql>
+	
+	<sql id="accessAuthProject">
+		SELECT *
+		FROM (<include refid="satSql.baseProjectInfo" />) A
+		WHERE  
+		 <choose>
+		 	<when test="session == null"> 
+		 		1 = 2
+		 	</when>
+		    <when test="isDraft">    	   
+	       	   A.STAT = 'DR' 
+	       	   AND (A.CHARGPTR = #{session.emplNo} 
+	       	   		OR A.CHARGMGR = #{session.emplNo} 
+	       	   		OR A.RCRD_MGR = #{session.emplNo} 
+	       	   		OR A.RCRD_MGR2 = #{session.emplNo} 
+	       	   		OR A.RCRD_MGR3 = #{session.emplNo} 
+	       	   		OR A.CREBY = #{session.emplNo}
+	       	   		<if test="'sysadmin'.equals(session.roleCd) or 'admin'.equals(session.roleCd)">
+	       	   		OR 1 = 1
+	       	   		</if>
+	       	   	)	   
+	        </when>
+	        <otherwise>
+	        	A.STAT IN ('RG', 'RQ', 'RJ', 'CO', 'DE')
+	        	AND (A.CHARGPTR = #{session.emplNo} 
+					OR A.CHARGMGR = #{session.emplNo} 
+					OR A.RCRD_MGR = #{session.emplNo}
+					OR A.RCRD_MGR2 = #{session.emplNo}
+					OR A.RCRD_MGR3 = #{session.emplNo} 
+					OR A.CREBY = #{session.emplNo}
+	        	<choose>
+	        		<when test=" 'sysadmin'.equals(session.roleCd) or 'admin'.equals(session.roleCd) or 'allread'.equals(session.roleCd)"> OR 1 = 1</when>
+	        		<when test=" 'los'.equals(session.roleCd) ">
+						OR SAC_HR.F_FRM_CAM_HISTORY(SAC_HR.F_FRM_PHM_EMP_ID('01', A.CHARGPTR,SYSDATE, 'KO'), 'KO', SYSDATE, 'LOS_CD') = 10
+					</when>
+	        		<when test=" 'ra'.equals(session.roleCd) ">
+						OR EXISTS (SELECT 1 FROM WEB_SAT_MEMB B WHERE B.ACTV_CD IN ('09', '13') AND B.PRJTCD = A.PRJTCD)
+					</when>
+					<when test=" 'fulcrum'.equals(session.roleCd) ">
+						OR EXISTS (SELECT 1 FROM WEB_SAT_MEMB B WHERE B.ACTV_CD ='14' AND B.PRJTCD = A.PRJTCD)
+					</when>
+					<when test=" 'bonb'.equals(session.roleCd) ">
+						OR (SELECT BONBCD FROM CMTEAMCD WHERE TEAMCD = (SELECT TEAMCD FROM HREMP WHERE EMPLNO = A.CHARGPTR )) = (SELECT BONBCD FROM CMTEAMCD WHERE TEAMCD = (SELECT TEAMCD FROM HREMP WHERE EMPLNO = #{session.emplNo}))
+					</when>
+					<when test=" 'bonb6'.equals(session.roleCd) ">
+						OR (SELECT BONBCD FROM CMTEAMCD WHERE TEAMCD = (SELECT TEAMCD FROM HREMP WHERE EMPLNO = A.CHARGPTR )) IN (<include refid="satSql.getBonbList" />) 
+						OR EXISTS (SELECT 1 FROM WEB_SAT_MEMB B WHERE B.ACTV_CD ='14' AND B.PRJTCD = A.PRJTCD)
+					</when>
+					<when test=" '10'.equals(session.authLv) ">
+						OR (SELECT BONBCD FROM CMTEAMCD WHERE TEAMCD = (SELECT TEAMCD FROM HREMP WHERE EMPLNO = A.CHARGPTR )) IN (<include refid="satSql.getBonbList" />)
+					</when>
+					<when test=" 'user'.equals(session.roleCd) "></when>
+					<otherwise>
+						OR 1 = 2
+					</otherwise>
+	        	</choose>
+	        	)
+	        </otherwise>
+	     </choose>
+	</sql>
+	
+	<sql id="authProjectInfo">
+		SELECT 
+			<choose>
+				<when test="session == null">
+					'0' CAN_EDIT, '0' CAN_DELETE, '0' CAN_RESTORE, '0' CAN_DELETE_PERMANENTLY,
+				</when>
+				<when test="'sysadmin'.equals(session.roleCd)">
+					'1' CAN_EDIT, 
+					DECODE(STAT, 'DE', '0', '1') CAN_DELETE, 
+					DECODE(STAT, 'DE', '1', '0') CAN_RESTORE, 
+					DECODE(STAT, 'DE', '1', '0') CAN_DELETE_PERMANENTLY,
+				</when>
+				<when test="'admin'.equals(session.roleCd)">
+					'1' CAN_EDIT,
+					DECODE(STAT, 'DE', '0', '1') CAN_DELETE,
+					DECODE(STAT, 'DE', '1', '0') CAN_RESTORE,
+					CASE 
+						WHEN RETAIN_TRAN_YN = 'N' AND STAT = 'DE'
+						THEN '1' 
+						ELSE '0' 
+					END CAN_DELETE_PERMANENTLY,
+				</when>
+				<otherwise>
+					CASE 
+						WHEN STAT IN ('RG', 'RJ', 'CO', 'DR')
+					      AND (A.CHARGPTR = #{session.emplNo} 
+						 	  OR A.CHARGMGR = #{session.emplNo} 
+						      OR A.RCRD_MGR = #{session.emplNo}
+						      OR A.RCRD_MGR2 = #{session.emplNo}
+						      OR A.RCRD_MGR3 = #{session.emplNo} 
+						      OR A.CREBY = #{session.emplNo})
+						THEN '1'
+						ELSE '0'
+					END CAN_EDIT,
+					CASE
+						WHEN STAT IN ('RG', 'RJ', 'CO', 'DR')
+							AND A.CHARGPTR = #{session.emplNo} 
+						THEN '1'
+						WHEN STAT IN ('RG', 'RJ', 'DR')
+							AND (A.CHARGMGR = #{session.emplNo} 
+								OR A.RCRD_MGR = #{session.emplNo}
+								OR A.RCRD_MGR2 = #{session.emplNo}
+								OR A.RCRD_MGR3 = #{session.emplNo} 
+								OR A.CREBY = #{session.emplNo}) 
+						THEN '1'
+						ELSE '0'
+					END CAN_DELETE,
+					CASE
+						WHEN STAT = 'DE'
+							AND (A.CHARGPTR = #{session.emplNo}
+								OR A.CHARGMGR = #{session.emplNo} 
+								OR A.RCRD_MGR = #{session.emplNo}
+								OR A.RCRD_MGR2 = #{session.emplNo}
+								OR A.RCRD_MGR3 = #{session.emplNo} 
+								OR A.CREBY = #{session.emplNo}
+							) 
+						THEN '1'
+						ELSE '0'
+					END CAN_RESTORE,
+					CASE
+						WHEN STAT = 'DE' 
+							AND RETAIN_TRAN_YN = 'N' 
+							AND (A.CHARGPTR = #{session.emplNo}
+								OR A.CHARGMGR = #{session.emplNo} 
+								OR A.RCRD_MGR = #{session.emplNo}
+								OR A.RCRD_MGR2 = #{session.emplNo}
+								OR A.RCRD_MGR3 = #{session.emplNo} 
+								OR A.CREBY = #{session.emplNo}
+							)
+						THEN '1'
+						ELSE '0'
+					END CAN_DELETE_PERMANENTLY,
+				</otherwise>
+			</choose>
+			 A.*
+		   , B.PROF_RETAIN_TRAN_YN
+	       , B.PROF_SAT_YN
+	       , B.PROF_SAT_REASON
+	       , B.PROF_BDGT_YN
+	       , B.PROF_BDGT_REASON 
+		FROM (<include refid="satSql.accessAuthProject" />) A, (<include refid="satSql.profileAuthByPrjt" />) B
+		WHERE A.PRJTCD = B.PRJTCD(+)
+	</sql>
+	
+	<sql id="authProjectInfo_bk20200526"> <!-- RA, FULCRUM 권한 변경 전 -->
+		SELECT 
+			<choose>
+				<when test="session == null">
+					'0' CAN_EDIT, '0' CAN_DELETE, 
+				</when>
+				<when test="'sysadmin'.equals(session.roleCd)">
+					'1' CAN_EDIT, '1' CAN_DELETE,
+				</when>
+				<when test="'admin'.equals(session.roleCd)">
+					'1' CAN_EDIT,
+					CASE 
+						WHEN RETAIN_TRAN_YN = 'N' 
+						THEN '1' 
+						ELSE '0' 
+					END CAN_DELETE,
+				</when>
+				<otherwise>
+					CASE 
+						WHEN STAT IN ('RG', 'RJ', 'CO', 'DR')
+					      AND (A.CHARGPTR = #{session.emplNo} 
+						 	  OR A.CHARGMGR = #{session.emplNo} 
+						      OR A.RCRD_MGR = #{session.emplNo}
+						      OR A.RCRD_MGR2 = #{session.emplNo}
+						      OR A.RCRD_MGR3 = #{session.emplNo} 
+						      OR A.CREBY = #{session.emplNo})
+						THEN '1'
+						ELSE '0'
+					END CAN_EDIT,
+					CASE
+						WHEN STAT IN ('RG', 'RJ', 'CO', 'DR') 
+							AND RETAIN_TRAN_YN = 'N' 
+							AND A.CHARGPTR = #{session.emplNo} 
+						THEN '1'
+						WHEN STAT IN ('RG', 'RJ', 'DR') 
+							AND RETAIN_TRAN_YN = 'N' 
+							AND (A.CHARGMGR = #{session.emplNo} 
+								OR A.RCRD_MGR = #{session.emplNo}
+								OR A.RCRD_MGR2 = #{session.emplNo}
+								OR A.RCRD_MGR3 = #{session.emplNo} 
+								OR A.CREBY = #{session.emplNo}) 
+						THEN '1'
+						ELSE '0'
+					END CAN_DELETE,
+				</otherwise>
+			</choose>
+			A.*
+		FROM (<include refid="satSql.baseProjectInfo" />) A
+		WHERE  
+		 <choose>
+		 	<when test="session == null"> 
+		 		1 = 2
+		 	</when>
+		    <when test="isDraft">    	   
+	       	   A.STAT = 'DR' 
+	       	   AND (A.CHARGPTR = #{session.emplNo} 
+	       	   		OR A.CHARGMGR = #{session.emplNo} 
+	       	   		OR A.RCRD_MGR = #{session.emplNo} 
+	       	   		OR A.RCRD_MGR2 = #{session.emplNo} 
+	       	   		OR A.RCRD_MGR3 = #{session.emplNo} 
+	       	   		OR A.CREBY = #{session.emplNo}
+	       	   		<if test="'sysadmin'.equals(session.roleCd) or 'admin'.equals(session.roleCd)">
+	       	   		OR 1 = 1
+	       	   		</if>
+	       	   	)	   
+	        </when>
+	        <otherwise>
+	        	A.STAT IN ('RG', 'RQ', 'RJ', 'CO')
+	        	AND (A.CHARGPTR = #{session.emplNo} 
+					OR A.CHARGMGR = #{session.emplNo} 
+					OR A.RCRD_MGR = #{session.emplNo}
+					OR A.RCRD_MGR2 = #{session.emplNo}
+					OR A.RCRD_MGR3 = #{session.emplNo} 
+					OR A.CREBY = #{session.emplNo}
+	        	<choose>
+	        		<when test=" 'sysadmin'.equals(session.roleCd) or 'admin'.equals(session.roleCd) or 'allread'.equals(session.roleCd)"> OR 1 = 1</when>
+	        		<when test=" 'los'.equals(session.roleCd) ">
+						OR SAC_HR.F_FRM_CAM_HISTORY(SAC_HR.F_FRM_PHM_EMP_ID('01', A.CHARGPTR,SYSDATE, 'KO'), 'KO', SYSDATE, 'LOS_CD') = 10
+					</when>
+	        		<when test=" 'ra'.equals(session.roleCd) ">
+						OR A.RA_BDGT_TM > 0
+					</when>
+					<when test=" 'fulcrum'.equals(session.roleCd) ">
+						OR A.FLCM_BDGT_TM > 0
+					</when>
+					<when test=" 'bonb'.equals(session.roleCd) ">
+						OR (SELECT BONBCD FROM CMTEAMCD WHERE TEAMCD = (SELECT TEAMCD FROM HREMP WHERE EMPLNO = A.CHARGPTR )) = (SELECT BONBCD FROM CMTEAMCD WHERE TEAMCD = (SELECT TEAMCD FROM HREMP WHERE EMPLNO = #{session.emplNo}))
+					</when>
+					<when test=" 'bonb6'.equals(session.roleCd) ">
+						OR (SELECT BONBCD FROM CMTEAMCD WHERE TEAMCD = (SELECT TEAMCD FROM HREMP WHERE EMPLNO = A.CHARGPTR )) IN (<include refid="satSql.getBonbList" />) 
+						OR A.FLCM_BDGT_TM > 0
+					</when>
+					<when test=" '10'.equals(session.authLv) ">
+						OR (SELECT BONBCD FROM CMTEAMCD WHERE TEAMCD = (SELECT TEAMCD FROM HREMP WHERE EMPLNO = A.CHARGPTR )) IN (<include refid="satSql.getBonbList" />)
+					</when>
+					<when test=" 'user'.equals(session.roleCd) "></when>
+					<otherwise>
+						OR 1 = 2
+					</otherwise>
+	        	</choose>
+	        	)
+	        </otherwise>
+	     </choose>
+	</sql>
+
+	<sql id="aprvProjectInfo">
+		<include refid="satSql.baseProjectInfo" />
+		<choose>
+			<when test="prjtCd != null and !''.equals(prjtCd)">
+				AND A.PRJTCD = #{prjtCd}
+			</when>
+			<otherwise>
+				<if test="!'all'.equals(STAT)">
+					AND A.STAT = #{STAT}
+				</if>
+			</otherwise>
+		</choose>
+		<if test=" !'sysadmin'.equals(session.roleCd) and !'admin'.equals(session.roleCd) ">
+			AND B.CHARGPTR = #{session.emplNo}
+		</if>
+	</sql>
+	
+	
+	<sql id="selectRetainPrjt">
+		SELECT A.PRJTCD, 
+               A.PRJT_TODT, 
+               A.PRJT_FRDT 
+         FROM NMSP.WEB_SAT_PRJT A, 
+  	          NMSP.PMPRJTBS B 
+		 WHERE A.PRJTCD1 = B.PRJTCD1 
+		       AND A.PRJTCD2 = B.PRJTCD2 
+		       AND A.PRJTCD3 = B.PRJTCD3
+		       AND A.PRJTCD = #{prjtCd}
+		       AND A.CALC_ONLY_YN = 'N'
+		       AND A.STAT = 'CO'
+		       AND A.RETAIN_TRAN_YN = 'N'
+	</sql>
+</mapper>

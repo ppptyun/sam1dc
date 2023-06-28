@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://java.sun.com/xml/ns/javaee"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee 
+         					 http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+         id="stdadt" 
+         version="3.0">
+
+    <display-name>Standard Audit Time</display-name>
+    
+    <context-param>
+    	<param-name>webAppRootKey</param-name>
+    	<param-value>stdadt</param-value>
+  	</context-param>
+    
+   <!--
+		- Location of the XML file that defines the root application context.
+		- Applied by ContextLoaderListener.
+	-->
+    <context-param>
+        <param-name>contextConfigLocation</param-name>
+        <param-value>classpath:spring/application-production.xml</param-value>
+        
+        <!-- 
+        <param-value>classpath:spring/application-dev-test.xml</param-value>
+        <param-value>classpath:spring/application-dev-prod.xml</param-value>
+        <param-value>classpath:spring/application-production.xml</param-value>
+        <param-value>classpath:spring/application-test.xml</param-value>
+         -->
+    </context-param>
+    <context-param>
+    	<param-name>logbackConfigLocation</param-name>
+		<param-value>classpath:config/logback_debug.xml</param-value>
+		<!-- 
+		<param-value>classpath:config/logback_debug.xml</param-value>
+		<param-value>classpath:config/logback_info.xml</param-value>
+		-->
+	</context-param>
+	
+	<listener>
+        <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+    </listener>
+    <listener>
+    	<listener-class>ch.qos.logback.ext.spring.web.LogbackConfigListener</listener-class>
+    </listener>
+    <listener>
+    	<listener-class>com.samil.stdadt.Application</listener-class>
+    </listener>
+    
+    <!--
+		- Servlet that dispatches request to registered handlers (Controller implementations).
+	-->
+    <servlet>
+        <servlet-name>dispatcherServlet</servlet-name>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+        <init-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>/WEB-INF/mvc-config.xml</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    
+    <servlet-mapping>
+        <servlet-name>dispatcherServlet</servlet-name>
+        <url-pattern>/</url-pattern>
+    </servlet-mapping>
+    
+    
+    <error-page>
+    	<error-code>403</error-code>
+    	<location>/WEB-INF/view/redirect/err403.jsp</location>
+    </error-page>
+    <error-page>
+    	<error-code>404</error-code>
+    	<location>/WEB-INF/view/redirect/err404.jsp</location>
+    </error-page>
+    <error-page>
+    	<error-code>500</error-code>
+    	<location>/WEB-INF/view/redirect/err500.jsp</location>
+    </error-page>
+    
+    
+    <filter>
+		<filter-name>characterEncodingFilter</filter-name>
+		<filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+		<init-param>
+			<param-name>encoding</param-name>
+			<param-value>utf-8</param-value>
+		</init-param>
+		<init-param>
+			<param-name>forceEncoding</param-name>
+			<param-value>true</param-value>
+		</init-param>		
+	</filter>
+	<filter-mapping>
+		<filter-name>characterEncodingFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+	<filter>
+		<filter-name>XssServletFilter</filter-name>
+		<filter-class>com.samil.stdadt.comm.filter.XssServletFilter</filter-class>
+		<init-param>
+			<param-name>exceptUrl</param-name>
+			<param-value>
+				/excel
+			</param-value>
+		</init-param>
+	</filter>
+	<filter-mapping>
+		<filter-name>XssServletFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+	
+	<session-config>
+		<tracking-mode>COOKIE</tracking-mode>
+	</session-config>
+</web-app>

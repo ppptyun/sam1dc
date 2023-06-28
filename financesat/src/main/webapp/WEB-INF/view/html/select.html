@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <meta charset="utf-8">
+    <title>selectBox 테스트</title>
+    <link href="../../../resources/css/dhtmlx_custom.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc_mediaS.css" rel="stylesheet" type="text/css" media="(max-width:1600px)">
+</head>
+
+<body>
+    <div style="padding:50px">
+        <div>
+            셀렉트 박스 테스트
+        </div>
+        <div class="selectbox" style="width:310px">
+            <select title="테스트입니다." id="selecttest">
+  					<option value="01">테스트1</option>
+  					<option value="02">테스트2</option>
+  					<option value="03">테스트3</option>
+  					<option value="04">테스트4</option>
+  					<option value="05">테스트5</option>
+  				</select>
+        </div>
+
+        <div style="margin-top:10px">
+          <button type="button" id="test1">get option value click!</button>
+        </div>
+        <div style="margin-top:10px">
+          <button type="button" id="test2">set option='03' click!</button>
+        </div>
+
+        <div style="margin-top:10px">
+          <button type="button" id="test3">reset select click!</button>
+        </div>
+		<div style="margin-top:10px">
+          <button type="button" id="test4">disabled select click!</button>
+        </div>
+
+    </div>
+<script type="text/javascript" src="../../../resources/lib/jquery/jquery-3.3.1.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery-ui.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery.jscrollpane.min.js"></script>
+<script type="text/javascript" src="../../../resources/js/selectbox_pwc.js"></script>
+<script type="text/javascript" src="../../../resources/js/pwc_ui.js"></script>
+    <script type="text/javascript">
+        $.SelectBoxSet('div.selectbox select', {
+            height: 200
+        });
+
+
+        //selectBox onChange
+        $('.selectbox').on('change.selectbox', function(e, param) {
+            if (param === undefined) {
+                return;
+            }
+            //selectBox
+            console.log('change index: ' + param.index);
+            console.log('change value: ' + param.value);
+            console.log('change text: ' + param.text);
+        });
+
+        // get select
+        $('#test1').on('click', function(){
+          var instance = $('div.selectbox > a').getInstance();
+          console.log('선택된 option index  ::', instance.getIndexSB());
+          console.log('선택된 option value ::', instance.getValueSB());
+        });
+
+        //set select
+        // instance.setValueSB(value);  value : 선택할 option value
+        // instance.setIndexSB(idx);    idx: 선택할 index
+        $('#test2').on('click', function(){
+          var instance = $('div.selectbox > a').getInstance();
+          instance.setValueSB('03');
+        });
+		
+		
+		//disabled
+		 $('#test4').on('click', function(){
+			COMMON.formEvent.setDisabledSelBox($('#selecttest'), true);
+        });
+
+        //reset select
+        //option 값이 변경 될 경우 selectBox 디자인 태그를 재 생
+        $('#test3').on('click', function(){
+            var instance = $('div.selectbox > a').getInstance();
+            $('.selectbox select option').remove();
+            $('.selectbox select').append('<option value="01">테스트01</option><option value="02">테스트02</option><option value="03">테스트03</option>');
+            instance.resetSB();
+        });
+
+    </script>
+</body>
+
+</html>

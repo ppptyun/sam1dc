@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans 
+	xmlns="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:p="http://www.springframework.org/schema/p" 
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+
+	
+	
+
+	<context:component-scan base-package="com.samil.*"  use-default-filters="false">
+		<context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+	</context:component-scan>
+	
+    <mvc:annotation-driven />
+ 
+	<!-- Handles HTTP GET requests for /resources/** by efficiently serving up static resources in the ${webappRoot}/resources directory -->
+	<mvc:resources mapping="/resources/**" location="/WEB-INF/resources/" />
+	<mvc:resources mapping="/publishing/**" location="/WEB-INF/view/" />
+	
+	<!-- jsonView 정의 -->
+	<bean id="jsonView" class="org.springframework.web.servlet.view.json.MappingJackson2JsonView">
+		<property name="contentType" value="application/json;charset=UTF-8"></property>
+	</bean>
+	
+	<!-- Tiles 설정 파일 -->
+	<bean id="tilesConfigurer" class="org.springframework.web.servlet.view.tiles3.TilesConfigurer">
+		<property name="definitions">
+			<list>
+				<value>/WEB-INF/layouts/tiles.xml</value>
+			</list>
+		</property>
+		<property name="preparerFactoryClass" value="org.springframework.web.servlet.view.tiles3.SimpleSpringPreparerFactory"></property>
+	</bean>
+	
+	<!-- Resolver -->
+	<!-- Multipart Resolver -->
+	<bean name="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="maxUploadSize" value="100000000" />
+        <property name="maxInMemorySize" value="100000000" />
+	</bean>
+	<!-- BeanNameViewResolver -->
+    <bean id="beanNameResolver" class="org.springframework.web.servlet.view.BeanNameViewResolver" p:order="0" />
+	<!-- Tiles 뷰 리졸버 -->
+	<bean id="tielsViewResolver" class="org.springframework.web.servlet.view.UrlBasedViewResolver" p:order="1" >
+		<property name="viewClass" value="org.springframework.web.servlet.view.tiles3.TilesView" />
+	</bean>
+	<bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver"  p:order="2" >
+        <property name="prefix" value="/WEB-INF/view/"/>
+        <property name="suffix" value=".jsp"/>
+	</bean>
+	
+	<bean id="springDownload" class="com.samil.stdadt.comm.util.FileDownload"/>
+	
+ 	<!-- 세션 확인 (Interceptor) -->
+	<mvc:interceptors>
+		<bean class="org.springframework.web.servlet.i18n.LocaleChangeInterceptor" />
+    	<mvc:interceptor>
+    		<mvc:mapping path="/**"/>
+    		<mvc:exclude-mapping path="/auth/**" />
+    		<mvc:exclude-mapping path="/error/**" />
+    		<mvc:exclude-mapping path="/resources/**" />
+    		<mvc:exclude-mapping path="/redirect/**" />
+    		<mvc:exclude-mapping path="/checkStatus" />
+    		<bean class="com.samil.stdadt.comm.interceptor.AuthInterceptor" ></bean>
+    	</mvc:interceptor>
+    </mvc:interceptors>
+</beans>

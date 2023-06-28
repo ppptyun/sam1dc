@@ -1,0 +1,646 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.samil.stdadt.mapper.ProjectBudgetMapper">
+	
+		<!-- Budgeting Page에서  사용할 데이터 -->
+	<select id="getProjectBudgetSummary" parameterType="hashmap" resultType="ProjectBudgetSummaryVO">
+		SELECT A.*,
+			(A.RA_BDGT_TM + A.FLCM_BDGT_TM + A.NEW_STF_BDGT_TM +  A.OTHER_BDGT_TM + A.SUM_MEMB_BDGT) TOT_MEMB_BDGT,
+			(A.RA_BDGT_TM * A.BASE_WKMNSP + A.FLCM_BDGT_TM * A.BASE_WKMNSP + A.NEW_STF_BDGT_TM * A.NEW_STF_WKMNSP + A.OTHER_BDGT_TM * A.OTHER_WKMNSP + A.SUM_MEMB_BDGT_WKMNSP) TOT_MEMB_BDGT_WKMNSP
+		FROM (
+			SELECT 
+			   A.PRJTCD, 
+			   A.CAN_EDIT,
+			   A.FORM_DIV,
+			   A.PROF_RETAIN_TRAN_YN,
+			   A.RETAIN_SCDL_YN,
+			   A.PRFL_ID, 
+			   A.PRJTNM, 
+			   A.PRJT_FRDT, 
+			   A.PRJT_TODT, 	
+			   A.SATGRP_CD,
+			   A.RETAIN_TRAN_YN, 
+			   A.SAT_TRGT_YN,
+			   SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', A.SATGRP_CD, 'NM') SATGRP_NM, 
+			   A.CNTRT_FEE, 
+			   ((NVL((SELECT SUM(SPRJT.CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT SPRJT WHERE SPRJT.P_PRJTCD = A.PRJTCD),0) + NVL(A.CNTRT_FEE,0))/ 1000000) TOT_CNTRT_FEE, 
+			   DECODE(A.SAT_TRGT_YN, 'Y', A.CAL_SAT, 0) CAL_SAT, 
+			   DECODE(A.SAT_TRGT_YN, 'Y', A.ET_DFN_SAT, 0) ET_DFN_SAT,
+			   A.ETC_BDGT_TM,
+			   A.WKMNSP_SAT,
+			   DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.ET_TRGT_ADT_TM, 0), 0) + NVL(A.ETC_BDGT_TM, 0) TOT_PRJT_BDGT,
+			   NVL(B.SUM_MEMB_BDGT, 0) SUM_MEMB_BDGT,
+			   NVL(B.SUM_MEMB_BDGT_WKMNSP, 0) SUM_MEMB_BDGT_WKMNSP,
+			   NVL(A.RA_BDGT_TM, 0) RA_BDGT_TM,
+			   NVL(A.FLCM_BDGT_TM, 0) FLCM_BDGT_TM,
+			   NVL(A.NEW_STF_BDGT_TM, 0) NEW_STF_BDGT_TM,
+			   NVL(A.OTHER_BDGT_TM, 0) OTHER_BDGT_TM,
+			   DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.BASE_WKMNSP, 0), 1) BASE_WKMNSP,
+        	   DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.NEW_STF_WKMNSP, 0), TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'NEWSTAFF', 'VAL1'))) NEW_STF_WKMNSP,
+        	   DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.OTHER_WKMNSP, 0), TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'OHTER', 'VAL1'))) OTHER_WKMNSP,
+			   A.OUTEXPAMT,
+			   A.OTHEXPAMT,
+			   A.OTHBILAMT,
+			   A.PRE_OUTEXPAMT,
+			   A.PRE_OTHEXPAMT,
+			   A.PRE_OTHBILAMT,
+			   NVL(B.EMPL_CST, 0) EMPL_CST,
+			   NVL(B.CST, 0) CST,
+			   NVL((SELECT SUM(SPRJT.CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT SPRJT WHERE SPRJT.P_PRJTCD = A.PRJTCD),0) + NVL(A.CNTRT_FEE,0) - NVL(PRE_OUTEXPAMT,0) - NVL(PRE_OTHEXPAMT,0) + NVL(PRE_OTHBILAMT,0) NET_RVNU,
+			   ROUND((NVL((SELECT SUM(SPRJT.CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT SPRJT WHERE SPRJT.P_PRJTCD = A.PRJTCD),0) + NVL(A.CNTRT_FEE,0)  - NVL(PRE_OUTEXPAMT,0) - NVL(PRE_OTHEXPAMT,0) + NVL(PRE_OTHBILAMT,0) - NVL(EMPL_CST,0) - NVL(CST, 0))/1000000) EXP_CM,
+			   A.STAT
+			FROM
+			(
+			SELECT A.*,
+				   B.OUTEXPAMT,      /* 외주비 */ 
+			       B.OTHEXPAMT,      /* 부대비용 */ 
+			       B.OTHBILAMT,      /* 부대비용 청구 */ 
+			       B.PRE_OUTEXPAMT,  /* 예상 외주비 */ 
+			       B.PRE_OTHEXPAMT,  /* 예상 부대비용 */ 
+			       B.PRE_OTHBILAMT   /* 예상 부대비용 청구 */ 
+			  FROM (<include refid="satSql.authProjectInfo" />) A,
+			       PMCONTEST B
+			 WHERE A.PRJTCD1 = B.PRJTCD1(+)
+		       AND A.PRJTCD2 = B.PRJTCD2(+)
+		       AND A.PRJTCD3 = B.PRJTCD3(+)
+			) A,
+			(
+			SELECT B.PRJTCD,
+				   SUM(TOT_ASGN_TM) SUM_MEMB_BDGT,							/* 예산 시간 */ 
+			       SUM(TOT_ASGN_TM_WKMNSP)  SUM_MEMB_BDGT_WKMNSP,			/* 예산 시간 * 숙련도 */
+			       SUM(FIXPARATE * TOT_ASGN_TM) EMPL_CST, 		    		/* 총 인건비 */
+			       ROUND(SUM(FIXPARATE * TOT_ASGN_TM * EXPRATE / 100)) CST 	/* 경비 */
+			  FROM 
+			       (SELECT C.CMOFCD, 
+			              A.GRADE CMGRADCD , 
+			              A.FIXPARATE, 
+			              B.EXPRATE 
+			         FROM PMSTPAYRATE A, 
+			              PMSTEXP B, 
+			              CMTEAMCD C 
+			        WHERE A.YEARLY = B.YEARLY 
+			              AND A.BONBCD = B.BONBCD 
+			              AND A.YEARLY = SF_PM_GET_CYEARLY('01',TO_CHAR((SELECT CREDT FROM WEB_SAT_PRJT WHERE PRJTCD=#{prjtCd}),'YYYYMM'),'2') 
+			              AND A.BONBCD = C.TEAMCD 
+			          ) A, 
+			      (SELECT A.PRJTCD, 
+			             C.CMGRADCD, 
+			             D.CMOFCD, 
+			             SUM(TOT_ASGN_TM) TOT_ASGN_TM,
+			             SUM(TOT_ASGN_TM * WKMNSP) TOT_ASGN_TM_WKMNSP
+			        FROM (SELECT A.PRJTCD, 
+			        			 A.MEMB_EMPLNO,
+			        			 A.GRADCD, 
+			        			 SF_WEB_SAT_GET_TOT_BDGT(A.PRJTCD, A.MEMB_EMPLNO, A.ACTV_CD, A.LOCA_CD) TOT_ASGN_TM, 
+			        			 A.WKMNSP, 
+			        			 A.CREDT  
+			        		FROM NMSP.WEB_SAT_MEMB A 
+			        	   WHERE A.PRJTCD = #{prjtCd}) A, 
+			             NMSP.HREMP B, 
+			             NMSP.HRGRAD C, 
+			             NMSP.CMTEAMH D 
+			       WHERE A.MEMB_EMPLNO = B.EMPLNO 
+			             AND A.GRADCD = C.GRADCD 
+			             AND D.TEAMCD = SAC_HR.F_FRM_CAM_HISTORY(B.EMP_ID, 'KO', A.CREDT, 'ORG_CD') 
+			             AND D.YEARLY = NMSP.SF_PM_GET_CYEARLY('01', TO_CHAR(A.CREDT, 'YYYYMM'), '2') 
+			       GROUP BY A.PRJTCD, 
+			       			C.CMGRADCD, 
+			                D.CMOFCD 
+			      ) B 
+			    WHERE A.CMGRADCD(+) = B.CMGRADCD 
+			          AND A.CMOFCD(+) = B.CMOFCD 
+					GROUP BY B.PRJTCD
+			) B
+			WHERE A.PRJTCD= B.PRJTCD(+)
+		) A
+	</select>
+	
+	<!-- 등록된 멤버에 대한 정보 가져올때 -->
+	<!-- 쿼리 속도 개선 : 20190701 불필요한 계산 삭제 및 Function 제거 -->
+	<select id="getProjectBudgetMember" parameterType="hashmap" resultType="ProjectBudgetMemberVO">
+		SELECT TBD,
+			   ACTV_CD||'_'||LOCA_CD||'_'||MEMB_EMPLNO ID, 
+		       ACTV_CD,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'ACTV', ACTV_CD, 'NM') ACTV_NM, 
+		       LOCA_CD, 
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LOCA', LOCA_CD, 'NM') LOCA_NM, 
+		       MEMB_EMPLNO EMPLNO, 
+		       GRADCD, 
+		       NMSP.SF_EMP_NAME(MEMB_EMPLNO) KORNM, 
+		       (SELECT GRADNM FROM NMSP.HRGRAD B WHERE B.GRADCD = A.GRADCD AND ROWNUM = 1) GRADNM, 
+		       WKMNSP, 
+		       TOT_ASGN_TM, 
+		       ROUND(TOT_ASGN_TM * WKMNSP, 2) TOT_WKMNSP_ASGN_TM,
+		       <foreach collection="weeks" item="week" separator=",">WEEK${week.weekNum}</foreach>
+		  FROM 
+		       (SELECT A.PRFL_ID, 
+		              A.PRJTCD, 
+		              A.PRJT_FRDT, 
+		              A.PRJT_TODT, 
+		              B.TBD,
+		              B.ACTV_CD, 
+		              B.LOCA_CD, 
+		              B.MEMB_EMPLNO, 
+		              B.GRADCD, 
+		              NVL(SUM(ASGN_TM) OVER(PARTITION BY B.PRJTCD, B.MEMB_EMPLNO, B.ACTV_CD, B.LOCA_CD), 0) TOT_ASGN_TM, 
+		              B.WKMNSP, 
+		              C.WEEK_IDX, 
+		              C.ASGN_TM 
+		         FROM (<include refid="satSql.authProjectInfo" />) A,
+		              NMSP.WEB_SAT_MEMB B, 
+		              (SELECT PRJTCD, 
+		                     ACTV_CD, 
+		                     LOCA_CD, 
+		                     MEMB_EMPLNO, 
+		                     ASGN_TM, 
+		                     WEEK_IDX 
+		                FROM NMSP.WEB_SAT_MEMB_BDGT A, 
+		                     (SELECT TO_CHAR(A.DT, 'YYYY-MM-DD') DT, 
+		                            SUM(STARTWEEK) OVER(ORDER BY DT ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) WEEK_IDX 
+		                       FROM 
+		                            (SELECT DT , 
+		                                   CASE 
+		                                       WHEN DT = PRJT_FRDT /* 최초 시작일은 주 시작일 */ 
+		                                       THEN 1 
+		                                       WHEN TO_CHAR(DT, 'D') = 2 /* 월요일을 주 시작으로 하기 위함 */ 
+		                                       THEN 1 
+		                                       ELSE 0 
+		                                   END STARTWEEK 
+		                              FROM 
+		                                   (SELECT PRJT_FRDT, 
+		                                          (S_DAY + LEVEL - 1) DT 
+		                                     FROM 
+		                                          (SELECT PRJT_FRDT, 
+		                                                 TO_DATE(PRJT_FRDT, 'YYYY-MM-DD') S_DAY, 
+		                                                 TO_DATE(PRJT_TODT, 'YYYY-MM-DD') E_DAY 
+		                                            FROM WEB_SAT_PRJT 
+		                                           WHERE PRJTCD = #{prjtCd} 
+		                                          ) CONNECT BY LEVEL <![CDATA[<=]]> LAST_DAY(E_DAY) - S_DAY + 1 
+		                                   ) 
+		                            ) A 
+		                     ) B 
+		               WHERE B.DT = A.WEEK_FRDT 
+		                     AND A.PRJTCD = #{prjtCd} 
+		              ) C 
+		        WHERE A.PRJTCD = B.PRJTCD 
+		              AND B.PRJTCD = C.PRJTCD(+) 
+		              AND B.MEMB_EMPLNO = C.MEMB_EMPLNO(+) 
+		              AND B.ACTV_CD = C.ACTV_CD(+) 
+		              AND B.LOCA_CD = C.LOCA_CD(+) 
+		       ) PIVOT ( MAX(ASGN_TM) FOR WEEK_IDX IN (
+		       		<foreach collection="weeks" item="week" separator=",">'${week.weekNum}' WEEK${week.weekNum}</foreach>
+		       	) ) A 
+		ORDER BY NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'ACTV', ACTV_CD, 'ORDBY'), A.GRADCD
+	</select>
+	
+	<select id="getWeekInfo" parameterType="hashmap" resultType="WeekVO">
+		SELECT DT START_DATE, 
+		       WW WEEK_NUM, 
+		       WORK_DAY 
+		  FROM 
+		       (SELECT DT, 
+		              STARTWEEK, 
+		              WW, 
+		              COUNT(*) OVER(PARTITION BY WW) - SUM(TEST) OVER(PARTITION BY WW) WORK_DAY 
+		         FROM 
+		              (SELECT TO_CHAR(DT, 'YYYY/MM/DD') DT, 
+		                     A.STARTWEEK, 
+		                     SUM(STARTWEEK) OVER( ORDER BY DT ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) WW, 
+		                     NVL2(B.YMD, 1, 0) TEST 
+		                FROM 
+		                     (SELECT DT , 
+		                            CASE 
+		                                WHEN DT = TO_DATE(REPLACE(#{prjtFrdt}, '-', ''), 'YYYYMMDD') /* 최초 시작일은 주 시작일 */ 
+		                                THEN 1 
+		                                WHEN TO_CHAR(DT, 'D') = 2 /* 월요일을 주 시작으로 하기 위함 */ 
+		                                THEN 1 
+		                                ELSE 0 
+		                            END STARTWEEK 
+		                       FROM 
+		                            (SELECT (S_DAY + LEVEL - 1) DT 
+		                              FROM 
+		                                   (SELECT TO_DATE(REPLACE(#{prjtFrdt}, '-', ''), 'YYYYMMDD') S_DAY, 
+		                                          TO_DATE(REPLACE(#{prjtTodt}, '-', ''), 'YYYYMMDD') E_DAY 
+		                                     FROM DUAL 
+		                                   ) CONNECT BY LEVEL <![CDATA[<=]]> (E_DAY - S_DAY + 1) 
+		                            ) 
+		                     ) A, 
+		                     (SELECT YMD 
+		                       FROM SAC_HR.DTM_CALENDAR 
+		                      WHERE YMD BETWEEN TO_DATE(REPLACE(#{prjtFrdt}, '-', ''), 'YYYYMMDD') AND TO_DATE(REPLACE(#{prjtTodt}, '-', ''), 'YYYYMMDD') 
+		                            AND ( COL1_YN = 'Y' OR MINUS_DD=0 ) 
+		                     ) B 
+		               WHERE A.DT = B.YMD(+) 
+		              ) 
+		       ) 
+		 WHERE STARTWEEK = 1 AND WW <![CDATA[<=]]> #{maxWeekNum}
+	</select>
+	
+	<select id="getHolidayInfo" parameterType="map" resultType="map">
+		SELECT S_WEEK_DT, 
+		       DT HOLIDAY_DT 
+		  FROM 
+		       (SELECT MIN(DT) OVER(PARTITION BY WW) S_WEEK_DT, 
+		              DT, 
+		              HOLIDAY_YN 
+		         FROM 
+		              (SELECT TO_CHAR(DT, 'YYYY/MM/DD') DT, 
+		                     A.STARTWEEK_YN, 
+		                     SUM(STARTWEEK_YN) OVER( ORDER BY DT ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) WW, 
+		                     NVL2(B.YMD, 1, 0) HOLIDAY_YN, 
+		                     CASE 
+		                         WHEN STARTWEEK_YN = 1 
+		                             OR B.YMD IS NOT NULL 
+		                         THEN 1 
+		                         ELSE 0 
+		                     END TEST 
+		                FROM 
+		                     (SELECT DT , 
+		                            CASE 
+		                                WHEN DT = TO_DATE(#{prjtFrdt}, 'YYYYMMDD') /* 최초 시작일은 주 시작일 */ 
+		                                THEN 1 
+		                                WHEN TO_CHAR(DT, 'D') = 2 /* 월요일을 주 시작으로 하기 위함 */ 
+		                                THEN 1 
+		                                ELSE 0 
+		                            END STARTWEEK_YN 
+		                       FROM 
+		                            (SELECT (S_DAY + LEVEL - 1) DT 
+		                              FROM 
+		                                   (SELECT TO_DATE(#{prjtFrdt}, 'YYYYMMDD') S_DAY, 
+		                                          TO_DATE(#{prjtTodt}, 'YYYYMMDD') E_DAY 
+		                                     FROM DUAL 
+		                                   ) CONNECT BY LEVEL <![CDATA[<=]]> (E_DAY - S_DAY + 1) 
+		                            ) 
+		                     ) A, 
+		                     (SELECT YMD 
+		                       FROM SAC_HR.DTM_CALENDAR 
+		                      WHERE YMD BETWEEN TO_DATE(#{prjtFrdt}, 'YYYYMMDD') AND TO_DATE(#{prjtTodt}, 'YYYYMMDD') 
+		                            AND 
+		                            ( 
+		                                COL1_YN = 'Y' 
+		                                OR MINUS_DD=0 
+		                            ) 
+		                     ) B 
+		               WHERE A.DT = B.YMD(+) 
+		              ) 
+		        WHERE HOLIDAY_YN = 1 
+		     ORDER BY DT 
+		       ) A  
+	</select>
+	
+	
+	<select id="getCMByGradCd" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT B.GRADCD, 
+		       MAX(CMGRATES) RATES 
+		  FROM PMCLRATEH A, 
+		       HRGRAD B 
+		 WHERE A.CMGRADCD = B.CMGRADCD 
+		       AND YEARLY = SF_PM_GET_CYEARLY('01',TO_CHAR((SELECT CREDT FROM WEB_SAT_PRJT WHERE PRJTCD = #{prjtCd}), 'YYYYMM'),'2') 
+		          AND service = (SELECT PRDTCD FROM PMPRJTBS WHERE PRJTCD1||'-'||PRJTCD2||'-'||PRJTCD3 = #{prjtCd}) 
+		    GROUP BY B.GRADCD
+	</select>
+	
+	<delete id="deleteAllMember" parameterType="map">
+		DELETE FROM WEB_SAT_MEMB C WHERE PRJTCD = #{prjtCd}
+	</delete>
+	<delete id="deleteAllMemberBudget" parameterType="map">
+		DELETE FROM WEB_SAT_MEMB_BDGT C WHERE PRJTCD = #{prjtCd}
+	</delete>
+	
+	<update id="updateBdgt" parameterType="map">
+		UPDATE WEB_SAT_PRJT A SET 
+			  OTHER_BDGT_TM = #{otherBdgtTm}
+			, NEW_STF_BDGT_TM = #{newStfBdgtTm}
+			, MODBY = #{session.emplNo}
+			, MODDT = SYSDATE 
+		WHERE A.PRJTCD = #{prjtCd}
+	</update>
+	
+	<insert id="inertMember" parameterType="map">
+		INSERT ALL
+		<foreach collection="list" item="member" open="" separator=" " close="">
+		INTO WEB_SAT_MEMB(PRJTCD, MEMB_EMPLNO, TBD, ACTV_CD, LOCA_CD, GRADCD, WKMNSP, CREBY, MODBY)
+		VALUES(#{prjtCd}, #{member.membEmplNo}, #{member.tbd}, #{member.actvCd}, #{member.locaCd}, #{member.gradCd}, #{member.wkmnsp}, #{session.emplNo}, #{session.emplNo})
+		</foreach>
+		SELECT * FROM DUAL
+	</insert>
+	
+	<insert id="inertMemberBudget" parameterType="map">
+		INSERT ALL
+		<foreach collection="list" item="bdgt" open="" separator=" " close="">
+		INTO WEB_SAT_MEMB_BDGT(PRJTCD, MEMB_EMPLNO, ACTV_CD, LOCA_CD, WEEK_FRDT, ASGN_TM, CREBY, MODBY)
+		VALUES(#{prjtCd}, #{bdgt.membEmplNo}, #{bdgt.actvCd}, #{bdgt.locaCd}, #{bdgt.weekFrdt}, #{bdgt.asgnTm}, #{session.emplNo}, #{session.emplNo})
+		</foreach>
+		SELECT * FROM DUAL
+	</insert>
+	
+	<update id="updateRetainTran" parameterType="map">
+		UPDATE NMSP.WEB_SAT_PRJT A
+		SET A.RETAIN_TRAN_YN = 'Y',
+			A.RETAIN_TRAN_DT = SYSDATE
+		WHERE A.PRJTCD = #{prjtCd}
+	</update>
+	
+	
+	<!-- 스케쥴로 리테인으로 전송할 Budget 정보 취합 -->
+	<select id="selectScheduledRetainData" resultType="com.samil.stdadt.retain.vo.RetainVO">
+		SELECT PRJTCD MAIN_PRJTCD
+			 , SUB_PRJTCD PRJTCD
+		     , RETAIN_TRAN_EMPLNO
+		     , RETAIN_TRAN_INTEID
+		     , RETAIN_TRAN_KORNM
+		     , MEMB_EMPLNO
+		     , LOCA_CD
+		     , FROM_DT
+		     , TO_DT
+		     , WORK_DAY
+		     , SUM(BDGT_BY_DAY) BDGT_BY_DAY 
+		  FROM 
+		       (SELECT A.PRJTCD
+		            , B.SUB_PRJTCD
+		            , A.RETAIN_TRAN_EMPLNO
+		            , D.INTEID RETAIN_TRAN_INTEID
+		            , D.KORNM RETAIN_TRAN_KORNM
+		            , B.MEMB_EMPLNO
+		            , B.LOCA_CD
+		            , TO_CHAR(A.FROM_DT, 'YYYY-MM-DD') FROM_DT
+		            , TO_CHAR(A.TO_DT, 'YYYY-MM-DD') TO_DT
+		            , A.WORK_DAY
+		            , FLOOR(B.ASGN_TM/A.WEEK_WORK_DAY) + 
+		              CASE 
+		                  WHEN (B.ASGN_TM / A.WEEK_WORK_DAY) - FLOOR(B.ASGN_TM / A.WEEK_WORK_DAY) > 0.75 THEN 1.00 
+		                  WHEN (B.ASGN_TM / A.WEEK_WORK_DAY) - FLOOR(B.ASGN_TM / A.WEEK_WORK_DAY) > 0.50 THEN 0.75 
+		                  WHEN (B.ASGN_TM / A.WEEK_WORK_DAY) - FLOOR(B.ASGN_TM / A.WEEK_WORK_DAY) > 0.25 THEN 0.50 
+		                  WHEN (B.ASGN_TM / A.WEEK_WORK_DAY) - FLOOR(B.ASGN_TM / A.WEEK_WORK_DAY) > 0.00 THEN 0.25 
+		                  ELSE 0 
+		              END BDGT_BY_DAY 
+		         FROM 
+		              (SELECT PRJTCD
+		                   , RETAIN_TRAN_EMPLNO
+                       , RETAIN_SCDL_LOCA_CD
+		                   , GROUP_DT
+		                   , FROM_DT
+		                   , TO_DT
+		                   , DIFF WORK_DAY
+		                   , SUM(DIFF) OVER(PARTITION BY PRJTCD, GROUP_DT) WEEK_WORK_DAY 
+		                FROM 
+		                     (SELECT PRJTCD
+		                          , GROUP_DT
+		                          , RETAIN_TRAN_EMPLNO
+                              , RETAIN_SCDL_LOCA_CD
+		                          , MIN(DT) FROM_DT
+		                          , MAX(DT) TO_DT
+		                          , MAX(DT) - MIN(DT) + 1 DIFF 
+		                       FROM 
+		                            (SELECT A.PRJTCD
+		                                 , A.RETAIN_TRAN_EMPLNO
+                                     , A.RETAIN_SCDL_LOCA_CD
+		                                 , A.GROUP_DT
+		                                 , A.DT
+		                                 , SUM(TMP) OVER(PARTITION BY PRJTCD ORDER BY DT ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) GRP 
+		                              FROM 
+		                                   (SELECT A.PRJTCD
+		                                        , A.RETAIN_TRAN_EMPLNO
+                                            , A.RETAIN_SCDL_LOCA_CD
+		                                        , DECODE(TO_CHAR(DT, 'D'), 2, DT, NEXT_DAY(DT-6, 2)) GROUP_DT
+		                                        , DT
+		                                        , CASE 
+		                                              WHEN DT - LAG(DT) OVER(PARTITION BY PRJTCD ORDER BY DT) > 1 THEN 1 
+		                                              ELSE 0 
+		                                          END TMP 
+		                                     FROM 
+		                                          (SELECT PRJTCD
+		                                               , RETAIN_TRAN_EMPLNO
+                                                   , RETAIN_SCDL_LOCA_CD
+		                                               , TO_DATE(RETAIN_SCDL_BASE_DT, 'YYYY-MM-DD') S_DAY
+		                                               , TO_DATE(PRJT_TODT, 'YYYY-MM-DD') E_DAY 
+		                                            FROM NMSP.WEB_SAT_PRJT 
+		                                           WHERE STAT = 'CO' 
+		                                                 AND RETAIN_TRAN_YN = 'N' 
+		                                                 AND RETAIN_SCDL_YN='Y' 
+		                                          ) A
+		                                        , 
+		                                          (SELECT DT
+		                                               , YMD
+		                                               , COL1_YN
+		                                               , MINUS_DD 
+		                                            FROM 
+		                                                 (SELECT S_DAY + LEVEL - 1 DT 
+		                                                   FROM 
+		                                                        (SELECT TO_DATE(MIN(RETAIN_SCDL_BASE_DT), 'YYYY-MM-DD') S_DAY
+		                                                             , TO_DATE(MAX(PRJT_TODT), 'YYYY-MM-DD') E_DAY 
+		                                                          FROM NMSP.WEB_SAT_PRJT 
+		                                                         WHERE STAT = 'CO' 
+		                                                               AND RETAIN_TRAN_YN = 'N' 
+		                                                               AND RETAIN_SCDL_YN='Y' 
+		                                                        ) 
+		                                                  WHERE TO_CHAR(S_DAY + LEVEL - 1, 'D') IN('2', '3', '4', '5', '6') CONNECT BY E_DAY >= S_DAY+LEVEL -1 
+		                                                 ) A
+		                                               , SAC_HR.DTM_CALENDAR B 
+		                                           WHERE A.DT = B.YMD(+) 
+		                                          ) B 
+		                                    WHERE B.DT BETWEEN A.S_DAY AND A.E_DAY 
+		                                          AND
+		                                          (
+		                                              YMD IS NULL 
+		                                              OR
+		                                              (
+		                                                  (
+		                                                      B.COL1_YN = 'N' 
+		                                                      OR COL1_YN IS NULL
+		                                                  ) 
+		                                                  AND B.MINUS_DD = 1
+		                                              )
+		                                          ) -- 휴일 정보가 있을 경우에는 휴일 제외한 날짜 가져오기 
+		                                   ) A 
+		                            ) 
+		                      GROUP BY PRJTCD
+		                          , RETAIN_TRAN_EMPLNO
+                              , RETAIN_SCDL_LOCA_CD
+		                          , GROUP_DT
+		                          , GRP 
+		                   ORDER BY PRJTCD
+		                          , FROM_DT 
+		                     ) A 
+		              ) A
+		            , WEB_SAT_MEMB_BDGT B
+		            , HREMP C
+		            , HREMP D 
+		        WHERE A.PRJTCD = B.PRJTCD 
+		              AND B.MEMB_EMPLNO = C.EMPLNO 
+		              AND A.RETAIN_TRAN_EMPLNO = D.EMPLNO 
+		              AND EXISTS
+		              (SELECT 1 
+		                FROM WEB_SAT_MEMB M 
+		               WHERE M.PRJTCD = B.PRJTCD 
+		                     AND M.SUB_PRJTCD = B.SUB_PRJTCD 
+		                     AND M.MEMB_EMPLNO = B.MEMB_EMPLNO 
+		                     AND M.ACTV_CD = B.ACTV_CD 
+		                     AND M.LOCA_CD = B.LOCA_CD 
+		                     AND M.TBD = 'N'
+                         AND (TRIM(A.RETAIN_SCDL_LOCA_CD) IS NULL OR INSTR(A.RETAIN_SCDL_LOCA_CD, M.LOCA_CD) > 0 ) /* LOCATION 선택에 따른 전송 여부 */
+		              ) 
+		              AND A.GROUP_DT = DECODE(TO_CHAR(TO_DATE(B.WEEK_FRDT, 'YYYY-MM-DD'), 'D'), 2, TO_DATE(B.WEEK_FRDT, 'YYYY-MM-DD'), NEXT_DAY(TO_DATE(B.WEEK_FRDT, 'YYYY-MM-DD') -6, 2)) 
+		              AND C.OFFIST IN('001', '002') 
+		       ) 
+		 GROUP BY PRJTCD 
+		 	 , SUB_PRJTCD
+		     , RETAIN_TRAN_EMPLNO
+		     , RETAIN_TRAN_INTEID
+		     , RETAIN_TRAN_KORNM
+		     , MEMB_EMPLNO
+		     , LOCA_CD
+		     , FROM_DT
+		     , TO_DT
+		     , WORK_DAY 
+		ORDER BY PRJTCD 
+			 , SUB_PRJTCD
+		     , MEMB_EMPLNO
+		     , FROM_DT
+		     , LOCA_CD
+	</select>
+	
+	<select id="selectScheduledRetainData_bk20200518" resultType="com.samil.stdadt.retain.vo.RetainVO">
+		SELECT PRJTCD,
+		       RETAIN_TRAN_EMPLNO,
+		       RETAIN_TRAN_INTEID,
+		       RETAIN_TRAN_KORNM,
+		       MEMB_EMPLNO,
+		       LOCA_CD,
+		       FROM_DT,
+		       TO_DT,
+		       WORK_DAY, 
+		       SUM(BDGT_BY_DAY) BDGT_BY_DAY 
+		  FROM 
+		       (SELECT A.PRJTCD, 
+		              A.RETAIN_TRAN_EMPLNO, 
+		              D.INTEID RETAIN_TRAN_INTEID, 
+		              D.KORNM RETAIN_TRAN_KORNM, 
+		              B.MEMB_EMPLNO, 
+		              B.LOCA_CD, 
+		              TO_CHAR(A.FROM_DT, 'YYYY-MM-DD') FROM_DT, 
+		              TO_CHAR(A.TO_DT, 'YYYY-MM-DD') TO_DT, 
+		              A.WORK_DAY, 
+		              FLOOR(B.ASGN_TM/A.WEEK_WORK_DAY) + 
+		              CASE 
+		                  WHEN (B.ASGN_TM / A.WEEK_WORK_DAY) - FLOOR(B.ASGN_TM / A.WEEK_WORK_DAY) > 0.75 THEN 1.00 
+		                  WHEN (B.ASGN_TM / A.WEEK_WORK_DAY) - FLOOR(B.ASGN_TM / A.WEEK_WORK_DAY) > 0.50 THEN 0.75 
+		                  WHEN (B.ASGN_TM / A.WEEK_WORK_DAY) - FLOOR(B.ASGN_TM / A.WEEK_WORK_DAY) > 0.25 THEN 0.50 
+		                  WHEN (B.ASGN_TM / A.WEEK_WORK_DAY) - FLOOR(B.ASGN_TM / A.WEEK_WORK_DAY) > 0.00 THEN 0.25
+		                  ELSE 0 
+		              END BDGT_BY_DAY
+		         FROM 
+		              (SELECT PRJTCD, 
+		                     RETAIN_TRAN_EMPLNO, 
+		                     GROUP_DT, 
+		                     FROM_DT, 
+		                     TO_DT, 
+		                     DIFF WORK_DAY, 
+		                     SUM(DIFF) OVER(PARTITION BY PRJTCD, GROUP_DT) WEEK_WORK_DAY 
+		                FROM 
+		                     (SELECT PRJTCD, 
+		                            GROUP_DT, 
+		                            RETAIN_TRAN_EMPLNO, 
+		                            MIN(DT) FROM_DT, 
+		                            MAX(DT) TO_DT, 
+		                            MAX(DT) - MIN(DT) + 1 DIFF 
+		                       FROM 
+		                            (SELECT A.PRJTCD, 
+		                                   A.RETAIN_TRAN_EMPLNO, 
+		                                   A.GROUP_DT, 
+		                                   A.DT, 
+		                                   SUM(TMP) OVER(PARTITION BY PRJTCD ORDER BY DT ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) GRP 
+		                              FROM 
+		                                   (SELECT A.PRJTCD, 
+		                                          A.RETAIN_TRAN_EMPLNO, 
+		                                          DECODE(TO_CHAR(DT, 'D'), 2, DT, NEXT_DAY(DT-6, 2)) GROUP_DT, 
+		                                          DT, 
+		                                          CASE 
+		                                              WHEN DT - LAG(DT) OVER(PARTITION BY PRJTCD ORDER BY DT) > 1 
+		                                              THEN 1 
+		                                              ELSE 0 
+		                                          END TMP 
+		                                     FROM 
+		                                          (SELECT PRJTCD, 
+		                                                 RETAIN_TRAN_EMPLNO, 
+		                                                 TO_DATE(RETAIN_SCDL_BASE_DT, 'YYYY-MM-DD') S_DAY, 
+		                                                 TO_DATE(PRJT_TODT, 'YYYY-MM-DD') E_DAY 
+		                                            FROM NMSP.WEB_SAT_PRJT 
+		                                           WHERE STAT = 'CO' 
+		                                                 AND RETAIN_TRAN_YN = 'N' 
+		                                                 AND RETAIN_SCDL_YN='Y' 
+		                                          ) A, 
+		                                          (SELECT DT, 
+		                                                 YMD, 
+		                                                 COL1_YN, 
+		                                                 MINUS_DD 
+		                                            FROM 
+		                                                 (SELECT S_DAY + LEVEL - 1 DT 
+		                                                   FROM 
+		                                                        (SELECT TO_DATE(MIN(RETAIN_SCDL_BASE_DT), 'YYYY-MM-DD') S_DAY, 
+		                                                               TO_DATE(MAX(PRJT_TODT), 'YYYY-MM-DD') E_DAY 
+		                                                          FROM NMSP.WEB_SAT_PRJT 
+		                                                         WHERE STAT = 'CO' 
+		                                                               AND RETAIN_TRAN_YN = 'N' 
+		                                                               AND RETAIN_SCDL_YN='Y' 
+		                                                        ) 
+		                                                  WHERE TO_CHAR(S_DAY + LEVEL - 1, 'D') IN ('2','3','4','5','6') CONNECT BY E_DAY >= S_DAY+LEVEL -1 
+		                                                 ) A,
+		                                                 SAC_HR.DTM_CALENDAR B 
+		                                           WHERE A.DT = B.YMD(+) 
+		                                          ) B 
+		                                    WHERE B.DT BETWEEN A.S_DAY AND A.E_DAY 
+		                                          AND ( YMD IS NULL OR ((B.COL1_YN = 'N' OR COL1_YN IS NULL) AND B.MINUS_DD = 1)) -- 휴일 정보가 있을 경우에는 휴일 제외한 날짜 가져오기
+		                                   ) A 
+		                            ) 
+		                      GROUP BY PRJTCD, 
+		                            RETAIN_TRAN_EMPLNO, 
+		                            GROUP_DT, 
+		                            GRP 
+		                   ORDER BY PRJTCD, 
+		                            FROM_DT 
+		                     ) A 
+		              ) A, 
+		              WEB_SAT_MEMB_BDGT B, 
+		              HREMP C, 
+		              HREMP D 
+		        WHERE A.PRJTCD = B.PRJTCD 
+		              AND B.MEMB_EMPLNO = C.EMPLNO 
+		              AND A.RETAIN_TRAN_EMPLNO = D.EMPLNO
+		              AND EXISTS (SELECT 1 
+                  				    FROM WEB_SAT_MEMB M 
+	                               WHERE M.PRJTCD = B.PRJTCD 
+	                                 AND M.MEMB_EMPLNO = B.MEMB_EMPLNO 
+	                                 AND M.ACTV_CD = B.ACTV_CD 
+	                                 AND M.LOCA_CD = B.LOCA_CD 
+	                                 AND M.TBD = 'N')
+		              AND A.GROUP_DT = DECODE(TO_CHAR(TO_DATE(B.WEEK_FRDT, 'YYYY-MM-DD'), 'D'), 2, TO_DATE(B.WEEK_FRDT, 'YYYY-MM-DD'), NEXT_DAY(TO_DATE(B.WEEK_FRDT, 'YYYY-MM-DD')-6, 2)) 
+		              AND C.OFFIST IN ('001', '002') 
+		       ) 
+		 GROUP BY PRJTCD,
+		       RETAIN_TRAN_EMPLNO,
+		       RETAIN_TRAN_INTEID,
+		       RETAIN_TRAN_KORNM,
+		       MEMB_EMPLNO,
+		       LOCA_CD,
+		       FROM_DT,
+		       TO_DT,
+		       WORK_DAY 
+		ORDER BY PRJTCD, 
+		       MEMB_EMPLNO, 
+		       FROM_DT,
+		       LOCA_CD
+	</select>
+	
+	<update id="saveRetainSchedule" parameterType="map">
+		UPDATE NMSP.WEB_SAT_PRJT SET 
+			RETAIN_TRAN_EMPLNO = #{session.emplNo},
+			RETAIN_SCDL_YN = 'Y',
+			RETAIN_SCDL_DT = SYSDATE,
+			RETAIN_SCDL_BASE_DT = #{baseDt},
+			RETAIN_SCDL_LOCA_CD = #{location}
+		WHERE PRJTCD = #{prjtCd} 
+	</update>
+</mapper>

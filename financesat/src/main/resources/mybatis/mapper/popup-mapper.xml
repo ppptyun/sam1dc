@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.samil.stdadt.mapper.PopupMapper">
+	<select id="getEmp" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT A.EMPLNO ID
+			 , A.EMPLNO 
+			 , A.INTEID 
+			 , A.KORNM
+			 , SAC_HR.F_FRM_CAM_HISTORY( SAC_HR.F_FRM_PHM_EMP_ID('01', A.EMPLNO, SYSDATE, 'KO'), 'KO', SYSDATE, 'LOS_CD') AS LOSCD
+			 , SAC_HR.F_FRM_CAM_HISTORY( SAC_HR.F_FRM_PHM_EMP_ID('01', A.EMPLNO, SYSDATE, 'KO'), 'KO', SYSDATE, 'LOS_NM') AS LOSNM
+			 , A.TEAMCD
+			 , (SELECT TEAMNM FROM NMSP.CMTEAMCD WHERE TEAMCD = A.TEAMCD) AS TEAMNM
+			 , A.TEAMCD||'/'||(SELECT TEAMNM FROM NMSP.CMTEAMCD WHERE TEAMCD = A.TEAMCD) AS TEAM
+			 , A.GRADCD
+			 , (SELECT GRADNM FROM NMSP.HRGRAD WHERE GRADCD = A.GRADCD) AS GRADNM
+		 <if test="prjtCd != null and prjtCd != ''">
+			 , NMSP.SF_WEB_SAT_GET_EMP_WKMNSP(#{prjtCd},  A.EMPLNO) WKMNSP
+		 </if>
+		FROM NMSP.HREMP A
+		WHERE OFFIST in ('001', '002')
+		  AND (EMPLNO = #{searchText} OR KORNM LIKE '%'||#{searchText}||'%') 
+	</select>
+	
+	<select id="getProject" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT A.PRJTCD1||'-'||A.PRJTCD2||'-'||A.PRJTCD3 PRJTCD
+		 	 , A.PRJTCD1
+	         , A.PRJTCD2
+	         , A.PRJTCD3
+	         , A.PRJTNM
+	         , (SELECT HANGNM FROM PMCLNTBS WHERE CLIENT = A.PRJTCD1) CLNTNM
+	         , TO_CHAR(TO_DATE(A.EXFRDT, 'YYYYMMDD'), 'YYYY-MM-DD') PRJT_FRDT
+	         , TO_CHAR(TO_DATE(A.EXTODT, 'YYYYMMDD'), 'YYYY-MM-DD') PRJT_TODT
+	         , TO_CHAR(TO_DATE(B.ADTBIZFR, 'YYYYMMDD'), 'YYYY-MM') BIZ_FRDT
+	         , TO_CHAR(TO_DATE(B.ADTBIZTO, 'YYYYMMDD'), 'YYYY-MM') BIZ_TODT
+	         , A.SHRTNM
+	         , A.CHARGBON
+	         , A.CHARGPTR
+	         , NMSP.SF_EMP_NAME(A.CHARGPTR) CHARGPTR_NM
+	         , NMSP.SF_EMP_GRADNM(A.CHARGPTR) CHARGPTR_GRAD_NM
+	         , NMSP.SF_EMP_NAME(A.CHARGPTR)||'('||A.CHARGPTR||')' DSP_CHARGPTR
+	         , A.CHARGMGR
+	         , NMSP.SF_EMP_NAME(A.CHARGMGR) CHARGMGR_NM
+	         , NMSP.SF_EMP_GRADNM(A.CHARGMGR) CHARGMGR_GRAD_NM
+	         , NMSP.SF_EMP_NAME(A.CHARGMGR)||'('||A.CHARGMGR||')' DSP_CHARGMGR
+	         , CASE WHEN (SELECT COUNT(*) FROM WEB_SAT_PRJT B WHERE B.PRJTCD = A.PRJTCD1||'-'||A.PRJTCD2||'-'||A.PRJTCD3) > 0 THEN 'Y' ELSE 'N' END IS_MAIN_EXIST
+	         , CASE WHEN (SELECT COUNT(*) FROM WEB_SAT_SUB_PRJT B WHERE B.BDGT_TRGT_YN = 'Y' AND B.PRJTCD = A.PRJTCD1||'-'||A.PRJTCD2||'-'||A.PRJTCD3) > 0 THEN 'Y' ELSE 'N' END IS_SUB_EXIST
+         	 , D.AMTW CNTRT_FEE 
+	         , TO_CHAR(C.ADTREPRTDT, 'YYYY-MM-DD') AS RPRT_SCDL_DT
+	         , DECODE(B.LTMRKTDIVCD, '1', 'LISTED', '2', 'LISTED', '3', 'KONEX', '9', 'UNLISTED', NULL) LIST_DV_CD
+	         , DECODE(B.BIZREPRTCD, '467', 'Y', '468', 'N', NULL) BIZ_RPRT_YN
+	         , DECODE(B.APPACNTCD, '401', 'Y', '402', 'N', NULL) IFRS_YN
+		  FROM NMSP.PMPRJTBS A
+	  		 , NMSP.WEB_ADPRJT B
+	         , NMSP.WEB_ADAURA C
+	         , (SELECT COMPCD 
+		            , YYMM 
+		            , ATTSEQ 
+		            , PRJTCD1 
+		            , PRJTCD2 
+		            , PRJTCD3 
+		            , CREATEDV 
+		            , SUM(AMTW) AMTW 
+		         FROM PMPRJTDT 
+		          GROUP BY COMPCD 
+		            , YYMM 
+		            , ATTSEQ 
+		            , PRJTCD1 
+		            , PRJTCD2 
+		            , PRJTCD3 
+		            , CREATEDV
+		       ) D 
+		 WHERE A.PRJTCD1 = B.PRJTCD1(+)
+		   AND A.PRJTCD2 = B.PRJTCD2(+)
+		   AND A.PRJTCD3 = B.PRJTCD3(+)
+		   AND A.PRJTCD1 = C.PRJTCD1(+)
+		   AND A.PRJTCD2 = C.PRJTCD2(+)
+		   AND A.PRJTCD3 = C.PRJTCD3(+)
+		   AND A.PRJTCD1 = D.PRJTCD1(+) 
+	       AND A.PRJTCD2 = D.PRJTCD2(+) 
+	       AND A.PRJTCD3 = D.PRJTCD3(+)
+		   AND A.TERMIYN = 1
+		   AND (A.PRJTCD1||A.PRJTCD2||A.PRJTCD3 = REPLACE(#{searchText}, '-', '') OR UPPER(A.PRJTNM) LIKE UPPER('%'||#{searchText}||'%'))
+		 <!-- <if test=" isMain.equals('Yes') "> AND B.PRJTCD2 = '01'</if> -->
+	</select>
+	
+	<select id="getProjectV3" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		<![CDATA[
+		SELECT A.PRJTCD1||'-'||A.PRJTCD2||'-'||A.PRJTCD3 PRJTCD,
+		       P.PRJTNM
+		  FROM PMAUDITPJTD A,
+		       PMPRJTBS P,
+		      (SELECT PRJTCD MAIN_PRJTCD,
+		              PRJTCD SUB_PRJTCD,
+		              PRJTCD1,
+		              PRJTCD2,
+		              PRJTCD3,
+		              'main' DIV,
+		              BDGT_TRGT_YN,
+		              NVL(ET_TRGT_ADT_TM, 0) CNTRT_ADT_TM
+		         FROM NMSP.WEB_SAT_PRJT A
+		        WHERE CALC_ONLY_YN = 'N'
+		           UNION ALL
+		       SELECT P_PRJTCD,
+		              PRJTCD1||'-'||PRJTCD2||'-'||PRJTCD3 SUB_PRJTCD,
+		              PRJTCD1,
+		              PRJTCD2,
+		              PRJTCD3,
+		              'sub',
+		              BDGT_TRGT_YN,
+		              NVL(CNTRT_ADT_TM, 0)
+		         FROM NMSP.WEB_SAT_SUB_PRJT A
+		      ) D
+		 WHERE A.PRJTCD1_B = #{PRJTCD1}
+	       AND A.PRJTCD2_B = #{PRJTCD2}
+	       AND A.PRJTCD3_B = #{PRJTCD3}
+	       AND A.PRJTCD2 <> '99'
+	       AND A.PRJTCD1 = P.PRJTCD1
+	       AND A.PRJTCD2 = P.PRJTCD2
+	       AND A.PRJTCD3 = P.PRJTCD3
+	       AND P.PRJTCD1 = D.PRJTCD1
+	       AND P.PRJTCD2 = D.PRJTCD2
+	       AND P.PRJTCD3 = D.PRJTCD3
+	       AND D.BDGT_TRGT_YN = 'Y'
+		ORDER BY DECODE(D.DIV, 'main', 1, 2),
+		       DECODE(A.INADJUST, 'P', 1, 'N', 2, 'C',3, 4),
+		       A.PRJTCD1,
+		       A.PRJTCD2,
+		       A.PRJTCD3
+	 ]]>	
+	</select>
+	
+	<select id="getProfitProject" parameterType="map" resultType="ProfitabilityVO">
+		SELECT A.PRJTCD PRJT_CD
+			 , (SELECT HANGNM FROM NMSP.PMCLNTBS WHERE CLIENT = B.PRJTCD1) CLNTNM
+			 , NMSP.SF_WEB_SAT_GET_TOT_BDGT(#{prjtCd}, B.CHARGPTR, NULL, NULL) EL_BDGT_TM
+			 , A.RA_BDGT_TM
+		     , A.FLCM_BDGT_TM
+		     , A.NEW_STF_BDGT_TM
+		     , A.OTHER_BDGT_TM
+			 , B.PRJTNM
+		     , B.SHRTNM
+		     , B.PRDTCD
+		     , TO_CHAR(A.CREDT, 'YYYYMM') CRE_MM
+		     , NVL((SELECT SUM(SPRJT.CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT SPRJT WHERE SPRJT.P_PRJTCD = A.PRJTCD),0)+ NVL(A.CNTRT_FEE,0) TOT_CNTRT_FEE 
+	      FROM NMSP.WEB_SAT_PRJT A, 
+	           NMSP.PMPRJTBS B 
+	     WHERE A.PRJTCD = B.PRJTCD1||'-'||B.PRJTCD2||'-'||B.PRJTCD3
+    	   AND A.PRJTCD = #{prjtCd} 
+	</select>
+	
+	<select id="getProfitProjectV3" parameterType="map" resultType="ProfitabilityV3VO">
+		SELECT A.PRJTCD PRJT_CD
+			 , (SELECT HANGNM FROM NMSP.PMCLNTBS WHERE CLIENT = B.PRJTCD1) CLNTNM
+			 , NMSP.SF_WEB_SAT_GET_TOT_BDGT(#{prjtCd}, B.CHARGPTR, NULL, NULL) EL_BDGT_TM
+			 , B.PRJTNM
+		     , B.SHRTNM
+		     , B.PRDTCD
+		     , TO_CHAR(A.CREDT, 'YYYYMM') CRE_MM
+		     , NVL((SELECT SUM(SPRJT.CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT SPRJT WHERE SPRJT.P_PRJTCD = A.PRJTCD),0)+ NVL(A.CNTRT_FEE,0) TOT_CNTRT_FEE 
+	      FROM NMSP.WEB_SAT_PRJT A, 
+	           NMSP.PMPRJTBS B 
+	     WHERE A.PRJTCD = B.PRJTCD1||'-'||B.PRJTCD2||'-'||B.PRJTCD3
+    	   AND A.PRJTCD = #{prjtCd} 
+	</select>
+	
+	<select id="getProfitMember" parameterType="ProfitabilityVO" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT  CI.CMGRADCD
+		      , CI.DIV
+		      , CI.TOT_ASGN_TM
+		      , CI.RATES
+		FROM   (SELECT BI.CMGRADCD
+		              , CASE
+		                        WHEN BI.CMGRADCD = '001' THEN 'bdgtP'
+		                        WHEN BI.CMGRADCD = '002' THEN 'bdgtD'
+		                        WHEN BI.CMGRADCD = '004' THEN 'bdgtSm'
+		                        WHEN BI.CMGRADCD = '005' THEN 'bdgtM'
+		                        WHEN BI.CMGRADCD = '007' THEN 'bdgtSa'
+		                        WHEN BI.CMGRADCD = '008' THEN 'bdgtA'
+		                        ELSE 'other'
+		                END AS DIV
+		              , NVL(MAX(BI.BILL_RATES), 0) RATES
+		              , NVL(SUM(BI.TOT_ASGN_TM), 0) TOT_ASGN_TM
+		        FROM   (SELECT C.BILL_RATES
+		                      , C.CMGRADCD
+		                      , NVL(SUM(MI.TOT_ASGN_TM), 0) AS TOT_ASGN_TM
+		                FROM   (SELECT G.CMGRADCD
+		                              , M.GRADCD
+		                              , SF_WEB_SAT_GET_TOT_BDGT(M.PRJTCD, M.MEMB_EMPLNO, M.ACTV_CD, M.LOCA_CD) TOT_ASGN_TM
+		                              , H.OCCUCD
+		                              , CASE
+		                                        WHEN H.OCCUCD = '001' THEN 'P'
+		                                        ELSE 'N'
+		                                END AS PN
+		                        FROM    NMSP.WEB_SAT_MEMB M
+		                              , NMSP.HRGRAD G
+		                              , NMSP.HREMP H
+		                        WHERE   M.PRJTCD = #{prjtCd}
+		                        AND     M.GRADCD = G.GRADCD
+		                        AND     M.MEMB_EMPLNO = H.EMPLNO) MI
+		                      , NMSP.PMCLRATEH C
+		                WHERE   1 = 1
+		                AND     C.YEARLY = NMSP.SF_PM_GET_CYEARLY('01', #{creMm}, '2')
+		                AND     C.SERVICE = #{prdtCd}
+		                AND     C.CLASCD = MI.GRADCD(+)
+		                AND     C.PN = MI.PN(+)
+		                GROUP BY C.BILL_RATES
+		                      , C.CMGRADCD) BI
+		        GROUP BY BI.CMGRADCD) CI
+		WHERE   CI.DIV != 'other'
+		ORDER BY CI.CMGRADCD
+	</select>
+	
+	<select id="getProfitMemberV3" parameterType="ProfitabilityV3VO" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT DIV 
+		     , MAX(RATES) RATES 
+		     , SUM(ASGN_TM) TOT_ASGN_TM 
+		  FROM 
+		       (SELECT a.* 
+		            , CASE 
+	                  	WHEN A.CMGRADCD = '001' OR (A.TBD='Y' AND A.ACTV_CD IN('16')) /* QRP */
+		                THEN 'bdgtP' 
+		                WHEN A.CMGRADCD = '002' OR (A.TBD='Y' AND A.ACTV_CD IN('12')) /* QC */
+		                THEN 'bdgtD' 
+		                WHEN A.CMGRADCD = '004' 
+		                THEN 'bdgtSm' 
+		                WHEN A.CMGRADCD = '005' 
+		                THEN 'bdgtM' 
+		                WHEN A.CMGRADCD = '007' OR (A.TBD='Y' AND A.ACTV_CD IN('09', '13', '14')) /* SPA, Fulcrum */
+		                THEN 'bdgtSa' 
+		                WHEN A.CMGRADCD = '008' OR (A.TBD='Y' AND A.ACTV_CD IN('15')) /* New Staff */
+		                THEN 'bdgtA' 
+		                ELSE 'other' 
+		              END AS DIV 
+		         FROM (<include refid="satSql.baseMemberBudget"></include>) a 
+		       ) a 
+		     , PMCLRATEH B 
+		 WHERE A.YEARLY_BY_WEEK = B.YEARLY 
+		       AND A.PRDTCD = B.SERVICE 
+		       AND A.GRADCD = B.CLASCD 
+		       AND A.PN = B.PN 
+		 GROUP BY A.DIV
+	</select>
+	
+	<select id="getBudgetConflict" parameterType="map" resultType="ConflictListVO">
+		WITH MEMB_BDGT AS(
+			SELECT A.PRJTCD,A.MEMB_EMPLNO,A.ACTV_CD,A.LOCA_CD,NEXT_DAY(TO_DATE(B.WEEK_FRDT, 'YYYY-MM-DD') - 6, 2) WEEK_FRDT, B.WEEK_FRDT ORIG_FRDT,B.ASGN_TM
+		    FROM NMSP.WEB_SAT_MEMB A, 
+		         NMSP.WEB_SAT_MEMB_BDGT B
+		    WHERE A.PRJTCD = B.PRJTCD 
+		      AND A.MEMB_EMPLNO = B.MEMB_EMPLNO 
+		      AND A.ACTV_CD = B.ACTV_CD 
+		      AND A.LOCA_CD = B.LOCA_CD 
+		      AND A.TBD = 'N'  
+		)
+		SELECT SF_EMP_NAME(MEMB_EMPLNO)||'('|| MEMB_EMPLNO||')' MEMB_NM, 
+		       MEMB_EMPLNO, 
+		       TO_CHAR(WEEK_FRDT, 'YYYY-MM-DD') WORK_SDT, 
+		       TO_CHAR(WEEK_FRDT + 6, 'YYYY-MM-DD') WORK_EDT, 
+		       WORK_DAYS, 
+		       A.PRJTCD, 
+		       B.PRJTNM,
+		       SF_EMP_NAME(B.CHARGPTR) PTR_NM, 
+		       SF_EMP_NAME(B.CHARGMGR) MGR_NM,  
+		       ACTV_CD, 
+		       SF_APPMNG_GET_COMMCD(#{appCd}, 'ACTV', ACTV_CD, 'NM') ACTV,  
+		       LOCA_CD, 
+		       SF_APPMNG_GET_COMMCD(#{appCd}, 'LOCA', LOCA_CD, 'NM') LOCA,  
+		       ASGN_TM BDGT
+		  FROM WEB_SAT_PRJT A, 
+		       PMPRJTBS B, 
+		       (SELECT A.*, 
+		              SUM(ASGN_TM) OVER(PARTITION BY MEMB_EMPLNO, WEEK_FRDT) SUM_ASGN_TM, 
+		              (SELECT 7 - COUNT(*) 
+		                FROM SAC_HR.DTM_CALENDAR 
+		               WHERE YMD BETWEEN WEEK_FRDT AND WEEK_FRDT + 6 AND (COL1_YN = 'Y' OR MINUS_DD=0) 
+		              ) WORK_DAYS 
+		         FROM 
+		              (SELECT PRJTCD, 
+		                     MEMB_EMPLNO, 
+		                     LOCA_CD, 
+		                     ACTV_CD, 
+		                     WEEK_FRDT,
+		                     ORIG_FRDT,
+		                     ASGN_TM, 
+		                     COUNT(*) OVER(PARTITION BY MEMB_EMPLNO, WEEK_FRDT) CNT 
+		                FROM MEMB_BDGT A 
+		               WHERE WEEK_FRDT BETWEEN NEXT_DAY(TO_DATE(#{sDt}, 'YYYY-MM-DD') - 6, 2) AND NEXT_DAY(TO_DATE(#{eDt}, 'YYYY-MM-DD') - 6, 2)
+		               		 AND EXISTS (SELECT 1 
+		               		               FROM MEMB_BDGT B 
+		               		 			  WHERE B.PRJTCD = #{prjtCd} 
+		               		 			    AND B.MEMB_EMPLNO = A.MEMB_EMPLNO 
+		               		 			    AND B.WEEK_FRDT = A.WEEK_FRDT) 
+		              ) A 
+		        WHERE CNT >= 2 -- 2개 이상 
+		       ) C   
+		 WHERE A.PRJTCD1 = B.PRJTCD1 
+		       AND A.PRJTCD2 = B.PRJTCD2 
+		       AND A.PRJTCD3 = B.PRJTCD3 
+		       AND A.PRJTCD = C.PRJTCD 
+		       AND SUM_ASGN_TM/WORK_DAYS > 10.4 -- 주 52시간
+		ORDER BY SF_EMP_NAME(MEMB_EMPLNO)||MEMB_EMPLNO, 
+		       WEEK_FRDT,
+		       DECODE(PRJTCD, #{prjtCd}, 1, 2), 
+		       PRJTCD 
+	</select>
+	
+	<select id="rejectReasonRead" parameterType="map" resultType="String">
+		SELECT RJCT_CMNT
+		FROM NMSP.WEB_SAT_PRJT A
+		WHERE A.PRJTCD = #{prjtCd}
+	</select>
+	
+	
+	<select id="getAuditorList" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT CD ID, CD, NM 
+		FROM (SELECT CASE WHEN VAL1 = 'big4' THEN ORDBY ELSE 99 END TMP, CD, NM
+			  FROM NMSP.APPMNG_CD WHERE APP_CD= #{appCd} AND GRP_CD='ADTR')
+		ORDER BY TMP, NM
+	</select>
+	
+	<select id="isExistAuditor" parameterType="map" resultType="Boolean">
+		SELECT COUNT(*) FROM NMSP.APPMNG_CD
+		WHERE APP_CD= #{appCd} AND GRP_CD='ADTR' AND NM = #{nm}
+	</select>
+	
+	<insert id="addAuditor" parameterType="map">
+		<selectKey keyProperty="cd,ordby" resultType="com.samil.stdadt.comm.vo.CamelMap" order="BEFORE">
+			SELECT 'ADTR'||TO_CHAR(TO_NUMBER(REPLACE(MAX(CD), 'ADTR', '')) + 1, 'FM00000') as cd, MAX(ORDBY) + 1 as ordby 
+			FROM NMSP.APPMNG_CD 
+			WHERE APP_CD=#{appCd} AND GRP_CD='ADTR'
+		</selectKey>
+		INSERT INTO NMSP.APPMNG_CD(APP_CD,GRP_CD,CD,P_CD,NM,ORDBY,USE_YN,CREBY,MODBY)
+		VALUES(#{appCd}, 'ADTR', #{cd}, 'root', #{nm}, #{ordby}, 'Y', #{session.emplNo}, #{session.emplNo})
+	</insert>	
+</mapper>

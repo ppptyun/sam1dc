@@ -1,0 +1,146 @@
+@charset "utf-8";
+
+/* layout */
+.container{padding:80px 20px 20px 270px}
+.container:after{top:80px;bottom:20px;left:270px;right:20px;background:#fff;z-index:1}
+.boxWhite:after{height:20px}
+.pageFixed .inner{top:81px}
+
+/* common */
+.titDep2{font-size:16px}
+
+.tabType01{height:31px}
+.tabType01 li a, .tabType01 li span{font-size:16px;line-height:30px}
+
+.tblForm th{font-size:12px}
+.tblForm td{font-size:13px}
+.tblForm .tipArea{right:5px}
+.tblForm td.tdSel{padding-right:37px}
+.tblScroll .tblH th, .tblScroll .tblH td, .tblForm th, .tblForm td{padding:8px 5px 8px}
+
+.layerL .layCont{max-height:570px}
+
+.btnM{min-width:100px;font-size:12px}
+.btnS{min-width:55px;font-size:12px}
+
+td .calenWrap input{width:272px}
+.ui-datepicker-calendar td{padding:0}
+.calendarWrap{width:269px;font-size:20px}
+.ui-datepicker-calendar td a{width:25px;height:25px;line-height:25px;font-size:12px}
+
+.errorWrap .errorArea{margin-top:150px}
+.alertBox .alertMsg li{font-size:14px}
+.alertBox .alertMsg li:before{top:8px}
+.alertBox .alertBtns a{height:40px;font-size:16px}
+
+.layTit{font-size:16px;line-height:50px}
+.closeL{width:50px;height:50px}
+
+/* popup */
+.layerM .layCont{max-height:550px}
+
+/* project */
+.sumArea{height:102px;padding:15px 40px 10px 20px}
+.sumArea .proTitle{margin-top:0;font-size:19px}
+.sumArea .sumList{width:650px}
+.sumArea .sumList li{padding:0 15px;font-size:16px;line-height:30px}
+.sumArea .sumList li b{width:180px;font-size:14px}
+
+.sumArea.toggleOpen{height:145px}
+.toggleOpen .sumList{width:100%;margin-top:10px}
+.toggleOpen .sumList li{min-width:195px}
+.toggleOpen .sumList li b{width:auto}
+.toggleOpen .sumList li.info01{min-width:80px}
+
+.searchBox .item dt{font-size:16px}
+.txtInfo02{width:710px}
+.txtInfo02 li{margin:0;font-size:12px;line-height:20px}
+.timeType02{width:840px}
+
+.toggleOpen .sumList li b .tipArea{top:-2px;right:20px}
+div.gridbox .xhdr .tipArea .tipCont{padding:6px 12px}
+div.gridbox .xhdr .tipArea .tipCont .tblH{margin-top:0;min-width:450px;}
+div.gridbox .xhdr .tipArea .tipCont th{padding:1px 5px;font-size:12px}
+div.gridbox .xhdr .tipArea .tipCont td{padding:0 10px;font-size:11px !important}
+
+.tipArea.tipBtn .tipCont{left:-380px}
+.tipArea.tipBtn .tipCont:before{left:418px}
+.tipArea.tipBtn .tipCont .titDep2{margin-bottom:0}
+.tipArea.tipBtn .tipCont .tblH th, .tipArea.tipBtn .tipCont .tblH td{padding:7px 5px 5px;font-size:12px}
+.txtInfo{font-size:12px}
+.tipArea.tipBtn .tipCont .txtInfo{margin-top:5px}
+
+.alertBox .alertMsg li{font-size:12px}
+
+/* admin */
+.textSt01{height:162px}
+.empListScroll{height:520px}
+
+.tblScroll01{max-height:520px}
+.tblScroll03{height:301px}
+.tblScroll07{height:469px}
+
+.treeGroup{height:420px}
+.codeName dt, .codeName dd{font-size:16px}
+
+.tblH tbody.tdFilter td:last-child .tipFilter .tipCont{left:auto;right:0;margin:0 -40px 0 0}
+.tblH tbody.tdFilter td:last-child .tipFilter .tipCont:before{margin-left:79px}
+.adminArea+.adminArea:before{top:-22px;background-size:60px auto}
+.groupDep2 a{font-size:14px}
+
+.scrollH{overflow-x:auto;width:100%}
+.scrollH .tblFilter{width:1550px}
+.tblInfo{margin-top:2px;line-height:1.2}
+.tblInfo br{display:block}
+
+/* div.gridbox table.hdr td div.hdrcell .tipArea{margin-top:3px} */
+
+/* grid */
+.gridHp01{height:520px !important}
+.gridHp02{height:359px !important}
+.gridHp03{height:302px !important}
+.gridHp05{height:520px !important}
+.gridHp06{height:515px !important}
+.gridHp07{height:275px !important}
+.gridHp07 > div{height:274px !important}
+.gridHp07 > div .objbox{height:192px !important}
+.sumArea.toggleOpen + .titArea + .gridHp02{height:304px !important}
+.sumArea.toggleOpen + .titArea + .gridHp03{height:258px !important}
+.sumArea.toggleOpen + .titArea + .gridHp03 .objbox{height:175px !important}
+.sumArea.toggleOpen + .titArea + .gridHp07{height:220px !important}
+.sumArea.toggleOpen + .titArea + .gridHp07 .objbox{height:130px !important}
+
+div.gridbox_dhx_web.gridbox table.obj tr td{font-size:12px !important}
+div.gridbox_dhx_web.gridbox table.hdr td{font-size:12px !important}
+/* div.gridbox div .xhdr table{padding:0 !important} */
+/* div.gridbox div+div .xhdr{overflow-y:scroll !important} */
+/* div.gridbox div+div .xhdr{
+    scrollbar-face-color: #f7f7f7;
+    scrollbar-arrow-color: #f7f7f7;
+	-ms-scrollbar-arrow-color::#f7f7f7;-ms-scrollbar-track-color:#f7f7f7
+} */
+/* div.gridbox div+div .xhdr table{margin:0 0 0 -1px !important;padding:0 !important;} */
+/* div.gridbox div+div .xhdr::-webkit-scrollbar{width:20px;background-color:#f7f7f7} */
+
+/* IE */
+.ieBody .gridHp01{height:512px !important}
+.ieBody .gridHp02{height:546px !important}
+.ieBody .gridHp03{height:266px !important}
+.ieBody .gridHp05{height:512px !important}
+.ieBody .gridHp04{height:440px !important}
+.ieBody .gridHp06{height:509px !important}
+.ieBody .gridHp07{height:260px !important}
+.ieBody .gridHp07 .objbox{height:178px !important}
+
+.ieBody .sumArea.toggleOpen + .titArea + .gridHp03{height:223px !important}
+.ieBody .sumArea.toggleOpen + .titArea + .gridHp03 .objbox{height:141px !important}
+.ieBody .sumArea.toggleOpen + .titArea + .gridHp07{height:209px !important}
+.ieBody .sumArea.toggleOpen + .titArea + .gridHp07 .objbox{height:127px !important}
+
+/* @media (max-width:1300px){
+	nav{position:absolute}
+} */
+
+.expandLayer{
+	height: calc(100% - 150px);
+}

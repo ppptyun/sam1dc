@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+
+<ApplicationContext>
+	<!-- 	Admin Management에 등록된 Program Code-->
+	<ProgramCode>DealCredential</ProgramCode>
+	
+	<!-- 	DebugMode일 경우, -->
+	<DebugMode>Y</DebugMode>
+	<DebugUserId>jongminlee</DebugUserId>
+	
+	<ConnectToOper>N</ConnectToOper>
+	<UseJndi>N</UseJndi>
+	
+	<ContentPath>contents/</ContentPath>
+	
+	<JNDIOper>
+		<InitialContext>java:/comp/env</InitialContext>
+		<JNDIName>SamilJndi</JNDIName>
+	</JNDIOper>
+	<JNDIDev>
+		<InitialContext>java:/comp/env</InitialContext>
+		<JNDIName>SamilJndiDev</JNDIName>
+	</JNDIDev>
+	
+	<DataSourceOper>
+		<HostSID>Oracle IP</HostSID>
+		<UserName>User</UserName>
+		<Password>Password</Password>
+	</DataSourceOper>
+	<DataSourceDev>
+		<HostSID>Oracle IP</HostSID>
+		<UserName>User</UserName>
+		<Password>Password</Password>
+	</DataSourceDev>
+	
+	<FileUploadInfo>
+		<Path>D:\\TempFiles\\DealClientCredential\\</Path>
+		<MaxSize>10485760</MaxSize> <!-- Byte기준 defalt : 10MB -->
+		<AllowExt>xls</AllowExt>
+	</FileUploadInfo>
+	<FileUploadInfoDev>
+		<Path>C:\\TempFiles\\DealClientCredential\\</Path>
+		<MaxSize>10485760</MaxSize> <!-- Byte기준 defalt : 10MB -->
+		<AllowExt>xls</AllowExt>
+	</FileUploadInfoDev>
+	
+</ApplicationContext>

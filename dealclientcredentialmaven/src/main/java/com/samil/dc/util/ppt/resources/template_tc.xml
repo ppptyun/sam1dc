@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<root>
+	<data id="firstRowCell"><![CDATA[
+<a:tc xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+	<a:txBody>
+		<a:bodyPr/>
+		<a:lstStyle/>
+		<a:p>
+			<a:pPr algn="ctr" latinLnBrk="true"/>
+			<a:r>
+				<a:rPr lang="ko-KR" altLang="en-US" sz="1000" dirty="false" smtClean="false">
+					<a:solidFill>
+						<a:schemeClr val="bg2"/>
+					</a:solidFill>
+					<a:latin typeface="+mj-lt"/>
+					<a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+					<a:cs typeface="Arial" pitchFamily="34" charset="0"/>
+				</a:rPr>
+				<a:t>${text}</a:t>
+			</a:r>
+			<a:endParaRPr lang="ko-KR" altLang="en-US" sz="1000" dirty="false">
+				<a:solidFill>
+					<a:schemeClr val="bg2"/>
+				</a:solidFill>
+				<a:latin typeface="+mj-lt"/>
+				<a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+				<a:cs typeface="Arial" pitchFamily="34" charset="0"/>
+			</a:endParaRPr>
+		</a:p>
+	</a:txBody>
+	<a:tcPr marL="36000" marR="36000" marT="36000" marB="36000" anchor="ctr">
+		<a:lnL w="12700" cap="flat" cmpd="sng" algn="ctr">
+			<a:solidFill>
+				<a:schemeClr val="accent5">
+					<a:lumMod val="40000"/>
+					<a:lumOff val="60000"/>
+				</a:schemeClr>
+			</a:solidFill>
+			<a:prstDash val="solid"/>
+			<a:round/>
+			<a:headEnd type="none" w="med" len="med"/>
+			<a:tailEnd type="none" w="med" len="med"/>
+		</a:lnL>
+		<a:lnR w="12700" cap="flat" cmpd="sng" algn="ctr">
+			<a:solidFill>
+				<a:schemeClr val="accent5">
+					<a:lumMod val="40000"/>
+					<a:lumOff val="60000"/>
+				</a:schemeClr>
+			</a:solidFill>
+			<a:prstDash val="solid"/>
+			<a:round/>
+			<a:headEnd type="none" w="med" len="med"/>
+			<a:tailEnd type="none" w="med" len="med"/>
+		</a:lnR>
+		<a:lnT w="12700" cap="flat" cmpd="sng" algn="ctr">
+			<a:solidFill>
+				<a:schemeClr val="accent5">
+					<a:lumMod val="40000"/>
+					<a:lumOff val="60000"/>
+				</a:schemeClr>
+			</a:solidFill>
+			<a:prstDash val="solid"/>
+			<a:round/>
+			<a:headEnd type="none" w="med" len="med"/>
+			<a:tailEnd type="none" w="med" len="med"/>
+		</a:lnT>
+		<a:lnB w="12700" cap="flat" cmpd="sng" algn="ctr">
+			<a:noFill/>
+			<a:prstDash val="solid"/>
+			<a:round/>
+			<a:headEnd type="none" w="med" len="med"/>
+			<a:tailEnd type="none" w="med" len="med"/>
+		</a:lnB>
+		<a:solidFill>
+			<a:schemeClr val="tx2"/>
+		</a:solidFill>
+	</a:tcPr>
+</a:tc>
+	]]></data>
+	<data id="midRowCell"><![CDATA[
+<a:tc xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+	<a:txBody>
+		<a:bodyPr/>
+		<a:lstStyle/>
+		<a:p>
+			<a:pPr algn="ctr"/>
+			<a:r>
+				<a:rPr lang="en-US" sz="1000" b="false" strike="noStrike" dirty="false" smtClean="false">
+					<a:solidFill>
+						<a:schemeClr val="tx1"/>
+					</a:solidFill>
+					<a:latin typeface="+mj-lt"/>
+					<a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+				</a:rPr>
+				<a:t>${text}</a:t>
+			</a:r>
+			<a:endParaRPr lang="en-US" sz="1000" b="false" strike="noStrike" dirty="false">
+				<a:solidFill>
+					<a:schemeClr val="tx1"/>
+				</a:solidFill>
+				<a:latin typeface="+mj-lt"/>
+				<a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+			</a:endParaRPr>
+		</a:p>
+	</a:txBody>
+	<a:tcPr marL="3600" marR="3600" marT="3600" marB="3600" anchor="ctr">
+		<a:lnL w="12700" cap="flat" cmpd="sng" algn="ctr">
+			<a:solidFill>
+				<a:schemeClr val="tx2">
+					<a:lumMod val="20000"/>
+					<a:lumOff val="80000"/>
+				</a:schemeClr>
+			</a:solidFill>
+			<a:prstDash val="sysDot"/>
+			<a:round/>
+			<a:headEnd type="none" w="med" len="med"/>
+			<a:tailEnd type="none" w="med" len="med"/>
+		</a:lnL>
+		<a:lnR w="12700" cap="flat" cmpd="sng" algn="ctr">
+			<a:solidFill>
+				<a:schemeClr val="tx2">
+					<a:lumMod val="20000"/>
+					<a:lumOff val="80000"/>
+				</a:schemeClr>
+			</a:solidFill>
+			<a:prstDash val="sysDot"/>
+			<a:round/>
+			<a:headEnd type="none" w="med" len="med"/>
+			<a:tailEnd type="none" w="med" len="med"/>
+		</a:lnR>
+		<a:lnT w="12700" cap="flat" cmpd="sng" algn="ctr">
+			<a:noFill/>
+			<a:prstDash val="solid"/>
+			<a:round/>
+			<a:headEnd type="none" w="med" len="med"/>
+			<a:tailEnd type="none" w="med" len="med"/>
+		</a:lnT>
+		<a:lnB w="12700" cap="flat" cmpd="sng" algn="ctr">
+			<a:solidFill>
+				<a:schemeClr val="tx2">
+					<a:lumMod val="20000"/>
+					<a:lumOff val="80000"/>
+				</a:schemeClr>
+			</a:solidFill>
+			<a:prstDash val="sysDot"/>
+			<a:round/>
+			<a:headEnd type="none" w="med" len="med"/>
+			<a:tailEnd type="none" w="med" len="med"/>
+		</a:lnB>
+		<a:lnTlToBr w="12700" cmpd="sng">
+			<a:noFill/>
+			<a:prstDash val="solid"/>
+		</a:lnTlToBr>
+		<a:lnBlToTr w="12700" cmpd="sng">
+			<a:noFill/>
+			<a:prstDash val="solid"/>
+		</a:lnBlToTr>
+		<a:noFill/>
+	</a:tcPr>
+</a:tc>	
+	]]></data>
+	<data id="lastRowCell"><![CDATA[
+<a:tc xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+	<a:txBody>
+		<a:bodyPr/>
+		<a:lstStyle/>
+		<a:p>
+			<a:pPr marL="63500" algn="ctr" defTabSz="1018824" rtl="false" eaLnBrk="true" fontAlgn="ctr" latinLnBrk="false" hangingPunct="true">
+				<a:spcAft>
+					<a:spcPts val="0"/>
+				</a:spcAft>
+				<a:buFont typeface="Arial" pitchFamily="34" charset="0"/>
+				<a:buNone/>
+			</a:pPr>
+			<a:r>
+				<a:rPr lang="en-US" altLang="ko-KR" sz="1000" b="false" strike="noStrike" kern="100" dirty="false" smtClean="false">
+					<a:solidFill>
+						<a:schemeClr val="tx1"/>
+					</a:solidFill>
+					<a:latin typeface="+mj-lt"/>
+					<a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+					<a:cs typeface="Arial" pitchFamily="34" charset="0"/>
+				</a:rPr>
+				<a:t>${text}</a:t>
+			</a:r>
+			<a:endParaRPr lang="ko-KR" altLang="en-US" sz="1000" b="false" strike="noStrike" kern="100" dirty="false" smtClean="false">
+				<a:solidFill>
+					<a:schemeClr val="tx1"/>
+				</a:solidFill>
+				<a:latin typeface="+mj-lt"/>
+				<a:ea typeface="맑은 고딕" panose="020B0503020000020004" pitchFamily="50" charset="-127"/>
+				<a:cs typeface="Arial" pitchFamily="34" charset="0"/>
+			</a:endParaRPr>
+		</a:p>
+	</a:txBody>
+	<a:tcPr marL="3600" marR="3600" marT="3600" marB="3600" anchor="ctr">
+		<a:lnL w="12700" cap="flat" cmpd="sng" algn="ctr">
+			<a:noFill/>
+			<a:prstDash val="solid"/>
+			<a:round/>
+			<a:headEnd type="none" w="med" len="med"/>
+			<a:tailEnd type="none" w="med" len="med"/>
+		</a:lnL>
+		<a:lnR w="12700" cap="flat" cmpd="sng" algn="ctr">
+			<a:solidFill>
+				<a:schemeClr val="tx2">
+					<a:lumMod val="20000"/>
+					<a:lumOff val="80000"/>
+				</a:schemeClr>
+			</a:solidFill>
+			<a:prstDash val="sysDot"/>
+			<a:round/>
+			<a:headEnd type="none" w="med" len="med"/>
+			<a:tailEnd type="none" w="med" len="med"/>
+		</a:lnR>
+		<a:lnT w="12700" cap="flat" cmpd="sng" algn="ctr">
+			<a:solidFill>
+				<a:schemeClr val="tx2">
+					<a:lumMod val="20000"/>
+					<a:lumOff val="80000"/>
+				</a:schemeClr>
+			</a:solidFill>
+			<a:prstDash val="sysDot"/>
+			<a:round/>
+			<a:headEnd type="none" w="med" len="med"/>
+			<a:tailEnd type="none" w="med" len="med"/>
+		</a:lnT>
+		<a:lnB w="12700" cap="flat" cmpd="sng" algn="ctr">
+			<a:solidFill>
+				<a:schemeClr val="tx2"/>
+			</a:solidFill>
+			<a:prstDash val="solid"/>
+			<a:round/>
+			<a:headEnd type="none" w="med" len="med"/>
+			<a:tailEnd type="none" w="med" len="med"/>
+		</a:lnB>
+		<a:lnTlToBr w="12700" cmpd="sng">
+			<a:noFill/>
+			<a:prstDash val="solid"/>
+		</a:lnTlToBr>
+		<a:lnBlToTr w="12700" cmpd="sng">
+			<a:noFill/>
+			<a:prstDash val="solid"/>
+		</a:lnBlToTr>
+		<a:noFill/>
+	</a:tcPr>
+</a:tc>	
+	]]></data>
+	<data id="noStyleCell"><![CDATA[
+<a:tc xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+<a:txBody>
+	<a:bodyPr />
+	<a:lstStyle />
+	<a:p>
+		<a:r>
+			<a:rPr lang="ko-KR" dirty="0" smtClean="0" />
+			<a:t>${text}</a:t>
+		</a:r>
+		<a:endParaRPr lang="ko-KR" dirty="0" />
+	</a:p>
+</a:txBody>
+</a:tc>
+	]]></data>
+</root>

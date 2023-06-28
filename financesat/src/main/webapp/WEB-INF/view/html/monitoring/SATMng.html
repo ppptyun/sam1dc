@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>표준감사시간관리</title>
+<link href="../../../resources/lib/dhtmlx/skins/web/dhtmlx.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc_mediaS.css" rel="stylesheet" type="text/css" media="(max-width:1600px)">
+</head>
+
+<!--[if ie]><body class="lt-ie"><![endif]-->
+<body>
+<div id="wrapper" class="wrapper">
+    <header>
+        <p class="logo">Pwc</p>
+        <p class="pageTitle"><a href="#">표준감사시간관리</a></p>
+			<ul class="topUtil">
+				<li class="utilName"><a href="#">HG</a></li>
+				<li class="utilHelp"><a href="#">도움말</a></li>
+			</ul>
+		<nav>
+			<button type="button" class="navBtn">Menu</button>
+			<div class="navArea">
+				<img src="../../../resources/images/dummy/@nav.gif" alt="">
+			</div>
+		</nav>
+    </header>
+    <hr>
+	
+    <section id="container" class="container">
+        
+        <div id="contents" class="contents">
+           	<!-- 컨텐츠 시작 -->
+            <h1 class="hidden">표준감사시간 관리</h1>
+			
+			<div class="boxWhite">
+				
+				<!-- 2019-03-14 수정 -->
+				<div class="titArea">
+					<p class="txtDate">기준 일자 : 2019-03-18</p><!-- 2019-03-18 수정 -->
+					<div class="btnArea side">
+						<button type="button" class="btnPwc btnM">Excel Export</button>
+					</div>
+				</div>
+				<!-- //2019-03-14 수정 -->
+				
+				<div id="std-mng-grid" class="gridbox gridHp05 gridbox gridbox_dhx_web isModern" style="width: 1548.2px; height: 641px; cursor: default;"><div class="xhdr" style="width: 100%; height: 83px; overflow: hidden; position: relative;"><div class="dhxgrid_sort_desc" style="display: none; position: absolute;"></div><table cellpadding="0" cellspacing="0" class="hdr" style="width: 1548px; table-layout: fixed; margin-right: 20px; padding-right: 20px;"><tbody><tr style="height: auto;"><th style="height: 0px; width: 198px;"></th><th style="height: 0px; width: 110px;"></th><th style="height: 0px; width: 110px;"></th><th style="height: 0px; width: 110px;"></th><th style="height: 0px; width: 125px;"></th><th style="height: 0px; width: 145px;"></th><th style="height: 0px; width: 125px;"></th><th style="height: 0px; width: 125px;"></th><th style="height: 0px; width: 115px;"></th><th style="height: 0px; width: 115px;"></th><th style="height: 0px; width: 135px;"></th><th style="height: 0px; width: 135px;"></th></tr><tr><td style="cursor: default;"><div class="hdrcell">Project Name</div></td><td style="cursor: default;"><div class="hdrcell">Project Code</div></td><td style="cursor: default;"><div class="hdrcell">EL</div></td><td style="cursor: default;"><div class="hdrcell">PM</div></td><td style="cursor: default;"><div class="hdrcell" style="padding-right: 20px; font-size: 12px;">기준숙련도 기준 <br>표준감사시간<div class="tipArea"><button type="button" class="btnTip">도움말</button><div class="tipCont">ET에서 판단한 숙련도 반영전 표준감사시간 * 기준 숙련도</div></div></div></td><td style="cursor: default;"><div class="hdrcell" style="padding-right: 40px; font-size: 12px;">팀의 숙련도<br>(Actual 숙련도 기준)<div class="tipArea"><button type="button" class="btnTip">도움말</button><div class="tipCont">∑ (인원별 (Actual Time * 숙련도) ) / ∑ (인원별 Actual Time )</div></div></div></td><td style="cursor: default;"><div class="hdrcell" style="padding-right: 10px; font-size: 12px;">표준감사시간 <div class="tipArea"><button type="button" class="btnTip">도움말</button><div class="tipCont">기준숙련도 기준 표준감사시간 / 팀의 숙련도</div></div></div></td><td style="cursor: default;"><div class="hdrcell" style="padding-right: 10px; font-size: 12px;">Actual Time<div class="tipArea"><button type="button" class="btnTip">도움말</button><div class="tipCont"> ∑ (인원별 Actual Time)</div></div></div></td><td style="cursor: default;"><div class="hdrcell" style="padding-right: 0px; font-size: 12px;">달성율 (%)<div class="tipArea"><button type="button" class="btnTip">도움말</button><div class="tipCont">Actual Time / 표준감사시간</div></div></div></td><td style="cursor: default;"><div class="hdrcell" style="padding-right: 0px; font-size: 12px;">부족시간<div class="tipArea"><button type="button" class="btnTip">도움말</button><div class="tipCont">표준감사시간 - Actual Time</div></div></div></td><td style="cursor: default;"><div class="hdrcell" style="padding-right: 30px; font-size: 12px;">잔여 Retain Hour <br>(팀의 숙련도 기준)<div class="tipArea"><button type="button" class="btnTip">도움말</button><div class="tipCont">∑ (인원별 잔여 Retain hour * 숙련도) / 팀의 숙련도</div></div></div></td><td style="cursor: default;"><div class="hdrcell" style="padding-right: 30px; font-size: 12px;">추가 Retain <br>반영 필요시간<br>(팀의 숙련도 기준)<div class="tipArea"><button type="button" class="btnTip">도움말</button><div class="tipCont">부족시간 - 잔여 Retain hour</div></div></div></td></tr><tr><td class="lineL" style="cursor: default;"><div class="hdrcell filter"><input type="text" style="width: 100%;"></div></td><td class="lineL" style="cursor: e-resize;"><div class="hdrcell filter"><input type="text" style="width: 100%;"></div></td><td class="lineL" style="cursor: e-resize;"><div class="hdrcell filter"><input type="text" style="width: 100%;"></div></td><td class="lineL" style="cursor: default;"><div class="hdrcell filter"><input type="text" style="width: 100%;"></div></td><td class="lineL" style="cursor: default;"><div class="hdrcell filter"><input type="text" style="width: 100%;"></div></td><td class="lineL" style="cursor: default;"><div class="hdrcell filter"><input type="text" style="width: 100%;"></div></td><td class="lineL"><div class="hdrcell filter"><input type="text" style="width: 100%;"></div></td><td class="lineL" style="cursor: default;"><div class="hdrcell filter"><input type="text" style="width: 100%;"></div></td><td class="lineL"><div class="hdrcell filter"><input type="text" style="width: 100%;"></div></td><td class="lineL"><div class="hdrcell filter"><input type="text" style="width: 100%;"></div></td><td class="lineL"><div class="hdrcell filter"><input type="text" style="width: 100%;"></div></td><td class="lineL" style="cursor: e-resize;"><div class="hdrcell filter"><input type="text" style="width: 100%;"></div></td></tr></tbody></table></div><div class="objbox" style="width: 100%; overflow: auto; height: 558px;"><table cellpadding="0" cellspacing="0" class="obj row20px" style="width: 1548px; table-layout: fixed;"><tbody><tr style="height: auto;"><th style="height: 0px; width: 198px;"></th><th style="height: 0px; width: 110px;"></th><th style="height: 0px; width: 110px;"></th><th style="height: 0px; width: 110px;"></th><th style="height: 0px; width: 125px;"></th><th style="height: 0px; width: 145px;"></th><th style="height: 0px; width: 125px;"></th><th style="height: 0px; width: 125px;"></th><th style="height: 0px; width: 115px;"></th><th style="height: 0px; width: 115px;"></th><th style="height: 0px; width: 135px;"></th><th style="height: 0px; width: 135px;"></th></tr><tr class=" ev_dhx_web"><td align="left" valign="middle" title="(주)카프로/2018IFRS감사">(주)카프로/2018IFRS감사</td><td align="center" valign="middle">00629-01-010</td><td align="center" valign="middle">최성우(100670)</td><td align="center" valign="middle">유영재(150494)</td><td align="right" valign="middle" title="1,400.00">1,400.00</td><td align="right" valign="middle" title="1.10 %">1.10 %</td><td align="right" valign="middle" title="1,272.73">1,272.73</td><td align="right" valign="middle" title="664.50">664.50</td><td align="right" valign="middle">0.52 %</td><td align="right" valign="middle">65.45</td><td align="right" valign="middle">72.00</td><td align="right" valign="middle" title="-6.55">-6.55</td></tr><tr class=" odd_dhx_web"><td align="left" valign="middle" title="(주)미쓰이스미토모은행서울/2018IFRS감사">(주)미쓰이스미토모은행서울/2018IFRS감사</td><td align="center" valign="middle" title="01101-01-010">01101-01-010</td><td align="center" valign="middle">홍범(150211)</td><td align="center" valign="middle">이충익(250669)</td><td align="right" valign="middle" title="0">0</td><td align="right" valign="middle" title="1.10 %">1.10 %</td><td align="right" valign="middle">0</td><td align="right" valign="middle">66.00</td><td align="right" valign="middle">0</td><td align="right" valign="middle">109.09</td><td align="right" valign="middle">120.00</td><td align="right" valign="middle">-10.91</td></tr><tr class=" ev_dhx_web"><td align="left" valign="middle" title="(주)국민은행/2018IFRS감사">(주)국민은행/2018IFRS감사</td><td align="center" valign="middle">01116-01-047</td><td align="center" valign="middle">박정선(095151)</td><td align="center" valign="middle">서희원(120369)</td><td align="right" valign="middle" title="33,200.00">33,200.00</td><td align="right" valign="middle">1.10 %</td><td align="right" valign="middle">30,181.82</td><td align="right" valign="middle">20,562.50</td><td align="right" valign="middle">0.68 %</td><td align="right" valign="middle">283.64</td><td align="right" valign="middle">312.00</td><td align="right" valign="middle" title="-28.36">-28.36</td></tr><tr class=" odd_dhx_web"><td align="left" valign="middle" title="(주)경남은행/2018IFRS감사">(주)경남은행/2018IFRS감사</td><td align="center" valign="middle">01174-01-002</td><td align="center" valign="middle" title="김종산(120521)">김종산(120521)</td><td align="center" valign="middle" title="박종철(180646)">박종철(180646)</td><td align="right" valign="middle" title="5,240.00">5,240.00</td><td align="right" valign="middle" title="1.10 %">1.10 %</td><td align="right" valign="middle">4,763.64</td><td align="right" valign="middle">2,002.25</td><td align="right" valign="middle">0.42 %</td><td align="right" valign="middle">0</td><td align="right" valign="middle">0</td><td align="right" valign="middle">0</td></tr></tbody></table></div></div>
+				
+				
+			
+			</div><!-- //boxWhite -->
+            <!-- //컨텐츠 끝 -->        
+        </div>
+    </section>
+</div>
+<div id="popInner">
+	
+</div><!-- 레이어팝업 들어가는 부분 -->
+<div class="dimmed"></div>
+
+
+
+<script type="text/javascript" src="../../../resources/lib/jquery/jquery-3.3.1.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery-ui.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery.jscrollpane.min.js"></script>
+<script type="text/javascript" src="../../../resources/js/selectbox_pwc.js"></script>
+<script type="text/javascript" src="../../../resources/js/pwc_ui.js"></script>
+<script type="text/javascript" src="../../../resources/lib/css-element-queries/ElementQueries.js"></script>
+<script type="text/javascript" src="../../../resources/lib/css-element-queries/ResizeSensor.js"></script>
+<script type="text/javascript" src="../../../resources/lib/dhtmlx/codebase/dhtmlx.js"></script>
+<script type="text/javascript" src="../../../resources/js/dhtmlxCustom.js"></script>
+
+</body>
+</html>

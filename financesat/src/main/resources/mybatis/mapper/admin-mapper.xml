@@ -1,0 +1,608 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.samil.stdadt.mapper.AdminMapper">
+	
+	<!-- 표준감사시간 > 기초항목 년도 목록 조회  -->
+	<select id="selectYearList" parameterType="hashmap" resultType="hashmap">
+		SELECT DISTINCT APLY_YEAR FROM WEB_SAT_PRFL_GRP_YEAR ORDER BY APLY_YEAR
+	</select>
+	
+	<!-- 표준감사시간 > 기초항목 그룹 목록 조회 -->
+	<select id="selectGrpList" parameterType="hashmap" resultType="hashmap">
+		SELECT CD, NM, ORDBY FROM APPMNG_CD WHERE APP_CD = #{appCd} AND GRP_CD = 'SATGRP' AND USE_YN = 'Y'
+	</select>
+	
+	<!-- 표준감사시간 > 기초항목 적용 요율 조회 -->
+	<select id="selectDataList" parameterType="hashmap" resultType="hashmap">
+		WITH T_GRP_YEAR AS (  
+			SELECT CD, NM, ORDBY, APLY_YEAR
+		      FROM (SELECT DISTINCT APLY_YEAR FROM WEB_SAT_PRFL_GRP_YEAR) A
+		          ,(SELECT CD, NM, ORDBY 
+		              FROM APPMNG_CD 
+		             WHERE APP_CD = #{appCd} 
+		               AND GRP_CD = 'SATGRP' 
+		               AND USE_YN = 'Y') B
+		     ORDER BY APLY_YEAR, ORDBY      
+		)
+		SELECT D.APLY_YEAR, D.CD, D.NM, (C.APLY_RATE * 100) APLY_RATE
+		  FROM WEB_SAT_PRFL_GRP_YEAR C
+		     , T_GRP_YEAR D
+		 WHERE C.APLY_YEAR(+) = D.APLY_YEAR
+		   AND C.SATGRP_CD(+) = D.CD
+		 ORDER BY D.APLY_YEAR, D.ORDBY
+	</select>
+	
+	<!-- 표준감사시간 > 프로파일 버전 조회  -->
+	<select id="selectPrflList" parameterType="hashmap" resultType="hashmap">
+		SELECT PRFL_ID
+		     , APLY_FRDT
+		     , APLY_TODT
+		     , DSCRT 
+		  FROM WEB_SAT_PRFL
+		<if test="prflId != null and prflId !=''">	  
+		 WHERE PRFL_ID = #{prflId}		 
+		</if>	
+		 ORDER BY PRFL_ID DESC
+	</select>
+
+	<!-- 표준감사시간 > 숙련도(타이틀) 조회  -->
+	<select id="selectProfTitList" parameterType="hashmap" resultType="hashmap">
+		SELECT A.CERT_DV
+		     , COUNT(A.CERT_DV) CERT_CNT
+		     ,(SELECT NM FROM APPMNG_CD WHERE APP_CD = #{appCd} AND GRP_CD = 'LICENSE' AND CD = A.CERT_DV) CERT_NM  
+		  FROM WEB_SAT_PRFL_WKMNSP A
+		 GROUP BY A.CERT_DV 
+	</select>
+
+	<!-- 표준감사시간 > 숙련도(데이터) 조회  -->
+	<select id="selectProfDataList" parameterType="hashmap" resultType="hashmap">
+		SELECT PRFL_ID, CERT_DV, CERT_YCNT, WKMNSP
+		  FROM WEB_SAT_PRFL_WKMNSP 
+		 ORDER BY CERT_DV, CERT_YCNT 
+	</select>
+
+	<!-- 표준감사시간 > 기초항목 숙련도 계수 조회 -->
+	<select id="selectFctrDataList" parameterType="hashmap" resultType="hashmap">
+		WITH T_FCTR_GRP AS ( 
+			SELECT A.CD
+			     , A.NM
+			     , A.ORDBY
+			     , B.CD GRP_CD
+			     , B.NM GRP_NM
+			     , B.ORDBY GRP_ORDBY
+		      FROM (SELECT CD, NM, ORDBY 
+                      FROM APPMNG_CD 
+                     WHERE APP_CD = #{appCd}
+                       AND GRP_CD = 'FCTR'
+                       AND USE_YN = 'Y') A
+		          ,(SELECT CD, NM, ORDBY 
+		              FROM APPMNG_CD 
+		             WHERE APP_CD = #{appCd} 
+		               AND GRP_CD = 'SATGRP' 
+		               AND USE_YN = 'Y') B
+		     ORDER BY B.ORDBY, A.ORDBY      
+		)
+		SELECT D.CD FACTOR_CD
+		     , SUBSTR(D.NM, 1, LENGTH(D.NM)-2) FACTOR_NM
+		     , D.ORDBY
+		     , D.GRP_CD 
+		     , D.GRP_NM
+		     , D.GRP_ORDBY
+		     , C.VAL1 VAL1
+             , C.VAL2 VAL2
+             , C.PRFL_ID
+		  FROM WEB_SAT_PRFL_GRP_FCTR C
+		     , T_FCTR_GRP D 
+		 WHERE C.SATGRP_CD(+) = D.GRP_CD
+		   AND C.FACTOR_CD(+) = D.CD  
+		 ORDER BY D.GRP_ORDBY, D.ORDBY   
+	</select>
+
+	<!-- 표준감사시간 > 기초항목 적용 요율 저장/수정 -->
+	<insert id="savePrflGrpYear" parameterType="HashMap">
+  		MERGE INTO WEB_SAT_PRFL_GRP_YEAR A
+  		USING DUAL
+  		ON (SATGRP_CD = #{grpCd} AND APLY_YEAR = #{aplyYear})
+  		WHEN MATCHED THEN
+  			UPDATE SET 
+  				  APLY_RATE = #{aplyRate}
+				, MODDT = SYSDATE
+				, MODBY = #{emplno}
+  		WHEN NOT MATCHED THEN
+  			INSERT (
+  				  SATGRP_CD
+				, APLY_YEAR
+				, APLY_RATE
+				, CREDT
+				, CREBY
+				, MODDT
+				, MODBY				
+  			)
+  			VALUES (
+  				  #{grpCd}
+				, #{aplyYear}
+				, #{aplyRate}
+				, SYSDATE
+				, #{emplno}
+				, SYSDATE
+				, #{emplno}
+  			)
+	</insert>  
+	
+	<!-- 표준감사시간 > 기초항목 적용 요율 삭제 -->
+	<delete id="deletePrflGrpYear" parameterType="HashMap">
+		DELETE WEB_SAT_PRFL_GRP_YEAR 
+		 WHERE SATGRP_CD = #{grpCd} 
+		   AND APLY_YEAR = #{aplyYear}	
+	</delete>
+	
+	<!-- 표준감사시간 > 기초항목 숙련도 저장 -->
+	<insert id="insertFctrWkmnsp" parameterType="HashMap">
+		INSERT (
+			 PRFL_ID
+			,CERT_DV
+			,CERT_YCNT
+			,WKMNSP
+			,CREDT
+			,CREBY
+			,MODDT
+			,MODBY
+		)
+		VALUES (
+			 #{prflId}
+			,#{certDv}
+			,#{certYcnt}
+			,#{wkmnsp}
+			,SYSDATE
+			,#{emplno}
+			,SYSDATE
+			,#{emplno}
+		)
+	</insert>
+
+	<!-- 표준감사시간 > 기초항목 숙련도 수정 -->
+	<update id="updateFctrWkmnsp" parameterType="HashMap">
+		UPDATE WEB_SAT_PRFL_WKMNSP
+		   SET CERT_YCNT = #{certYcnt}
+			  ,WKMNSP    = #{wkmnsp}
+			  ,MODDT     = SYSDATE
+			  ,MODBY     = #{emplno}
+         WHERE PRFL_ID   = #{prflId}
+		   AND CERT_DV   = #{certDv}
+		   AND CERT_YCNT = #{oCertYcnt} 
+	</update>
+	
+	<!-- 표준감사시간 > 기초항목 그룹-계수 프로파일 수정 -->
+	<update id="updatePrflGrpFctr" parameterType="HashMap">
+		UPDATE WEB_SAT_PRFL_GRP_FCTR
+		   SET VAL1		= #{val1}
+  			 , VAL2 	= #{val2} 
+			 , MODDT    = SYSDATE
+			 , MODBY    = #{emplno}  			 			 
+         WHERE PRFL_ID  = #{prflId}
+		   AND SATGRP_CD= #{grpCd}
+		   AND FACTOR_CD= #{factorCd} 
+	</update>
+	
+	<select id="getProfileByBonb" parameterType="map" resultType="com.samil.stdadt.vo.DivisionProfileVO$ProfAuth">
+	SELECT NVL(CD, BONBCD) CD
+	     , NM
+	     , TEAM_LIST
+	     , NVL(RETAIN_YN, 'N') RETAIN_YN
+	     , NVL(RETAIN_ADM_YN, 'Y') RETAIN_ADM_YN
+	     , NVL(SAT_YN, 'N') SAT_YN
+	     , NVL(SAT_ADM_YN, 'Y') SAT_ADM_YN
+	     , NVL(BDGT_YN, 'N') BDGT_YN
+	     , NVL(BDGT_ADM_YN, 'Y') BDGT_ADM_YN
+	     , ORDBY 
+	  FROM
+	       (SELECT A.BONBCD 
+	            , A.LINEDV 
+	            , A.NM 
+	            , A.TEAM_LIST 
+	            , A.ORDBY 
+	            , B.BONBCD CD 
+	            , B.RETAIN_YN 
+	            , B.RETAIN_ADM_YN 
+	            , B.SAT_YN 
+	            , B.SAT_ADM_YN 
+	            , B.BDGT_YN 
+	            , B.BDGT_ADM_YN 
+	         FROM 
+	              (SELECT BONBCD 
+	                   , LINEDV 
+	                   , SF_TEAM_NAME(BONBCD) NM 
+	                   , LISTAGG(TEAMCD, ',') WITHIN GROUP(ORDER BY PRNT02) TEAM_LIST 
+	                   , MIN(PRNT02) ORDBY 
+	                FROM CMTEAMCD A 
+	               WHERE EXISTS 
+	                     (SELECT 1 
+	                       FROM NMSP.HREMP 
+	                      WHERE TEAMCD = A.TEAMCD 
+	                            AND OFFIST='001' 
+	                     ) 
+	                 GROUP BY BONBCD 
+	                   , LINEDV 
+	              ) A 
+	            , 
+	              (SELECT BONBCD 
+	                   , RETAIN_YN 
+	                   , RETAIN_ADM_YN 
+	                   , SAT_YN 
+	                   , SAT_ADM_YN 
+	                   , BDGT_YN 
+	                   , BDGT_ADM_YN 
+	                FROM 
+	                     (SELECT P_CD BONBCD 
+	                          , REPLACE(CD, SUBSTR(CD, -4), '') GRP 
+	                          , VAL1 
+	                          , VAL2 
+	                       FROM APPMNG_CD 
+	                      WHERE APP_CD = #{appCd} 
+	                            AND GRP_CD = 'POLICY_BY_BONB' 
+	                            AND USE_YN = 'Y' 
+	                            AND P_CD  != 'root' 
+	                   ORDER BY P_CD 
+	                          , ORDBY 
+	                     ) A PIVOT(MAX(VAL1) YN, MAX(VAL2) ADM_YN FOR GRP IN('RETAIN_YN' RETAIN, 'SAT_EDIT_YN' SAT, 'BDGT_EDIT_YN' BDGT)) 
+	              ) B 
+	        WHERE A.BONBCD = B.BONBCD(+) 
+	       ) 
+	 WHERE (LINEDV = 10 OR CD IS NOT NULL) /* assurance이거나 프로파일에 등록되어 있음. */ 
+	 <if test="session.roleCd != 'sysadmin' and session.roleCd != 'admin' ">
+	 	AND BONBCD IN (<include refid="satSql.getBonbList" />)
+	 </if>
+	ORDER BY ORDBY
+	</select>
+	
+	<update id="saveDivisionProfile" parameterType="map">
+		MERGE INTO NMSP.APPMNG_CD A
+		USING (
+			<foreach collection="divisionProfile" item="item" separator=" UNION ALL ">
+				SELECT #{item.grpCd} GRP_CD
+					 , #{item.cd} CD
+					 , #{item.pCd} P_CD
+					 , #{item.nm} NM
+					 , #{item.val1} VAL1
+					 , #{item.val2} VAL2
+					 , #{item.ordby} ORDBY
+				FROM DUAL
+			</foreach>
+		) B
+		ON (A.APP_CD = #{appCd} AND A.GRP_CD = B.GRP_CD AND A.CD = B.CD)
+		WHEN MATCHED THEN
+			UPDATE SET 
+				  A.VAL1 = B.VAL1
+				, A.VAL2 = B.VAL2
+				, A.NM = B.NM
+				, MODBY=#{session.emplNo}
+				, MODDT = SYSDATE
+		WHEN NOT MATCHED THEN
+			INSERT (
+				  APP_CD
+				, GRP_CD
+				, CD
+				, P_CD
+				, NM
+				, VAL1
+				, VAL2
+				, ORDBY
+				, USE_YN
+				, CREBY
+				, MODBY
+			)VALUES(
+				  #{appCd}
+				, B.GRP_CD
+				, B.CD
+				, B.P_CD
+				, B.NM
+				, B.VAL1
+				, B.VAL2
+				, B.ORDBY
+				, 'Y'
+				, #{session.emplNo}
+				, #{session.emplNo}
+			)
+	</update>
+
+	
+	<select id="getRetainProfile" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		WITH TEAM AS 
+		(SELECT BONBCD, 
+		      TEAMCD, 
+		      TEAMNM, 
+		      LINEDV,
+		      PRNT02 ORDBY 
+		 FROM CMTEAMCD A 
+		WHERE EXISTS 
+		      (SELECT 1 
+		        FROM NMSP.HREMP 
+		       WHERE TEAMCD = A.TEAMCD 
+		             AND OFFIST='001'
+		      )
+		) 
+		SELECT A.CD
+			 , A.NM
+			 , NVL(A.RETAIN_YN, 'N') RETAIN_YN
+			 , NVL(A.SAT_YN, 'Y') SAT_YN 
+			 , NVL(A.BDGT_YN, 'Y') BDGT_YN
+			 , A.TEAM_LIST
+		FROM (
+			SELECT NVL(B.BONBCD, A.BONBCD) CD, 
+			       NVL(B.TEAMNM, A.TEAMNM) NM, 
+			       NVL(B.RETAIN_YN, A.RETAIN_YN) RETAIN_YN,
+			       NVL(B.SAT_YN, A.SAT_YN) SAT_YN, 
+			       NVL(B.BDGT_YN, A.BDGT_YN) BDGT_YN,  
+			       NVL(B.TEAMCD_LIST, A.TEAMCD_LIST) TEAM_LIST,
+			       NVL(B.ORDBY, A.ORDBY) ORDBY
+			  FROM 
+			       (SELECT B.BONBCD, 
+			              A.TEAMNM, 
+			              'N' RETAIN_YN,
+			              'Y' SAT_YN, 
+			              'Y' BDGT_YN,  
+			              B.TEAMCD_LIST, 
+			              ORDBY 
+			         FROM TEAM A, 
+			              (SELECT BONBCD, 
+			                      LISTAGG(TEAMCD, ', ') WITHIN GROUP(ORDER BY ORDBY) TEAMCD_LIST 
+			                FROM TEAM A 
+			                WHERE LINEDV='10' 
+			               GROUP BY BONBCD 
+			              ) B 
+			        WHERE A.TEAMCD = B.BONBCD  
+			       ) A 
+			   FULL OUTER JOIN 
+			       (SELECT BONBCD, 
+			              (SELECT TEAMNM FROM CMTEAMCD WHERE TEAMCD = B.BONBCD) TEAMNM, 
+			              A.VAL1 RETAIN_YN, 
+			              A.VAL2 SAT_YN,
+			              A.VAL3 BDGT_YN,
+			              LISTAGG(TEAMCD, ', ') WITHIN GROUP(ORDER BY B.ORDBY) TEAMCD_LIST, 
+			              MIN(B.ORDBY) ORDBY 
+			         FROM APPMNG_CD A, 
+			              TEAM B 
+			        WHERE B.BONBCD = A.CD 
+			              AND A.APP_CD = #{appCd} 
+			              AND A.GRP_CD = 'RETAIN_TRAN_PROF' 
+			              AND A.P_CD = 'root' 
+			              AND A.USE_YN = 'Y'
+			        GROUP BY BONBCD, 
+			              VAL1,
+			              VAL2,
+			              VAL3 
+			       ) B 
+			       ON A.BONBCD = B.BONBCD 
+		) A
+		<if test="session.roleCd != 'sysadmin' and session.roleCd != 'admin' ">
+		, (<include refid="satSql.getBonbList" />) B
+		WHERE A.CD = B.VAL1
+		</if>
+		ORDER BY A.ORDBY
+	</select>
+	
+	<select id="getRetainProfile_bk20200601" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		WITH TEAM AS 
+		(SELECT BONBCD, 
+		      TEAMCD, 
+		      TEAMNM, 
+		      LINEDV,
+		      PRNT02 ORDBY 
+		 FROM CMTEAMCD A 
+		WHERE EXISTS 
+		      (SELECT 1 
+		        FROM NMSP.HREMP 
+		       WHERE TEAMCD = A.TEAMCD 
+		             AND OFFIST='001'
+		      )
+		) 
+		SELECT A.CD, A.NM, A.VAL, A.TEAM_LIST
+		FROM (
+			SELECT NVL(B.BONBCD, A.BONBCD) CD, 
+			       NVL(B.TEAMNM, A.TEAMNM) NM, 
+			       NVL(B.VAL, A.VAL) VAL, 
+			       NVL(B.TEAMCD_LIST, A.TEAMCD_LIST) TEAM_LIST,
+			       NVL(B.ORDBY, A.ORDBY) ORDBY
+			  FROM 
+			       (SELECT B.BONBCD, 
+			              A.TEAMNM, 
+			              'N' VAL, 
+			              B.TEAMCD_LIST, 
+			              ORDBY 
+			         FROM TEAM A, 
+			              (SELECT BONBCD, 
+			                      LISTAGG(TEAMCD, ', ') WITHIN GROUP(ORDER BY ORDBY) TEAMCD_LIST 
+			                FROM TEAM A 
+			                WHERE LINEDV='10' 
+			               GROUP BY BONBCD 
+			              ) B 
+			        WHERE A.TEAMCD = B.BONBCD  
+			       ) A 
+			   FULL OUTER JOIN 
+			       (SELECT BONBCD, 
+			              (SELECT TEAMNM FROM CMTEAMCD WHERE TEAMCD = B.BONBCD) TEAMNM, 
+			              VAL1 VAL, 
+			              LISTAGG(TEAMCD, ', ') WITHIN GROUP(ORDER BY B.ORDBY) TEAMCD_LIST, 
+			              MIN(B.ORDBY) ORDBY 
+			         FROM APPMNG_CD A, 
+			              TEAM B 
+			        WHERE B.BONBCD = A.CD 
+			              AND A.APP_CD = #{appCd} 
+			              AND A.GRP_CD = 'RETAIN_TRAN_PROF' 
+			              AND A.P_CD = 'root' 
+			              AND A.USE_YN = 'Y'
+			        GROUP BY BONBCD, 
+			              VAL1 
+			       ) B 
+			       ON A.BONBCD = B.BONBCD 
+		) A
+		<if test="session.roleCd != 'sysadmin' and session.roleCd != 'admin' ">
+		, (<include refid="satSql.getBonbList" />) B
+		WHERE A.CD = B.VAL1
+		</if>
+		ORDER BY A.ORDBY
+	</select>
+	
+	<select id="getRetainProfile_bk2" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT A.CD, A.NM, A.VAL 
+		FROM (
+			SELECT DECODE(A.CD, NULL, B.CD, A.CD) CD,
+				   DECODE(A.NM, NULL, B.NM, A.NM) NM,
+			       DECODE(B.VAL, NULL, A.VAL, B.VAL) VAL, 
+	       		   DECODE(A.ORDBY, NULL, B.ORDBY, A.ORDBY) ORDBY
+			  FROM 
+			       (SELECT TEAMCD CD, 
+			              TEAMNM NM, 
+			              'N' VAL,
+			              PRNT02 ORDBY
+			         FROM CMTEAMCD A 
+			        WHERE TEAMCD IN 
+			              (SELECT DISTINCT BONBCD 
+			                FROM CMTEAMCD 
+			               WHERE LINEDV='10' 
+			                     AND USESYN = 'Y' 
+			              ) 
+			              AND LINEDV='10' 
+			              AND USESYN = 'Y' 
+			       ) A FULL OUTER JOIN
+			       (SELECT A.CD, 
+			               B.TEAMNM NM, 
+			               A.VAL1 VAL,
+			               B.PRNT02 ORDBY 
+			         FROM (SELECT * FROM APPMNG_CD WHERE APP_CD = #{appCd} AND GRP_CD = 'RETAIN_TRAN_PROF')  A,
+			         	   CMTEAMCD B
+			        WHERE A.CD = B.TEAMCD 
+			       ) B 
+			       ON A.CD= B.CD
+		) A
+		<if test="session.roleCd != 'sysadmin' and session.roleCd != 'admin' ">
+		, (<include refid="satSql.getBonbList" />) B
+		WHERE A.CD = B.VAL1
+		</if>
+		ORDER BY A.ORDBY
+	</select>
+	
+	
+	<select id="getRetainProfile_bk" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT DECODE(A.CD, NULL, B.CD, A.CD) CD,
+			   DECODE(A.NM, NULL, B.NM, A.NM) NM,
+		       DECODE(B.VAL, NULL, A.VAL, B.VAL) VAL
+		  FROM 
+		       (SELECT TEAMCD CD, 
+		              TEAMNM NM, 
+		              'N' VAL,
+		              PRNT02 ORDBY
+		         FROM CMTEAMCD A 
+		        WHERE TEAMCD IN 
+		              (SELECT DISTINCT BONBCD 
+		                FROM CMTEAMCD 
+		               WHERE LINEDV='10' 
+		                     AND USESYN = 'Y' 
+		              ) 
+		              AND LINEDV='10' 
+		              AND USESYN = 'Y' 
+		       ) A FULL OUTER JOIN
+		       (SELECT A.CD, 
+		               B.TEAMNM NM, 
+		               A.VAL1 VAL,
+		               B.PRNT02 ORDBY 
+		         FROM (SELECT * FROM APPMNG_CD WHERE APP_CD = #{appCd} AND GRP_CD = 'RETAIN_TRAN_PROF')  A,
+		         	   CMTEAMCD B
+		        WHERE A.CD = B.TEAMCD 
+		       ) B 
+		       ON A.CD= B.CD
+		  ORDER BY DECODE(A.ORDBY, NULL, B.ORDBY, A.ORDBY)
+	</select>
+	
+	<delete id="delRetainProfile" parameterType="map" >
+		DELETE FROM APPMNG_CD WHERE APP_CD = #{appCd} AND GRP_CD = 'RETAIN_TRAN_PROF'
+	</delete>
+	
+	<insert id="insertRetainProfile">
+		INSERT ALL
+		<foreach collection="list" item="data" index="idx">
+			INTO APPMNG_CD(APP_CD, GRP_CD, CD, P_CD, NM, VAL1, ORDBY, CREBY, MODBY) VALUES(#{appCd}, 'RETAIN_TRAN_PROF', #{data.cd}, 'root', #{data.nm}, #{data.val}, #{idx}, #{session.emplNo}, #{session.emplNo})
+		</foreach>
+		SELECT * FROM DUAL
+	</insert>
+	
+	<update id="saveRetainProfile" parameterType="map">
+		MERGE INTO APPMNG_CD A
+		USING (<foreach collection="list" item="data" separator=" UNION ALL ">
+			SELECT #{appCd} APP_CD
+				 , 'RETAIN_TRAN_PROF' GRP_CD
+				 , #{data.cd} CD
+				 , 'root' P_CD
+				 , #{data.retainYn} RETAIN_YN
+				 , #{data.satYn} SAT_YN
+				 , #{data.bdgtYn} BDGT_YN
+				 , #{data.nm} NM FROM DUAL
+		</foreach>) B
+		ON (A.APP_CD = B.APP_CD AND A.GRP_CD = B.GRP_CD AND A.CD = B.CD)
+		WHEN MATCHED THEN
+			UPDATE SET
+				A.VAL1 = B.RETAIN_YN,
+				A.VAL2 = B.SAT_YN,
+				A.VAL3 = B.BDGT_YN,
+				A.MODDT = SYSDATE,
+				A.MODBY = #{session.emplNo}
+	    WHEN NOT MATCHED THEN 
+	    	INSERT (A.APP_CD, A.GRP_CD, A.CD, A.P_CD, A.NM, A.VAL1, A.VAL2, A.VAL3, A.ORDBY, A.CREBY, A.MODBY)
+	    	VALUES (B.APP_CD, B.GRP_CD, B.CD, B.P_CD, B.NM, B.RETAIN_YN, B.SAT_YN, B.BDGT_YN, (SELECT MAX(ORDBY) FROM APPMNG_CD C WHERE C.APP_CD = #{appCd} AND C.GRP_CD = 'RETAIN_TRAN_PROF'), #{session.emplNo}, #{session.emplNo})
+	</update>
+	
+	<update id="saveRetainProfile_BK20200601" parameterType="map">
+		MERGE INTO APPMNG_CD A
+		USING (<foreach collection="list" item="data" separator=" UNION ALL ">
+			SELECT #{appCd} APP_CD, 'RETAIN_TRAN_PROF' GRP_CD, #{data.cd} CD, 'root' P_CD, #{data.val} VAL1, #{data.nm} NM FROM DUAL
+		</foreach>) B
+		ON (A.APP_CD = B.APP_CD AND A.GRP_CD = B.GRP_CD AND A.CD = B.CD)
+		WHEN MATCHED THEN
+			UPDATE SET
+				A.VAL1 = B.VAL1,
+				A.MODDT = SYSDATE,
+				A.MODBY = #{session.emplNo}
+	    WHEN NOT MATCHED THEN 
+	    	INSERT (A.APP_CD, A.GRP_CD, A.CD, A.P_CD, A.NM, A.VAL1, A.ORDBY, A.CREBY, A.MODBY)
+	    	VALUES (B.APP_CD, B.GRP_CD, B.CD, B.P_CD, B.NM, B.VAL1, (SELECT MAX(ORDBY) FROM APPMNG_CD C WHERE C.APP_CD = #{appCd} AND C.GRP_CD = 'RETAIN_TRAN_PROF'), #{session.emplNo}, #{session.emplNo})
+	</update>
+	
+	
+	<select id="getHistory" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+	SELECT TO_CHAR(B.APRV_CMPLT_DT, 'YYYY-MM-DD') APRV_CMPLT_DT
+	     , A.PRJTCD
+	     , C.PRJTNM
+	     , C.CHARGPTR
+	     , SF_EMP_NAME(C.CHARGPTR) CHARGPTRNM
+	     , C.CHARGMGR
+	     , SF_EMP_NAME(C.CHARGMGR) CHARGMGRNM
+	     , B.APRV_REQ_EMPLNO
+	     , SF_EMP_NAME(B.APRV_REQ_EMPLNO) APRV_REQ_NM
+	     , B.BIZ_TODT 
+	     , TO_CHAR(B.APRV_REQ_DT, 'YYYY-MM-DD') APRV_REQ_DT
+	     , B.MOD_REASON_CD
+		 , B.MOD_REASON_CMNT
+		 , A.CREDT 
+	  FROM WEB_SAT_HIST A
+	     , WEB_SAT_PRJT_H B 
+	     , PMPRJTBS C
+	 WHERE A.VERSION = B.VERSION
+	     AND A.PRJTCD = B.PRJTCD 
+	     AND A.VERSION_TY = 'CO'
+	     AND B.PRJTCD1 = C.PRJTCD1
+	     AND B.PRJTCD2 = C.PRJTCD2
+	     AND B.PRJTCD3 = C.PRJTCD3
+	     <if test="frdt != null and !''.equals(frdt)">
+	     AND TO_CHAR(B.APRV_CMPLT_DT, 'YYYY-MM-DD') <![CDATA[>=]]> #{frdt}	
+	     </if>
+	     <if test="todt != null and !''.equals(todt)">
+	     AND TO_CHAR(B.APRV_CMPLT_DT, 'YYYY-MM-DD') <![CDATA[<=]]> #{todt}	
+	     </if>
+	     <if test="prjtCd != null and !''.equals(prjtCd)">
+	     AND A.PRJTCD = #{prjtCd}
+	     </if>
+	ORDER BY B.APRV_CMPLT_DT DESC
+	</select>
+</mapper>

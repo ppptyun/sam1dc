@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>표준감사시간관리</title>
+<link href="../../../resources/css/dhtmlx_custom.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc_mediaS.css" rel="stylesheet" type="text/css" media="(max-width:1600px)">
+</head>
+
+<body class="popSample">
+<div id="layPopup" class="layPopup layerM" role="dialog" aria-label="Budget Hour 도움말">
+	<h2 class="layTit">Budget Hour 도움말</h2><!-- 2019-03-14 수정 -->
+	<div class="layCont">
+		<h3 class="titDep2">EL, QRP 최소 감사 투입시간</h3>
+		
+		<table class="tblH">
+			<caption>EL, QRP 최소 감사 투입시간 테이블입니다.</caption>
+			<colgroup><col style="width:30%" span="2"><col style="width:auto"></colgroup>
+			<thead>
+				<tr>
+					<th scope="col">총 시간</th>
+					<th scope="col">EL</th>
+					<th scope="col">QRP/SR</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td class="tleft">5,000 이상</td>
+					<td class="tleft">Min (총 시간  x 2%, 200 시간)</td>
+					<td class="tleft">Min (EL표준시간 X 20%, 40 시간)</td>
+				</tr>
+				<tr>
+					<td class="tleft">3,000 이상 ~ 5,000 미만</td>
+					<td class="tleft">Min (총 시간  x 3%, 100 시간)</td>
+					<td class="tleft">Min (EL표준시간 X 20%, 20 시간)</td>
+				</tr>
+				<tr>
+					<td class="tleft">2,000 이상 ~ 3,000 미만</td>
+					<td class="tleft">Min (총 시간  x 3%, 70 시간)</td>
+					<td class="tleft">Min (EL표준시간 X 20%, 14 시간)</td>
+				</tr>
+				<tr>
+					<td class="tleft">1,000 이상 ~ 2,000 미만</td>
+					<td class="tleft">Min (총 시간  x 3%, 50 시간)</td>
+					<td class="tleft">Min (EL표준시간 X 20%, 10 시간)</td>
+				</tr>
+				<tr>
+					<td class="tleft">1,000 미만</td>
+					<td class="tleft">Min (총 시간  x 3%, 30 시간)</td>
+					<td class="tleft">Min (EL표준시간 X 20%, 8 시간)</td>
+				</tr>
+				<tr>
+					<td>선박투자회사 등</td>
+					<td>최소 2</td>
+					<td>최소 1</td>
+				</tr>
+			</tbody>
+		</table>
+		
+	</div>
+	<button type="button" class="closeL">닫기</button>
+</div>
+<div class="dimmed" style="display:block"></div>
+<script type="text/javascript" src="../../../resources/lib/jquery/jquery-3.3.1.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery-ui.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery.jscrollpane.min.js"></script>
+<script type="text/javascript" src="../../../resources/js/selectbox_pwc.js"></script>
+<script type="text/javascript" src="../../../resources/js/pwc_ui.js"></script>
+
+</body>
+</html>

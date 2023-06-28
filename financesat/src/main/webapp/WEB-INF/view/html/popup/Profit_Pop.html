@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>표준감사시간관리</title>
+<link href="../../../resources/css/dhtmlx_custom.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc_mediaS.css" rel="stylesheet" type="text/css" media="(max-width:1600px)">
+</head>
+
+<body class="popSample">
+<div id="layPopup" class="layPopup layerL" role="dialog" aria-label="Project 수익성 분석 (Budget Hour 기준)">
+	<h2 class="layTit">Project 수익성 분석 (Budget Hour 기준)</h2>
+	<div class="layCont">
+		<div class="searchBox marT5">
+			<dl class="item">
+				<dt>Project Code</dt>
+				<dd class="frmNowrap"><input type="text" readonly><button type="button" class="btIco btnSearch gapL">검색</button></dd>
+			</dl>
+		</div>
+		
+		<table class="tblForm tblD">
+			<caption>Project 기본정보</caption>
+			<colgroup><col style="width:23%"><col style="width:auto"><col style="width:23%"><col style="width:27%"></colgroup>
+			<tbody>
+				<tr>
+					<th scope="row">Client Name </th>
+					<td>삼성전지판매㈜</td>
+					<th scope="row">Project Code</th>
+					<td>00000-00-000</td>
+				</tr>
+				<tr>
+					<th scope="row">용역명</th>
+					<td>2019회계감사</td>
+					<th scope="row"></th>
+					<td></td>
+				</tr>
+			</tbody>
+			<tfoot class="type02">
+				<tr>
+					<th scope="row">예상 보수 (A)</th>
+					<td colspan="3">00,000,000 원</td>
+				</tr>
+			</tfoot>
+		</table>
+		
+		<table class="tblForm tblD marT20">
+			<caption>Project 기본정보</caption>
+			<colgroup><col style="width:23%"><col style="width:auto"><col style="width:23%"><col style="width:27%"></colgroup>
+			<tbody>
+				<tr>
+					<th scope="row">Budgeting Hour – Partner</th>
+					<td class="tright">X00,000.00 hr</td>
+					<th scope="row">Budgeting Hour – Director</th>
+					<td class="tright">X00,000.00 hr</td>
+				</tr>
+				<tr>
+					<th scope="row">Budgeting Hour – Senior-Manager</th>
+					<td class="tright">X00,000.00 hr</td>
+					<th scope="row">Budgeting Hour – Manager</th>
+					<td class="tright">X00,000.00 hr</td>
+				</tr>
+				<tr>
+					<th scope="row">Budgeting Hour – Senior-Associate</th>
+					<td class="tright">X00,000.00 hr</td>
+					<th scope="row">Budgeting Hour – Associate</th>
+					<td class="tright">X00,000.00 hr</td>
+				</tr>
+				<tr>
+					<th scope="row">Budgeting Hour – RA</th>
+					<td class="tright">X00,000.00 hr</td>
+					<th scope="row">Budgeting Hour – Fulcrum</th>
+					<td class="tright">X00,000.00 hr</td>
+				</tr>
+				<tr>
+					<th scope="row">Budgeting Hour – Other</th>
+					<td class="tright">X00,000.00 hr</td>
+					<th scope="row"></th>
+					<td class="tright"></td>
+				</tr>
+			</tbody>
+			<tfoot class="type02">
+				<tr>
+					<th scope="row">예상 보수 (A)</th>
+					<td colspan="3">00,000,000 원</td>
+				</tr>
+			</tfoot>
+		</table>
+		
+		<table class="tblForm tblF marT20">
+			<caption>Project 기본정보</caption>
+			<colgroup><col style="width:25%" span="4"></colgroup>
+			<tbody>
+				<tr>
+					<th scope="row">Project 손익 (C = A-B)</th>
+					<td>00,000,000 원</td>
+					<th scope="row">이익률 (C/A) (%)</th>
+					<td>X.XX %</td>
+				</tr>
+			</tbody>
+		</table>
+		
+	</div>
+	<button type="button" class="closeL">닫기</button>
+</div>
+<div class="dimmed" style="display:block"></div>
+<script type="text/javascript" src="../../../resources/lib/jquery/jquery-3.3.1.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery-ui.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery.jscrollpane.min.js"></script>
+<script type="text/javascript" src="../../../resources/js/selectbox_pwc.js"></script>
+<script type="text/javascript" src="../../../resources/js/pwc_ui.js"></script>
+
+</body>
+</html>

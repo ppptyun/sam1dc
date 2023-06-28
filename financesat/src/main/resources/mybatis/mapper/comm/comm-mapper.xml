@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.samil.stdadt.comm.mapper.CommMapper">
+	<select id="getAppInfo" parameterType="string" resultType="AppInfoVO">
+		SELECT APP_NM TITLE, URI HOME_URI --, LOGIN_URI
+		FROM NMSP.APPMNG_APP_LIST
+		WHERE APP_CD = #{appCd}
+	</select>
+	
+	<!-- 정의 해야 함. -->
+	<select id="getHomeURI" parameterType="map" resultType="string">
+		SELECT NVL(C.URI, B.URI) HOME_URL 
+		  FROM NMSP.APPMNG_ROLE A, 
+		       APPMNG_APP_LIST B, 
+		       APPMNG_MENU C 
+		 WHERE a.APP_CD = b.APP_CD 
+		       AND a.app_cd = c.APP_CD(+) 
+		       AND a.HOME_MENU_CD = c.MENU_CD(+) 
+		       AND A.APP_CD = #{appCd} 
+		       AND A.ROLE_CD= #{roleCd}
+	</select>
+	
+	<select id="getUserInfo" parameterType="map" resultType="map">
+		SELECT A.EMPLNO, 
+			   A.INTEID, 
+			   A.KORNM, 
+			   SAC_HR.F_FRM_CAM_HISTORY( SAC_HR.F_FRM_PHM_EMP_ID('01', A.EMPLNO, SYSDATE, 'KO'), 'KO', SYSDATE, 'LOS_CD') AS LOSCD,
+			   SAC_HR.F_FRM_CAM_HISTORY( SAC_HR.F_FRM_PHM_EMP_ID('01', A.EMPLNO, SYSDATE, 'KO'), 'KO', SYSDATE, 'LOS_NM') AS LOSNM,
+			   A.TEAMCD,
+			   (SELECT TEAMNM FROM NMSP.CMTEAMCD WHERE TEAMCD = A.TEAMCD) AS TEAMNM,
+			   A.GRADCD,
+			   (SELECT GRADNM FROM NMSP.HRGRAD WHERE GRADCD = A.GRADCD) AS GRADNM,
+			   A.COMPCD,
+			   D.HANGNM COMPNM,
+			   D.MAINCOMPCD,
+			   (SELECT HANGNM FROM NMSP.CMCOMPCD AA WHERE AA.COMPCD = D.MAINCOMPCD) MAINCOMPNM
+		FROM NMSP.HREMP A,
+			 NMSP.CMCOMPCD D
+		WHERE A.COMPCD = D.COMPCD
+		  AND OFFIST = '001'
+		  AND (EMPLNO = #{inteId} OR INTEID = #{inteId})
+	</select>
+	
+	<select id="getUserSessionInfo" parameterType="map" resultType="UserSessionVO">
+SELECT  H.EMPLNO
+      , H.INTEID
+      , H.EMPLNO AS ORIGINEMPLNO
+      , H.KORNM
+      , H.ENGNM
+      , SAC_HR.F_FRM_CAM_HISTORY(SAC_HR.F_FRM_PHM_EMP_ID('01', H.EMPLNO, SYSDATE, 'KO'), 'KO', SYSDATE, 'LOS_CD') AS LOSCD
+      , SAC_HR.F_FRM_CAM_HISTORY(SAC_HR.F_FRM_PHM_EMP_ID('01', H.EMPLNO, SYSDATE, 'KO'), 'KO', SYSDATE, 'LOS_NM') AS LOSNM
+      , H.TEAMCD
+      , T.TEAMNM
+      , H.GRADCD
+      , G.GRADNM
+      , H.OFFIST
+      , R.ROLE_CD
+      , R.ROLE_NM
+      , H.COMPCD
+      , C.HANGNM COMPNM
+      , C.MAINCOMPCD
+      , CM.HANGNM AS MAINCOMPNM
+      , R.AUTH_LV
+      , R.VAL1
+      , R.VAL2
+      , U.TAG2
+FROM    NMSP.HREMP H
+      , NMSP.CMCOMPCD C
+      , NMSP.CMCOMPCD CM
+      , NMSP.CMTEAMCD T
+      , NMSP.HRGRAD G
+      , NMSP.HRUSER U
+      , SAC_HR.PHM_GLOBAL_MAIL F
+      ,(SELECT RI.APP_CD
+              , MIN(RI.ROLE_CD) KEEP(DENSE_RANK FIRST ORDER BY RI.PRIORITY ASC) AS ROLE_CD
+              , MIN(RI.ROLE_NM) KEEP(DENSE_RANK FIRST ORDER BY RI.PRIORITY ASC) AS ROLE_NM
+              , MIN(RI.MEMB_TY) KEEP(DENSE_RANK FIRST ORDER BY RI.PRIORITY ASC) AS MEMB_TY
+              , MIN(RI.MEMB_CD) KEEP(DENSE_RANK FIRST ORDER BY RI.PRIORITY ASC) AS MEMB_CD
+              , MIN(RI.AUTH_LV) KEEP(DENSE_RANK FIRST ORDER BY RI.PRIORITY ASC) AS AUTH_LV
+              , MIN(RI.VAL1) KEEP(DENSE_RANK FIRST ORDER BY RI.PRIORITY ASC) AS VAL1
+              , MIN(RI.VAL2) KEEP(DENSE_RANK FIRST ORDER BY RI.PRIORITY ASC) AS VAL2
+              , MIN(RI.PRIORITY) AS PRIORITY
+        FROM   (SELECT R.APP_CD
+                      , R.ROLE_CD
+                      , R.ROLE_NM
+                      , R.PRIORITY
+                      , RM.MEMB_TY
+                      , RM.MEMB_CD
+                      , RM.VAL1
+                      , RM.VAL2
+                      , R.AUTH_LV
+                      , CASE
+                                WHEN UPPER(RM.MEMB_TY) = 'EMPLNO'
+                                AND     RM.MEMB_CD =(SELECT H.EMPLNO
+                                        FROM    NMSP.HREMP H
+                                        	, SAC_HR.PHM_GLOBAL_MAIL GM 
+                                        WHERE  H.EMPLNO = GM.EMP_NO(+) 
+                                          AND (H.EMPLNO = #{inteId} OR H.INTEID = #{inteId} OR GM.GU_ID = #{inteId})
+										AND     H.OFFIST = '001') THEN 'Y'
+                                ELSE 'N'
+                        END EMPLNO_YN
+                      , CASE
+                                WHEN UPPER(RM.MEMB_TY) = 'LOSLEADER'
+                                AND     RM.MEMB_CD =(SELECT HW.HRLOS
+                                        FROM   (SELECT CH.EMP_ID
+                                                FROM    SAC_HR.CAM_HISTORY CH-- 발령
+                                                WHERE   CH.SEQ = 0
+                                                AND     SYSDATE BETWEEN CH.STA_YMD AND     CH.END_YMD
+                                                AND     CH.DUTY_CD IN('020'
+                                                                    , '550')
+                                                UNION ALL
+                                                SELECT  CS.EMP_ID
+                                                FROM    SAC_HR.CAM_SEND_MGR CS -- 겸직
+                                                WHERE   SYSDATE BETWEEN CS.STA_YMD AND     CS.END_YMD
+                                                AND     CS.SEND_DUTY_CD IN('020'
+                                                                         , '550')) HC
+                                              , NMSP.HREMP H
+                                              , NMSP.HRTRANWRK HW
+                                              , SAC_HR.PHM_GLOBAL_MAIL GM
+                                        WHERE   HC.EMP_ID = H.EMP_ID
+                                        AND     H.EMPLNO = GM.EMP_NO(+) 
+                                        AND    (H.EMPLNO = #{inteId} OR H.INTEID = #{inteId} OR GM.GU_ID = #{inteId})
+										AND     H.OFFIST = '001'
+                                        AND     H.EMPLNO = HW.EMSABUCD) THEN 'Y'
+                                ELSE 'N'
+                        END AS LL_YN
+                      , CASE
+                                WHEN UPPER(RM.MEMB_TY) = 'BONBLEADER'
+                                AND     RM.MEMB_CD IN(SELECT HW.HRLOS
+                                        FROM    NMSP.CMTEAMCD T
+                                              , NMSP.HRTRANWRK HW
+                                              , NMSP.HREMP H
+                                              , SAC_HR.PHM_GLOBAL_MAIL GM
+                                        WHERE   T.USESYN = 'Y'
+                                        AND     H.EMPLNO = T.REPTEMP
+                                        AND     H.EMPLNO = GM.EMP_NO(+) 
+                                        AND    (H.EMPLNO = #{inteId} OR H.INTEID = #{inteId} OR GM.GU_ID = #{inteId})
+										AND     H.OFFIST = '001'
+                                        AND     T.REPTEMP = HW.EMSABUCD) THEN 'Y'
+                                ELSE 'N'
+                        END AS BL_YN
+                      , CASE
+                                WHEN UPPER(RM.MEMB_TY) = 'BONBLEADER'
+                                AND     RM.MEMB_CD =(SELECT H.GRADCD
+                                        FROM    NMSP.HREMP H
+                                        , SAC_HR.PHM_GLOBAL_MAIL GM
+                                        WHERE  (H.EMPLNO = #{inteId} OR H.INTEID = #{inteId} OR GM.GU_ID = #{inteId})
+                                        AND     H.EMPLNO = GM.EMP_NO(+) 
+										AND     H.OFFIST = '001') THEN 'Y'
+                                ELSE 'N'
+                        END AS GRAD_YN
+                      , CASE
+                                WHEN UPPER(RM.MEMB_TY) = 'TEAM'
+                                AND     RM.MEMB_CD =(SELECT H.TEAMCD
+                                        FROM    NMSP.HREMP H
+                                        , SAC_HR.PHM_GLOBAL_MAIL GM
+                                        WHERE  (H.EMPLNO = #{inteId} OR H.INTEID = #{inteId} OR GM.GU_ID = #{inteId})
+                                        AND     H.EMPLNO = GM.EMP_NO(+) 
+										AND     H.OFFIST = '001') THEN 'Y'
+                                ELSE 'N'
+                        END AS TEAM_YN
+                      , CASE
+                                WHEN UPPER(RM.MEMB_TY) = 'LOS'
+                                AND     RM.MEMB_CD =(SELECT HW.HRLOS
+                                        FROM    NMSP.HRTRANWRK HW
+                                              , NMSP.HREMP H
+                                              , SAC_HR.PHM_GLOBAL_MAIL GM
+                                        WHERE  (H.EMPLNO = #{inteId} OR H.INTEID = #{inteId} OR GM.GU_ID = #{inteId})
+										AND     H.OFFIST = '001'
+										AND     H.EMPLNO = GM.EMP_NO(+) 
+                                        AND     HW.EMSABUCD = H.EMPLNO) THEN 'Y'
+                                ELSE 'N'
+                        END AS LOS_YN
+                      , CASE
+                                WHEN UPPER(RM.MEMB_TY) = 'COMP'
+                                AND     RM.MEMB_CD =(SELECT C.MAINCOMPCD
+                                        FROM    NMSP.HREMP H
+                                              , NMSP.CMCOMPCD C
+                                              , SAC_HR.PHM_GLOBAL_MAIL GM
+                                        WHERE  (H.EMPLNO = #{inteId} OR H.INTEID = #{inteId} OR GM.GU_ID = #{inteId})
+										AND     H.OFFIST = '001'
+										AND     H.EMPLNO = GM.EMP_NO(+) 
+                                        AND     H.COMPCD = C.COMPCD) THEN 'Y'
+                                ELSE 'N'
+                        END AS COMP_YN
+                FROM    NMSP.APPMNG_ROLE R
+                      , NMSP.APPMNG_ROLE_MEMBER RM
+                WHERE   1 = 1
+                AND     R.APP_CD = #{appCd}
+                AND     R.APP_CD = RM.APP_CD
+                AND     R.ROLE_CD = RM.ROLE_CD
+                AND     R.USE_YN = 'Y'
+                AND     RM.USE_YN = 'Y') RI
+        WHERE   RI.EMPLNO_YN|| RI.LL_YN|| RI.BL_YN|| RI.GRAD_YN|| RI.TEAM_YN|| RI.LOS_YN|| RI.COMP_YN LIKE '%Y%'
+        GROUP BY RI.APP_CD) R
+		WHERE   1 = 1
+			AND     H.OFFIST = '001'
+			AND     H.COMPCD = C.COMPCD
+			AND     C.MAINCOMPCD = CM.COMPCD
+			AND     H.TEAMCD = T.TEAMCD
+			AND     H.GRADCD = G.GRADCD
+			AND     H.EMPLNO = U.EMPLNO
+			AND     H.EMPLNO = F.EMP_NO(+)
+			AND     U.SYSDV = 'AA'
+			AND    (H.EMPLNO = #{inteId} OR H.INTEID = #{inteId} OR F.GU_ID = #{inteId})
+	</select>
+
+	<select id="getAuthMenu" parameterType="map" resultType="AuthMenuVO">
+		SELECT A.MENU_CD, 
+		       A.MENU_NM, 
+		       A.MENU_ICON, 
+		       A.MENU_OPEN_TY, 
+		       A.URI, 
+		       A.ORDBY, 
+		       A.P_MENU_CD, 
+		       CASE 
+		           WHEN MENU_CD IN 
+		               (SELECT A.MENU_CD 
+		                 FROM NMSP.APPMNG_MENU A 
+		                WHERE A.APP_CD = #{appCd} START 
+		               WITH A.MENU_CD = 
+		                      (SELECT REL_MENU_CD 
+		                        FROM NMSP.APPMNG_RESOURCE 
+		                       WHERE app_cd = #{appCd} 
+		                             AND RES_TY='01' 
+		                             AND USE_YN='Y' 
+		                             AND RES_URI = #{uri} 
+		                             AND ROWNUM = 1 
+		                      ) CONNECT BY A.MENU_CD = PRIOR A.P_MENU_CD
+		                  ) 
+		              THEN 'Y' 
+		              ELSE 'N' 
+		          END SELECTED 
+		     FROM NMSP.APPMNG_MENU A 
+		    WHERE A.USE_YN = 'Y' 
+		          AND A.APP_CD = #{appCd} 
+		          AND EXISTS 
+		          (SELECT 1 
+		            FROM APPMNG_AUTH_MENU B 
+		           WHERE A.APP_CD = B.APP_CD 
+		                 AND A.MENU_CD = B.MENU_CD 
+		                 AND B.USE_YN = 'Y' 
+		                 AND B.ROLE_CD = #{roleCd}
+		          ) START 
+		   WITH A.P_MENU_CD = 'root' CONNECT BY PRIOR A.MENU_CD = A.P_MENU_CD 
+		   ORDER SIBLINGS BY A.ORDBY
+	</select>
+	
+	<select id="getAuthMenu2" parameterType="map" resultType="AuthMenuVO">
+		SELECT A.MENU_CD, 
+		       A.MENU_NM, 
+		       A.MENU_ICON, 
+		       A.MENU_OPEN_TY, 
+		       A.URI, 
+		       A.ORDBY, 
+		       A.P_MENU_CD 
+		  FROM NMSP.APPMNG_MENU A 
+		 WHERE A.USE_YN = 'Y' 
+		       AND A.APP_CD = #{appCd} 
+		       AND EXISTS 
+		       (SELECT 1 
+		         FROM APPMNG_AUTH_MENU B 
+		        WHERE A.APP_CD = B.APP_CD 
+		              AND A.MENU_CD = B.MENU_CD
+		              AND B.USE_YN = 'Y' 
+		              AND B.ROLE_CD = #{roleCd}
+		       ) 
+		  START WITH A.P_MENU_CD = 'root' 
+		  CONNECT BY PRIOR A.MENU_CD = A.P_MENU_CD 
+		ORDER SIBLINGS BY A.ORDBY
+	</select>
+	
+	<!-- 자원 등록 여부 판단 -->
+	<select id="getResourceCount" parameterType="map" resultType="integer">
+		SELECT COUNT(*) CNT
+		  FROM APPMNG_RESOURCE 
+		 WHERE APP_CD = #{appCd}
+		 AND RES_URI = #{uri}
+		 AND USE_YN = 'Y'
+	</select>
+	
+	<!-- 자원에 접근 권한이 있는지 판단 -->
+	<select id="getAuthResourceCount" parameterType="map" resultType="integer">
+		SELECT COUNT(*) CNT
+		  FROM APPMNG_RESOURCE A,  
+			  APPMNG_AUTH_RESOURCE B,
+			  APPMNG_ROLE C
+		 WHERE A.APP_CD = B.APP_CD
+			 AND A.RES_CD = B.RES_CD
+			 AND B.APP_CD = C.APP_CD
+			 AND B.ROLE_CD = C.ROLE_CD
+			 AND A.APP_CD = #{appCd}
+			 AND A.RES_URI = #{uri} 
+			 AND C.ROLE_CD = #{roleCd}
+			 AND B.USE_YN = 'Y'
+	</select>
+	
+	
+	<select id="getCodeList" parameterType="map" resultType="CommCodeVO">
+		SELECT A.APP_CD,
+		       A.GRP_CD,
+		       (SELECT GRP_NM FROM NMSP.APPMNG_GRPCD WHERE GRP_CD = A.GRP_CD) GRP_NM,
+		       A.CD,
+		       A.P_CD,
+		       A.NM,
+		       A.VAL1,
+		       A.VAL2,
+		       A.VAL3,
+		       A.VAL4,
+		       A.DSCRT,
+		       A.ORDBY,
+		       A.USE_YN 
+		  FROM APPMNG_CD A
+		 WHERE A.APP_CD= #{appCd} 
+		       AND A.GRP_CD= #{grpCd} 
+		       AND A.USE_YN= #{useYn}
+		 START WITH A.P_CD = 'root' 
+		 CONNECT BY PRIOR A.CD = A.P_CD 
+		 ORDER SIBLINGS BY A.ORDBY	
+	</select>
+	
+	<select id="getCodeMap" parameterType="map" resultType="map">
+		SELECT * 
+		  FROM 
+		       (SELECT  CD, ${valColumn}
+		         FROM NMSP.APPMNG_CD 
+		        WHERE APP_CD = #{appCd} 
+		          AND GRP_CD= #{grpCd}
+	        	<if test="useYn != null and !useYn.equals('') ">
+	        	  AND USE_YN= #{useYn}
+	        	</if>
+		       ) PIVOT (MAX(${valColumn}) FOR CD IN (<foreach collection="properties" item="property" separator=",">'${property}' AS "${property}"</foreach>))
+	</select>
+	
+	<select id="getCode" parameterType="map" resultType="CommCodeVO">
+		SELECT A.APP_CD,
+		       A.GRP_CD,
+		       (SELECT GRP_NM FROM NMSP.APPMNG_GRPCD WHERE GRP_CD = A.GRP_CD) GRP_NM,
+		       A.CD,
+		       A.P_CD,
+		       A.NM,
+		       A.VAL1,
+		       A.VAL2,
+		       A.VAL3,
+		       A.VAL4,
+		       A.DSCRT,
+		       A.ORDBY,
+		       A.USE_YN 
+		  FROM APPMNG_CD A
+		 WHERE A.APP_CD= #{appCd} 
+		       AND A.GRP_CD= #{grpCd}
+		       AND A.CD = #{cd} 
+		       AND A.USE_YN= #{useYn}
+	</select>
+	
+	<insert id="insertActivityLog" parameterType="ActivityLogVO">
+		INSERT INTO NMSP.APPMNG_ACTIVITY_LOG(APP_CD,EMPLNO,INTEID,PAGE_URI,QUERY_STR,ACT_TY)
+		VALUES(#{appCd}, #{emplNo}, #{inteId}, #{pageUri}, #{queryStr}, #{actTy})
+	</insert>
+</mapper>

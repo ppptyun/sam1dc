@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>표준감사시간관리</title>
+<link href="../../../resources/css/dhtmlx_custom.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc_mediaS.css" rel="stylesheet" type="text/css" media="(max-width:1600px)">
+</head>
+
+<body class="popSample">
+<div id="layPopup" class="layPopup layerM" role="dialog" aria-label="Project Select">
+	<h2 class="layTit">Project Select</h2>
+	<div class="layCont">
+		<div class="searchBox marT5">
+			<dl class="item">
+				<dt>검색 기준</dt>
+				<dd>
+					<div class="frmArea">
+						<span class="frmInp"><input type="radio" id="proeSel01" name="proeSelect" checked><label for="proeSel01">Project Name</label></span>
+						<span class="frmInp"><input type="radio" id="proeSel02" name="proeSelect"><label for="proeSel02">Project Code</label></span><!-- 2019-03-08 수정 -->
+					</div>
+				</dd>
+				<dd class="frmNowrap"><input type="text" readonly><button type="button" class="btIco btnSearch gapL">검색</button></dd>
+			</dl>
+		</div>
+		
+		<div id="" class="gridbox gridHp08">그리드 영역</div>
+		
+		<div class="btnArea">
+			<button type="button" class="btnPwc btnL">Cancel</button>
+			<button type="button" class="btnPwc btnL action">Save</button>
+		</div>
+	</div>
+	<button type="button" class="closeL">닫기</button>
+</div>
+<div id="alertBox" class="alertBox" role="dialog" draggable="false" style="z-index: 100010; display: block; margin-top: -117px;">
+	<ul class="alertMsg">
+		<li>근로시간이 주52시간 초과되었습니다.</li>
+		<li>작성된 time은 자동으로 결재로 상신됩니다.</li>
+		<li>등록하시겠습니까?</li>
+	</ul>
+	
+	<div class="alertBtns">
+		<a href="#" class="btCancel">취소</a>
+		<a href="#" class="btConfirm">확인</a>
+	</div>
+</div>
+<div class="dimmed" style="display:block"></div>
+<script type="text/javascript" src="../../../resources/lib/jquery/jquery-3.3.1.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery-ui.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery.jscrollpane.min.js"></script>
+<script type="text/javascript" src="../../../resources/js/selectbox_pwc.js"></script>
+<script type="text/javascript" src="../../../resources/js/pwc_ui.js"></script>
+
+</body>
+</html>

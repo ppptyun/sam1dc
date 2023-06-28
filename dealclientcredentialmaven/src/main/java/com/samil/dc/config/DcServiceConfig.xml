@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data>
+	<!-- 서비스 공통 부분 -->
+	<common>
+	</common>
+	
+	<!-- Credential 설정 -->
+	<credential>
+		<!-- Credential 세부 권한 -->
+		<authrole>
+			<!-- 마이그레이션 버튼 권한 -->
+			<IMPORTROLE>R98</IMPORTROLE>
+			<IMPORTROLE>R99</IMPORTROLE>
+			
+			<!-- 다운로드 버튼 권한 -->
+			<DOWNLOADROLE>R01</DOWNLOADROLE>
+			<DOWNLOADROLE>R98</DOWNLOADROLE>
+			<DOWNLOADROLE>R99</DOWNLOADROLE>
+			
+			<!-- 대상제외 버튼 권한 -->
+			<EXCLUDEROLE>R01</EXCLUDEROLE>
+			<EXCLUDEROLE>R98</EXCLUDEROLE>
+			<EXCLUDEROLE>R99</EXCLUDEROLE>
+
+			<!-- Credential 정보 수정 권한 -->
+			<EDITROLE>R01</EDITROLE>
+			<EDITROLE>R98</EDITROLE>
+			<EDITROLE>R99</EDITROLE>
+		</authrole>
+		
+		<!-- Tooltip 정보  -->
+		<tooltip>
+			<pe>
+				<title>PE/자산운용</title>
+				<description><![CDATA[투자자문업(67192), 그외 기타 금융관련 서비스업(67199), 기타 투자 기관(65939), 그외 기타 금융업(65999) 산업군에 속하는 기업을 정의합니다.]]></description>
+			</pe>
+			<cross>
+				<title>Cross-Border</title>
+				<description><![CDATA[Client, Target, 이해관계자의 국적이 해외인 경우 Cross-Border 업무로 분류합니다.]]></description>
+			</cross>
+		</tooltip>
+		
+		<!-- 가이던스 URI -->
+		<guidanceuri>https://drive.google.com/file/d/1Pb7Otxou1sOBbw4fR1zbSdp1VTa5zdu7/view?usp=sharing</guidanceuri>
+	</credential>
+	
+	
+	<!-- 리그테이블 설정 -->
+	<leaguetable>
+		
+		<!-- 가이던스 URI -->
+		<guidanceuri>https://drive.google.com/file/d/1lbEP35qqWzQIpIjM7fecxfETex4hyUf-/view?usp=sharing</guidanceuri>
+	</leaguetable>
+</data>

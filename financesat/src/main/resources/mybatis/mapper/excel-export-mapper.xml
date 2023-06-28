@@ -1,0 +1,1158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.samil.stdadt.mapper.ExcelExportMapper">
+
+	<select id="getWeeks" parameterType="map" resultType="WeekVO">
+		SELECT TO_CHAR(MIN(DT), 'YYYY-MM-DD') START_DATE,
+			   WW WEEK_NUM,
+		       COUNT(*) - SUM(HOLIDAY) WORK_DAY 
+		  FROM 
+		       (SELECT A.*, 
+		              SUM(IS_MONDAY) OVER(ORDER BY DT ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) WW, 
+		              NVL2(YMD, 1, 0) HOLIDAY
+		         FROM 
+		              (SELECT SDT + LEVEL - 1 DT, 
+		                     DECODE(TO_CHAR(SDT + LEVEL - 1, 'D'), '2', 1, 0) IS_MONDAY 
+		                FROM 
+		                     (SELECT NEXT_DAY(TO_DATE(REPLACE(#{sdt}, '-', ''), 'YYYYMMDD') - 6, 2) SDT,	/*주 시작일은 월요일*/ 
+		                             DECODE(TO_CHAR(TO_DATE(REPLACE(#{edt}, '-', ''), 'YYYYMMDD'), 'D'), '1', TO_DATE(REPLACE(#{edt}, '-', ''), 'YYYYMMDD'), NEXT_DAY(TO_DATE(REPLACE(#{edt}, '-', ''), 'YYYYMMDD'), 1)) EDT /*주 종료일은 일요일*/ 
+		                       FROM DUAL 
+		                     ) CONNECT BY EDT >= SDT + LEVEL - 1 
+		              ) A, 
+		              (SELECT * 
+		                FROM SAC_HR.DTM_CALENDAR 
+		               WHERE COL1_YN = 'Y' 
+		                     OR MINUS_DD=0 
+		              ) B 
+		        WHERE A.DT = B.YMD(+) 
+		       ) 
+		 GROUP BY WW 
+		 ORDER BY WW
+	</select>
+	
+	<select id="getBdgtByMemb" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT C.KORNM MEMB_KOR_NM, 
+		       SF_EMP_GRADNM(MEMB_EMPLNO) MEMB_GRAD_NM, 
+		       C.TEAMCD||'/'||SF_TEAM_NAME(C.TEAMCD) MEMB_TEAM_NM, 
+		       B.PRJTNM PRJT_NM, 
+		       SF_EMP_NAME(B.CHARGPTR) EL, 
+		       SF_EMP_NAME(B.CHARGMGR) PM, 
+		       SF_APPMNG_GET_COMMCD(#{appCd}, 'LOCA', A.LOCA_CD, 'NM') LOCA_NM,
+		       A.* 
+		  FROM 
+		       (SELECT * 
+		         FROM 
+		              (SELECT TO_CHAR(DT, 'YYYY-MM-DD') DT, 
+		                     MEMB_EMPLNO, 
+		                     PRJTCD PRJT_CD, 
+		                     LOCA_CD,
+		                     TBD,
+		                     SUM(ASGN_TM) OVER(PARTITION BY PRJTCD, MEMB_EMPLNO, LOCA_CD, TBD) TOT_ASGN_TM,
+		                     ASGN_TM 
+		                FROM 
+		                     (SELECT SDT + (LEVEL - 1) * 7 DT 
+		                       FROM 
+		                            (SELECT NEXT_DAY(TO_DATE(MIN(#{sdt}), 'YYYY-MM-DD') - 6, 2) SDT, 
+		                                   /*주 시작일은 월요일*/ 
+		                                   DECODE(TO_CHAR(TO_DATE(#{edt}, 'YYYY-MM-DD'), 'D'), '1', TO_DATE(#{edt}, 'YYYY-MM-DD'), NEXT_DAY(TO_DATE(#{edt}, 'YYYY-MM-DD'), 1)) EDT /*주 종료일은 일요일*/ 
+		                              FROM DUAL 
+		                            ) CONNECT BY EDT >= SDT + (LEVEL - 1) * 7 
+		                     ) A, 
+		                     (SELECT B.MEMB_EMPLNO, 
+		                            A.PRJTCD, 
+		                            B.LOCA_CD,
+		                            B.TBD,
+		                            NEXT_DAY(TO_DATE(B.WEEK_FRDT, 'YYYY-MM-DD') - 6, 2) WEEK_FRDT, 
+		                            SUM(B.ASGN_TM) ASGN_TM 
+		                       FROM 
+		                       		(<include refid="satSql.authProjectInfo" />) A,
+		                            (SELECT B.*, A.TBD 
+		                              FROM NMSP.WEB_SAT_MEMB A, nmsp.WEB_SAT_MEMB_BDGT B
+		                              WHERE A.PRJTCD = B.PRJTCD AND A.MEMB_EMPLNO = B.MEMB_EMPLNO AND A.ACTV_CD = B.ACTV_CD AND A.LOCA_CD= B.LOCA_CD) B
+		                      WHERE A.PRJTCD = B.PRJTCD 
+		                      GROUP BY B.MEMB_EMPLNO, 
+		                            A.PRJTCD, 
+		                            B.LOCA_CD,
+		                            B.TBD, 
+		                            NEXT_DAY(TO_DATE(B.WEEK_FRDT, 'YYYY-MM-DD') - 6, 2) 
+		                     ) B 
+		               WHERE A.DT = B.WEEK_FRDT(+) 
+		              ) A PIVOT (MAX(ASGN_TM) FOR DT IN (
+		              	<foreach collection="weeks" item="week" separator=",">'${week.startDate}' AS "week${week.weekNum}"</foreach>
+		              )) 
+		       ) A, 
+		       NMSP.PMPRJTBS B, 
+		       NMSP.HREMP C 
+		 WHERE A.PRJT_CD = B.PRJTCD1||'-'||B.PRJTCD2||'-'||B.PRJTCD3 
+		       AND A.MEMB_EMPLNO = C.EMPLNO
+		 ORDER BY C.KORNM, A.MEMB_EMPLNO, A.PRJT_CD, A.TBD, A.LOCA_CD
+	</select>
+	
+	<select id="getSatBdgtInfo" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+	SELECT PRJTNM, 
+	       PRJTCD, 
+	       SF_APPMNG_GET_COMMCD(#{appCd}, 'SAT_TRGT_YN', SAT_TRGT_YN, 'NM') SAT_TRGT_YN_NM, 
+	       EL, 
+	       PM, 
+	       TEAM, 
+	       CNTRT_FEE, 
+	       DECODE(SAT_TRGT_YN, 'Y', ET_TRGT_ADT_TM, NULL) ET_TRGT_ADT_TM, 
+	       TOT_BDGT, 
+	       DECODE(SAT_TRGT_YN, 'Y', ET_DFN_SAT, NULL) ET_DFN_SAT, 
+	       DECODE(SAT_TRGT_YN, 'Y', BASE_WKMNSP, NULL) BASE_WKMNSP, 
+	       CASE 
+	           WHEN SAT_TRGT_YN = 'Y' 
+	           THEN 
+	               CASE 
+	                   WHEN TOT_BDGT = 0 
+	                   THEN 0 
+	                   ELSE ROUND(TOT_BDGT_WKMNSP/TOT_BDGT, 3) 
+	               END 
+	           ELSE NULL 
+	       END EXP_TEAM_WKMNSP, 
+	       CASE 
+	           WHEN SAT_TRGT_YN = 'Y' 
+	           THEN 
+	               CASE 
+	                   WHEN TOT_BDGT = 0 
+	                   THEN 0 
+	                   ELSE ROUND(WKMNSP_SAT/(TOT_BDGT_WKMNSP/TOT_BDGT)) 
+	               END 
+	           ELSE NULL 
+	       END PLAN_SAT, 
+	       EXP_CM, 
+	       EL_BDGT_TM, 
+	       P_TOT_ASGN_TM, 
+	       D_TOT_ASGN_TM, 
+	       SM_TOT_ASGN_TM, 
+	       M_TOT_ASGN_TM, 
+	       SA_TOT_ASGN_TM, 
+	       A_TOT_ASGN_TM, 
+	       OTHER_BDGT_TM, 
+	       NEW_STF_BDGT_TM, 
+	       RA_BDGT_TM, 
+	       FLCM_BDGT_TM
+	  FROM 
+	       (SELECT A.PRJTNM, 
+	              A.PRJTCD, 
+	              A.SAT_TRGT_YN, 
+	              A.PRJT_FRDT, 
+	              A.EL, 
+	              A.PM, 
+	              A.TEAM, 
+	              A.CNTRT_FEE, 
+	              A.ET_TRGT_ADT_TM, 
+	              A.FLCM_BDGT_TM + A.RA_BDGT_TM + A.NEW_STF_BDGT_TM + A.OTHER_BDGT_TM + B.P_TOT_ASGN_TM + B.D_TOT_ASGN_TM + B.SM_TOT_ASGN_TM + B.M_TOT_ASGN_TM + B.SA_TOT_ASGN_TM + B.A_TOT_ASGN_TM TOT_BDGT, 
+	              A.FLCM_BDGT_TM*A.BASE_WKMNSP + A.RA_BDGT_TM*A.BASE_WKMNSP + A.NEW_STF_BDGT_TM*A.NEW_STF_WKMNSP + A.OTHER_BDGT_TM*A.OTHER_WKMNSP + B.P_TOT_ASGN_TM_WKMNSP + B.D_TOT_ASGN_TM_WKMNSP + B.SM_TOT_ASGN_TM_WKMNSP + B.M_TOT_ASGN_TM_WKMNSP + B.SA_TOT_ASGN_TM_WKMNSP + B.A_TOT_ASGN_TM_WKMNSP TOT_BDGT_WKMNSP, 
+	              A.ET_DFN_SAT, 
+	              A.BASE_WKMNSP, 
+	              EXP_CM, 
+	              NMSP.SF_WEB_SAT_GET_TOT_BDGT(A.PRJTCD, A.EL_EMPLNO, NULL, NULL) EL_BDGT_TM, 
+	              B.P_TOT_ASGN_TM, 
+	              B.D_TOT_ASGN_TM, 
+	              B.SM_TOT_ASGN_TM, 
+	              B.M_TOT_ASGN_TM, 
+	              B.SA_TOT_ASGN_TM, 
+	              B.A_TOT_ASGN_TM, 
+	              A.OTHER_BDGT_TM, 
+	              A.NEW_STF_BDGT_TM, 
+	              A.RA_BDGT_TM, 
+	              A.FLCM_BDGT_TM, 
+	              A.WKMNSP_SAT 
+	         FROM 
+	              (SELECT A.PRJTCD, 
+	                     A.PRJTNM, 
+	                     A.SAT_TRGT_YN, 
+	                     A.PRJT_FRDT, 
+	                     A.CHARGPTR_NM EL, 
+	                     A.CHARGPTR EL_EMPLNO, 
+	                     A.CHARGMGR_NM PM, 
+	                     A.CHARGMGR PM_EMPLNO, 
+	                     A.CHARGPTR_TEAMCD||'/'||SF_TEAM_NAME(A.CHARGPTR_TEAMCD) TEAM, 
+	                     A.CNTRT_FEE, 
+	                     A.ET_TRGT_ADT_TM, 
+	                     A.ET_DFN_SAT, 
+	                     DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.BASE_WKMNSP, 0), 1) BASE_WKMNSP, 
+	                     DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.NEW_STF_WKMNSP, 0), TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'NEWSTAFF', 'VAL1'))) NEW_STF_WKMNSP, 
+	                     DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.OTHER_WKMNSP, 0), TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'OHTER', 'VAL1'))) OTHER_WKMNSP, 
+	                     NVL(A.FLCM_BDGT_TM,0) FLCM_BDGT_TM, 
+	                     NVL(A.RA_BDGT_TM, 0) RA_BDGT_TM, 
+	                     NVL(A.NEW_STF_BDGT_TM, 0) NEW_STF_BDGT_TM, 
+	                     NVL(A.OTHER_BDGT_TM, 0) OTHER_BDGT_TM, 
+	                     NVL(A.WKMNSP_SAT, 0) WKMNSP_SAT 
+	                FROM (<include refid="satSql.authProjectInfo" />) A 
+	               WHERE A.PRJT_FRDT >= #{baseDt} 
+	              ) A, 
+	              (SELECT A.*, 
+	                     A.CNTRT_FEE + A.SUB_CNTRT_FEE - PRE_OUTEXPAMT - PRE_OTHEXPAMT + PRE_OTHBILAMT NET_RVNU, 
+	                     ROUND((A.CNTRT_FEE + A.SUB_CNTRT_FEE - PRE_OUTEXPAMT - PRE_OTHEXPAMT + PRE_OTHBILAMT - EMPL_CST - CST)/1000000) EXP_CM
+	                FROM 
+	                     (SELECT A.PRJTCD, 
+	                             A.CNTRT_FEE, 
+	                             NVL((SELECT SUM(SPRJT.CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT SPRJT WHERE SPRJT.P_PRJTCD = A.PRJTCD), 0) SUB_CNTRT_FEE, 
+	                             NVL(A.EMPL_CST, 0) EMPL_CST, 
+	                             NVL(A.CST, 0) CST, 
+	                             NVL(A.P_TOT_ASGN_TM, 0) P_TOT_ASGN_TM, 
+	                             NVL(A.D_TOT_ASGN_TM, 0) D_TOT_ASGN_TM, 
+	                             NVL(A.SM_TOT_ASGN_TM, 0) SM_TOT_ASGN_TM, 
+	                             NVL(A.M_TOT_ASGN_TM, 0) M_TOT_ASGN_TM, 
+	                             NVL(A.SA_TOT_ASGN_TM, 0) SA_TOT_ASGN_TM, 
+	                             NVL(A.A_TOT_ASGN_TM, 0) A_TOT_ASGN_TM, 
+	                             NVL(A.P_TOT_ASGN_TM_WKMNSP, 0) P_TOT_ASGN_TM_WKMNSP, 
+	                             NVL(A.D_TOT_ASGN_TM_WKMNSP, 0) D_TOT_ASGN_TM_WKMNSP, 
+	                             NVL(A.SM_TOT_ASGN_TM_WKMNSP, 0) SM_TOT_ASGN_TM_WKMNSP, 
+	                             NVL(A.M_TOT_ASGN_TM_WKMNSP, 0) M_TOT_ASGN_TM_WKMNSP, 
+	                             NVL(A.SA_TOT_ASGN_TM_WKMNSP, 0) SA_TOT_ASGN_TM_WKMNSP, 
+	                             NVL(A.A_TOT_ASGN_TM_WKMNSP, 0) A_TOT_ASGN_TM_WKMNSP, 
+	                             NVL(A.P_RATES, 0) P_RATES, 
+	                             NVL(A.D_RATES, 0) D_RATES, 
+	                             NVL(A.SM_RATES, 0) SM_RATES, 
+	                             NVL(A.M_RATES, 0) M_RATES, 
+	                             NVL(A.SA_RATES, 0) SA_RATES, 
+	                             NVL(A.A_RATES, 0) A_RATES, 
+	                             NVL(B.PRE_OUTEXPAMT, 0) PRE_OUTEXPAMT, 
+	                             NVL(B.PRE_OTHEXPAMT, 0) PRE_OTHEXPAMT, 
+	                             NVL(B.PRE_OTHBILAMT, 0) PRE_OTHBILAMT 
+	                        FROM 
+	                             (SELECT PRJTCD, 
+	                                    PRJTCD1, 
+	                                    PRJTCD2, 
+	                                    PRJTCD3, 
+	                                    CNTRT_FEE, 
+	                                    EMPL_CST, 
+	                                    CST, 
+	                                    P_TOT_ASGN_TM, 
+	                                    D_TOT_ASGN_TM, 
+	                                    SM_TOT_ASGN_TM, 
+	                                    M_TOT_ASGN_TM, 
+	                                    SA_TOT_ASGN_TM, 
+	                                    A_TOT_ASGN_TM, 
+	                                    P_TOT_ASGN_TM_WKMNSP, 
+	                                    D_TOT_ASGN_TM_WKMNSP, 
+	                                    SM_TOT_ASGN_TM_WKMNSP, 
+	                                    M_TOT_ASGN_TM_WKMNSP, 
+	                                    SA_TOT_ASGN_TM_WKMNSP, 
+	                                    A_TOT_ASGN_TM_WKMNSP, 
+	                                    P_RATES, 
+	                                    D_RATES, 
+	                                    SM_RATES, 
+	                                    M_RATES, 
+	                                    SA_RATES, 
+	                                    A_RATES 
+	                               FROM 
+	                                    (SELECT CI.PRJTCD , 
+	                                           CI.PRJTCD1, 
+	                                           CI.PRJTCD2, 
+	                                           CI.PRJTCD3, 
+	                                           CI.CNTRT_FEE, 
+	                                           SUM(CI.EMPL_CST) OVER(PARTITION BY CI.PRJTCD) EMPL_CST, 
+	                                           SUM(CI.CST) OVER(PARTITION BY CI.PRJTCD) CST, 
+	                                           CI.DIV , 
+	                                           CI.TOT_ASGN_TM, 
+	                                           CI.TOT_ASGN_TM_WKMNSP, 
+	                                           CI.RATES 
+	                                      FROM 
+	                                           (SELECT BI.PRJTCD , 
+	                                                  BI.PRJTCD1, 
+	                                                  BI.PRJTCD2, 
+	                                                  BI.PRJTCD3, 
+	                                                  BI.CNTRT_FEE, 
+	                                                  BI.CMGRADCD , 
+	                                                  CASE 
+	                                                      WHEN BI.CMGRADCD = '001' THEN 'P' 
+	                                                      WHEN BI.CMGRADCD = '002' THEN 'D' 
+	                                                      WHEN BI.CMGRADCD = '004' THEN 'SM' 
+	                                                      WHEN BI.CMGRADCD = '005' THEN 'M' 
+	                                                      WHEN BI.CMGRADCD = '007' THEN 'SA' 
+	                                                      WHEN BI.CMGRADCD = '008' THEN 'A'
+	                                                  END AS DIV , 
+	                                                  NVL(MAX(BI.BILL_RATES), 0) RATES , 
+	                                                  NVL(SUM(BI.TOT_ASGN_TM), 0) TOT_ASGN_TM, 
+	                                                  NVL(SUM(BI.TOT_ASGN_TM_WKMNSP), 0) TOT_ASGN_TM_WKMNSP, 
+	                                                  SUM(FIXPARATE * TOT_ASGN_TM) EMPL_CST, 
+	                                                  ROUND(SUM(FIXPARATE * TOT_ASGN_TM * EXPRATE / 100)) CST 
+	                                             FROM 
+	                                                  (SELECT MI.PRJTCD , 
+	                                                         MI.PRJTCD1, 
+	                                                         MI.PRJTCD2, 
+	                                                         MI.PRJTCD3, 
+	                                                         MI.CREDT, 
+	                                                         MI.CMOFCD, 
+	                                                         MI.YEARLY, 
+	                                                         MI.CNTRT_FEE, 
+	                                                         C.BILL_RATES , 
+	                                                         C.CMGRADCD, 
+	                                                         NVL(SUM(MI.TOT_ASGN_TM), 0) AS TOT_ASGN_TM, 
+	                                                         NVL(SUM(MI.TOT_ASGN_TM * WKMNSP), 0) AS TOT_ASGN_TM_WKMNSP 
+	                                                    FROM 
+	                                                         (SELECT M.PRJTCD , 
+	                                                                G.CMGRADCD , 
+	                                                                M.GRADCD , 
+	                                                                (SELECT SUM(ASGN_TM) 
+	                                                                  FROM NMSP.WEB_SAT_MEMB_BDGT BDGT 
+	                                                                 WHERE BDGT.PRJTCD = M.PRJTCD 
+	                                                                       AND BDGT.MEMB_EMPLNO = M.MEMB_EMPLNO
+	                                                                       AND BDGT.ACTV_CD = M.ACTV_CD
+	                                                                       AND BDGT.LOCA_CD = M.LOCA_CD
+	                                                                ) TOT_ASGN_TM,
+	                                                                M.WKMNSP, 
+	                                                                H.OCCUCD , 
+	                                                                CASE 
+	                                                                    WHEN H.OCCUCD = '001' 
+	                                                                    THEN 'P' 
+	                                                                    ELSE 'N' 
+	                                                                END AS PN , 
+	                                                                P.PRJTCD1 , 
+	                                                                P.PRJTCD2 , 
+	                                                                P.PRJTCD3 , 
+	                                                                P.PRDTCD,
+	                                                                P.CNTRT_FEE, 
+	                                                                T.CMOFCD, 
+	                                                                T.YEARLY, 
+	                                                                P.CREDT 
+	                                                           FROM 
+	                                                                (SELECT A.PRJTCD, 
+	                                                                       A.PRJTCD1, 
+	                                                                       A.PRJTCD2, 
+	                                                                       A.PRJTCD3, 
+	                                                                       B.PRDTCD,
+	                                                                       A.CNTRT_FEE, 
+	                                                                       (SELECT BUSIYY FROM CMBUSICD WHERE KYKWDV='2' AND TO_CHAR(A.CREDT, 'YYYYMM') BETWEEN FROMYM AND TOOOYM) YEARLY,
+	                                                                       A.CREDT 
+	                                                                  FROM NMSP.WEB_SAT_PRJT A,
+	                                                                       PMPRJTBS B
+	                                                                 WHERE B.PRJTCD1 = A.PRJTCD1
+	                                                                       AND B.PRJTCD2 = A.PRJTCD2
+	                                                                       AND B.PRJTCD3 = A.PRJTCD3  
+	                                                                       AND A.STAT IN ('RG', 'RQ', 'RJ', 'CO') 
+	                                                                       AND A.PRJT_FRDT >= #{baseDt} 
+	                                                                ) P , 
+	                                                                NMSP.WEB_SAT_MEMB M , 
+	                                                                NMSP.HRGRAD G , 
+	                                                                NMSP.HREMP H, 
+	                                                                NMSP.CMTEAMH T 
+	                                                          WHERE P.PRJTCD = M.PRJTCD 
+	                                                                AND M.GRADCD = G.GRADCD 
+	                                                                AND M.MEMB_EMPLNO = H.EMPLNO 
+	                                                                AND T.TEAMCD = 
+	                                                                (SELECT TEAMCD 
+	                                                                  FROM HRANNC A 
+	                                                                 WHERE A.EMPLNO = H.EMPLNO 
+	                                                                       AND DSEQ=0 
+	                                                                       AND TO_CHAR(P.CREDT, 'YYYYMMDD') BETWEEN ANNDT AND ENDDT 
+	                                                                ) 
+	                                                                AND T.YEARLY = P.YEARLY
+	                                                         ) MI , 
+	                                                         NMSP.PMCLRATEH C 
+	                                                   WHERE MI.YEARLY = C.YEARLY 
+	                                                         AND MI.PRDTCD = C.SERVICE
+	                                                         AND MI.GRADCD = C.CLASCD 
+	                                                         AND MI.PN = C.PN 
+	                                                   GROUP BY MI.PRJTCD , 
+	                                                         MI.PRJTCD1, 
+	                                                         MI.PRJTCD2, 
+	                                                         MI.PRJTCD3, 
+	                                                         MI.CNTRT_FEE, 
+	                                                         MI.CREDT, 
+	                                                         MI.CMOFCD, 
+	                                                         MI.YEARLY, 
+	                                                         C.BILL_RATES , 
+	                                                         C.CMGRADCD
+	                                                  ) BI, 
+	                                                  (SELECT A.YEARLY, 
+	                                                         C.CMOFCD, 
+	                                                         A.GRADE CMGRADCD , 
+	                                                         A.FIXPARATE, 
+	                                                         B.EXPRATE 
+	                                                    FROM PMSTPAYRATE A, 
+	                                                         PMSTEXP B, 
+	                                                         CMTEAMCD C 
+	                                                   WHERE A.YEARLY = B.YEARLY 
+	                                                         AND A.BONBCD = B.BONBCD 
+	                                                         AND A.BONBCD = C.TEAMCD 
+	                                                  ) C 
+	                                            WHERE C.YEARLY = BI.YEARLY 
+	                                                  AND BI.CMGRADCD = C.CMGRADCD 
+	                                                  AND BI.CMOFCD = C.CMOFCD 
+	                                                  AND BI.CMGRADCD IN ('001', '002', '004', '005', '007', '008')
+	                                            GROUP BY BI.PRJTCD, 
+	                                                  BI.PRJTCD1, 
+	                                                  BI.PRJTCD2, 
+	                                                  BI.PRJTCD3, 
+	                                                  BI.CNTRT_FEE, 
+	                                                  BI.CMGRADCD 
+	                                           ) CI  
+	                                    ) PIVOT (MAX(TOT_ASGN_TM) TOT_ASGN_TM, MAX(TOT_ASGN_TM_WKMNSP) TOT_ASGN_TM_WKMNSP, MAX(RATES) RATES FOR DIV IN ('P' P, 'D' D, 'SM' SM, 'M' M, 'SA' SA, 'A' A)) 
+	                             ) A, 
+	                             PMCONTEST B 
+	                       WHERE A.PRJTCD1 = B.PRJTCD1(+) 
+	                             AND A.PRJTCD2 = B.PRJTCD2(+) 
+	                             AND A.PRJTCD3 = B.PRJTCD3(+) 
+	                      ) A 
+	               ) B 
+	         WHERE A.PRJTCD= B.PRJTCD(+) 
+	        ) 
+	</select>
+	
+	<select id="getSatBdgtInfo_BK" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+	SELECT PRJTNM, 
+	       PRJTCD,
+	       SF_APPMNG_GET_COMMCD(#{appCd}, 'SAT_TRGT_YN', SAT_TRGT_YN, 'NM') SAT_TRGT_YN_NM,
+	       EL, 
+	       PM, 
+	       TEAM, 
+	       CNTRT_FEE, 
+	       DECODE(SAT_TRGT_YN, 'Y', ET_TRGT_ADT_TM, NULL) ET_TRGT_ADT_TM, 
+	       TOT_BDGT, 
+	       DECODE(SAT_TRGT_YN, 'Y', ET_DFN_SAT, NULL) ET_DFN_SAT,
+	       DECODE(SAT_TRGT_YN, 'Y', BASE_WKMNSP, NULL) BASE_WKMNSP,
+	       CASE 
+	           WHEN SAT_TRGT_YN = 'Y' 
+	           THEN 
+	               CASE 
+	                   WHEN TOT_BDGT = 0 
+	                   THEN 0 
+	                   ELSE ROUND(TOT_BDGT_WKMNSP/TOT_BDGT, 3) 
+	               END 
+	           ELSE NULL 
+	       END EXP_TEAM_WKMNSP, 
+	       CASE 
+	           WHEN SAT_TRGT_YN = 'Y' 
+	           THEN 
+	               CASE 
+	                   WHEN TOT_BDGT = 0 
+	                   THEN 0 
+	                   ELSE ROUND(WKMNSP_SAT/(TOT_BDGT_WKMNSP/TOT_BDGT)) 
+	               END 
+	           ELSE NULL 
+	       END PLAN_SAT,
+	       EXP_CM, 
+	       EL_BDGT_TM, 
+	       P_TOT_ASGN_TM, 
+	       D_TOT_ASGN_TM, 
+	       SM_TOT_ASGN_TM, 
+	       M_TOT_ASGN_TM, 
+	       SA_TOT_ASGN_TM, 
+	       A_TOT_ASGN_TM, 
+	       OTHER_BDGT_TM, 
+	       NEW_STF_BDGT_TM, 
+	       RA_BDGT_TM, 
+	       FLCM_BDGT_TM 
+	  FROM 
+	       (SELECT A.PRJTNM, 
+	              A.PRJTCD,
+	              A.SAT_TRGT_YN, 
+	              A.PRJT_FRDT,
+	              A.EL, 
+	              A.PM, 
+	              A.TEAM, 
+	              A.CNTRT_FEE, 
+	              A.ET_TRGT_ADT_TM, 
+	              A.FLCM_BDGT_TM + A.RA_BDGT_TM + A.NEW_STF_BDGT_TM + A.OTHER_BDGT_TM + B.P_TOT_ASGN_TM + B.D_TOT_ASGN_TM + B.SM_TOT_ASGN_TM + B.M_TOT_ASGN_TM + B.SA_TOT_ASGN_TM + B.A_TOT_ASGN_TM TOT_BDGT, 
+	              A.FLCM_BDGT_TM*A.BASE_WKMNSP + A.RA_BDGT_TM*A.BASE_WKMNSP + A.NEW_STF_BDGT_TM*A.NEW_STF_WKMNSP + A.OTHER_BDGT_TM*A.OTHER_WKMNSP + B.P_TOT_ASGN_TM_WKMNSP + B.D_TOT_ASGN_TM_WKMNSP + B.SM_TOT_ASGN_TM_WKMNSP + B.M_TOT_ASGN_TM_WKMNSP + B.SA_TOT_ASGN_TM_WKMNSP + B.A_TOT_ASGN_TM_WKMNSP TOT_BDGT_WKMNSP, 
+	              A.ET_DFN_SAT, 
+	              A.BASE_WKMNSP, 
+	              EXP_CM, 
+	              NMSP.SF_WEB_SAT_GET_TOT_BDGT(A.PRJTCD, A.EL_EMPLNO, NULL, NULL) EL_BDGT_TM, 
+	              B.P_TOT_ASGN_TM, 
+	              B.D_TOT_ASGN_TM, 
+	              B.SM_TOT_ASGN_TM, 
+	              B.M_TOT_ASGN_TM, 
+	              B.SA_TOT_ASGN_TM, 
+	              B.A_TOT_ASGN_TM, 
+	              A.OTHER_BDGT_TM, 
+	              A.NEW_STF_BDGT_TM, 
+	              A.RA_BDGT_TM, 
+	              A.FLCM_BDGT_TM, 
+	              WKMNSP_SAT 
+	         FROM 
+	              (SELECT A.PRJTCD, 
+	                     A.PRJTNM,
+	                     A.SAT_TRGT_YN,
+	                     A.PRJT_FRDT,
+	                     A.CHARGPTR_NM EL, 
+	                     A.CHARGPTR EL_EMPLNO, 
+	                     A.CHARGMGR_NM PM, 
+	                     A.CHARGMGR PM_EMPLNO, 
+	                     A.CHARGPTR_TEAMCD||'/'||SF_TEAM_NAME(A.CHARGPTR_TEAMCD) TEAM, 
+	                     A.CNTRT_FEE, 
+	                     A.ET_TRGT_ADT_TM, 
+	                     A.ET_DFN_SAT,
+					     DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.BASE_WKMNSP, 0), 1) BASE_WKMNSP,
+		         	     DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.NEW_STF_WKMNSP, 0), TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'NEWSTAFF', 'VAL1'))) NEW_STF_WKMNSP,
+		         	     DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.OTHER_WKMNSP, 0), TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'OHTER', 'VAL1'))) OTHER_WKMNSP,
+	                     A.CHARGMGR_GRAD_NM, 
+	                     A.RCRD_MGR_NM, 
+	                     A.RCRD_MGR_GRAD_NM, 
+	                     NVL(A.FLCM_BDGT_TM,0) FLCM_BDGT_TM, 
+	                     NVL(A.RA_BDGT_TM, 0) RA_BDGT_TM, 
+	                     NVL(A.NEW_STF_BDGT_TM, 0) NEW_STF_BDGT_TM, 
+	                     NVL(A.OTHER_BDGT_TM, 0) OTHER_BDGT_TM, 
+	                     NVL(A.WKMNSP_SAT, 0) WKMNSP_SAT 
+	                FROM (<include refid="satSql.authProjectInfo" />) A
+	               WHERE A.PRJT_FRDT >= #{baseDt}
+	              ) A, 
+	              (SELECT A.*, 
+	                     NVL((SELECT SUM(SPRJT.CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT SPRJT WHERE SPRJT.P_PRJTCD = A.PRJTCD), 0) + A.CNTRT_FEE - PRE_OUTEXPAMT - PRE_OTHEXPAMT + PRE_OTHBILAMT NET_RVNU, 
+	                     ROUND((NVL((SELECT SUM(SPRJT.CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT SPRJT WHERE SPRJT.P_PRJTCD = A.PRJTCD), 0) + A.CNTRT_FEE - PRE_OUTEXPAMT - PRE_OTHEXPAMT + PRE_OTHBILAMT - EMPL_CST - CST)/1000000) EXP_CM 
+                     FROM 
+                          (SELECT P.PRJTCD, 
+                                 P.CNTRT_FEE, 
+                                 NVL(A.EMPL_CST, 0) EMPL_CST, 
+                                 NVL(A.CST, 0) CST, 
+                                 NVL(A.P_TOT_ASGN_TM, 0) P_TOT_ASGN_TM, 
+                                 NVL(A.D_TOT_ASGN_TM, 0) D_TOT_ASGN_TM, 
+                                 NVL(A.SM_TOT_ASGN_TM, 0) SM_TOT_ASGN_TM, 
+                                 NVL(A.M_TOT_ASGN_TM, 0) M_TOT_ASGN_TM, 
+                                 NVL(A.SA_TOT_ASGN_TM, 0) SA_TOT_ASGN_TM, 
+                                 NVL(A.A_TOT_ASGN_TM, 0) A_TOT_ASGN_TM, 
+                                 NVL(A.P_TOT_ASGN_TM_WKMNSP, 0) P_TOT_ASGN_TM_WKMNSP, 
+                                 NVL(A.D_TOT_ASGN_TM_WKMNSP, 0) D_TOT_ASGN_TM_WKMNSP, 
+                                 NVL(A.SM_TOT_ASGN_TM_WKMNSP, 0) SM_TOT_ASGN_TM_WKMNSP, 
+                                 NVL(A.M_TOT_ASGN_TM_WKMNSP, 0) M_TOT_ASGN_TM_WKMNSP, 
+                                 NVL(A.SA_TOT_ASGN_TM_WKMNSP, 0) SA_TOT_ASGN_TM_WKMNSP, 
+                                 NVL(A.A_TOT_ASGN_TM_WKMNSP, 0) A_TOT_ASGN_TM_WKMNSP, 
+                                 NVL(A.P_RATES, 0) P_RATES, 
+                                 NVL(A.D_RATES, 0) D_RATES, 
+                                 NVL(A.SM_RATES, 0) SM_RATES, 
+                                 NVL(A.M_RATES, 0) M_RATES, 
+                                 NVL(A.SA_RATES, 0) SA_RATES, 
+                                 NVL(A.A_RATES, 0) A_RATES, 
+                                 NVL(B.PRE_OUTEXPAMT, 0) PRE_OUTEXPAMT, 
+                                 NVL(B.PRE_OTHEXPAMT, 0) PRE_OTHEXPAMT, 
+                                 NVL(B.PRE_OTHBILAMT, 0) PRE_OTHBILAMT 
+                            FROM (SELECT * FROM NMSP.WEB_SAT_PRJT WHERE PRJT_FRDT >= #{baseDt}) P, 
+                                 (SELECT PRJTCD, 
+                                        PRJTCD1, 
+                                        PRJTCD2, 
+                                        PRJTCD3, 
+                                        EMPL_CST, 
+                                        CST, 
+                                        P_TOT_ASGN_TM, 
+                                        D_TOT_ASGN_TM, 
+                                        SM_TOT_ASGN_TM, 
+                                        M_TOT_ASGN_TM, 
+                                        SA_TOT_ASGN_TM, 
+                                        A_TOT_ASGN_TM, 
+                                        P_TOT_ASGN_TM_WKMNSP, 
+                                        D_TOT_ASGN_TM_WKMNSP, 
+                                        SM_TOT_ASGN_TM_WKMNSP, 
+                                        M_TOT_ASGN_TM_WKMNSP, 
+                                        SA_TOT_ASGN_TM_WKMNSP, 
+                                        A_TOT_ASGN_TM_WKMNSP, 
+                                        P_RATES, 
+                                        D_RATES, 
+                                        SM_RATES, 
+                                        M_RATES, 
+                                        SA_RATES, 
+                                        A_RATES 
+                                   FROM 
+                                        (SELECT CI.PRJTCD , 
+                                               CI.PRJTCD1, 
+                                               CI.PRJTCD2, 
+                                               CI.PRJTCD3, 
+                                               SUM(CI.EMPL_CST) OVER(PARTITION BY CI.PRJTCD) EMPL_CST, 
+                                               SUM(CI.CST) OVER(PARTITION BY CI.PRJTCD) CST, 
+                                               CI.DIV , 
+                                               CI.TOT_ASGN_TM, 
+                                               CI.TOT_ASGN_TM_WKMNSP, 
+                                               CI.RATES 
+                                          FROM 
+                                               (SELECT BI.PRJTCD , 
+                                                      BI.PRJTCD1, 
+                                                      BI.PRJTCD2, 
+                                                      BI.PRJTCD3, 
+                                                      BI.CMGRADCD , 
+                                                      CASE 
+                                                          WHEN BI.CMGRADCD = '001' 
+                                                          THEN 'P' 
+                                                          WHEN BI.CMGRADCD = '002' 
+                                                          THEN 'D' 
+                                                          WHEN BI.CMGRADCD = '004' 
+                                                          THEN 'SM' 
+                                                          WHEN BI.CMGRADCD = '005' 
+                                                          THEN 'M' 
+                                                          WHEN BI.CMGRADCD = '007' 
+                                                          THEN 'SA' 
+                                                          WHEN BI.CMGRADCD = '008' 
+                                                          THEN 'A' 
+                                                          ELSE 'other' 
+                                                      END AS DIV , 
+                                                      NVL(MAX(BI.BILL_RATES), 0) RATES , 
+                                                      NVL(SUM(BI.TOT_ASGN_TM), 0) TOT_ASGN_TM, 
+                                                      NVL(SUM(BI.TOT_ASGN_TM_WKMNSP), 0) TOT_ASGN_TM_WKMNSP, 
+                                                      SUM(FIXPARATE * TOT_ASGN_TM) EMPL_CST, 
+                                                      ROUND(SUM(FIXPARATE * TOT_ASGN_TM * EXPRATE / 100)) CST 
+                                                 FROM 
+                                                      (SELECT MI.PRJTCD , 
+                                                             MI.PRJTCD1, 
+                                                             MI.PRJTCD2, 
+                                                             MI.PRJTCD3, 
+                                                             MI.CREDT, 
+                                                             MI.CMOFCD, 
+                                                             C.BILL_RATES , 
+                                                             C.CMGRADCD, 
+                                                             NVL(SUM(MI.TOT_ASGN_TM), 0) AS TOT_ASGN_TM, 
+                                                             NVL(SUM(MI.TOT_ASGN_TM * WKMNSP), 0) AS TOT_ASGN_TM_WKMNSP 
+                                                        FROM 
+                                                             (SELECT M.PRJTCD , 
+                                                                    G.CMGRADCD , 
+                                                                    M.GRADCD , 
+                                                                    SF_WEB_SAT_GET_TOT_BDGT(M.PRJTCD, M.MEMB_EMPLNO, M.ACTV_CD, M.LOCA_CD) TOT_ASGN_TM , 
+                                                                    M.WKMNSP, 
+                                                                    H.OCCUCD , 
+                                                                    CASE 
+                                                                        WHEN H.OCCUCD = '001' 
+                                                                        THEN 'P' 
+                                                                        ELSE 'N' 
+                                                                    END AS PN , 
+                                                                    P.PRJTCD1 , 
+                                                                    P.PRJTCD2 , 
+                                                                    P.PRJTCD3 , 
+                                                                    P.CNTRT_FEE, 
+                                                                    T.CMOFCD, 
+                                                                    P.CREDT 
+                                                               FROM (SELECT * FROM (<include refid="satSql.authProjectInfo" />) A WHERE PRJT_FRDT >= #{baseDt}) P , 
+                                                                    NMSP.WEB_SAT_MEMB M , 
+                                                                    NMSP.HRGRAD G , 
+                                                                    NMSP.HREMP H, 
+                                                                    NMSP.CMTEAMH T 
+                                                              WHERE P.PRJTCD = M.PRJTCD 
+                                                                    AND M.GRADCD = G.GRADCD 
+                                                                    AND M.MEMB_EMPLNO = H.EMPLNO 
+                                                                    AND T.TEAMCD = SAC_HR.F_FRM_CAM_HISTORY(H.EMP_ID, 'KO', P.CREDT, 'ORG_CD') 
+                                                                    AND T.YEARLY = NMSP.SF_PM_GET_CYEARLY('01', TO_CHAR(P.CREDT, 'YYYYMM'), '2')
+                                                             ) MI , 
+                                                             NMSP.PMCLRATEH C 
+                                                       WHERE NMSP.SF_PM_GET_CYEARLY('01', TO_CHAR(MI.CREDT, 'YYYYMM'), '2') = C.YEARLY 
+                                                             AND 
+                                                             (SELECT PRDTCD 
+                                                               FROM PMPRJTBS 
+                                                              WHERE PRJTCD1 = MI.PRJTCD1 
+                                                                    AND PRJTCD2 = MI.PRJTCD2 
+                                                                    AND PRJTCD3 = MI.PRJTCD3 
+                                                             ) = C.SERVICE 
+                                                             AND MI.GRADCD = C.CLASCD 
+                                                             AND MI.PN = C.PN 
+                                                       GROUP BY MI.PRJTCD , 
+                                                             MI.PRJTCD1, 
+                                                             MI.PRJTCD2, 
+                                                             MI.PRJTCD3, 
+                                                             MI.CREDT, 
+                                                             MI.CMOFCD, 
+                                                             C.BILL_RATES , 
+                                                             C.CMGRADCD 
+                                                      ) BI, 
+                                                      (SELECT A.YEARLY, 
+                                                             C.CMOFCD, 
+                                                             A.GRADE CMGRADCD , 
+                                                             A.FIXPARATE, 
+                                                             B.EXPRATE 
+                                                        FROM PMSTPAYRATE A, 
+                                                             PMSTEXP B, 
+                                                             CMTEAMCD C 
+                                                       WHERE A.YEARLY = B.YEARLY 
+                                                             AND A.BONBCD = B.BONBCD 
+                                                             AND A.BONBCD = C.TEAMCD 
+                                                      ) C 
+                                                WHERE C.YEARLY = SF_PM_GET_CYEARLY('01',TO_CHAR(BI.CREDT,'YYYYMM'),'2') 
+                                                      AND BI.CMGRADCD = C.CMGRADCD 
+                                                      AND BI.CMOFCD = C.CMOFCD 
+                                                GROUP BY BI.PRJTCD, 
+                                                      BI.PRJTCD1, 
+                                                      BI.PRJTCD2, 
+                                                      BI.PRJTCD3, 
+                                                      BI.CMGRADCD 
+                                               ) CI 
+                                         WHERE CI.DIV != 'other' 
+                                        ) PIVOT (MAX(TOT_ASGN_TM) TOT_ASGN_TM, MAX(TOT_ASGN_TM_WKMNSP) TOT_ASGN_TM_WKMNSP, MAX(RATES) RATES FOR DIV IN ('P' P, 'D' D, 'SM' SM, 'M' M, 'SA' SA, 'A' A)) 
+                                 ) A, 
+                                 PMCONTEST B 
+                           WHERE P.PRJTCD = A.PRJTCD(+) 
+                                 AND A.PRJTCD1 = B.PRJTCD1(+) 
+                                 AND A.PRJTCD2 = B.PRJTCD2(+) 
+                                 AND A.PRJTCD3 = B.PRJTCD3(+) 
+                          ) A 
+                   ) B 
+             WHERE A.PRJTCD= B.PRJTCD 
+            ) A  
+	</select>
+	
+	<select id="getSatPrjtInfo" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT *
+		FROM (
+			SELECT 'S'||(ROW_NUMBER() OVER(PARTITION BY A.PRJTCD ORDER BY B.ORDBY)) DIV, 
+				  A.PRJTNM,
+			      A.CLNT_NM,
+			      A.PRJTCD,
+			      A.SHRTNM,
+			      A.CNTRT_FEE,
+				  A.CHARGPTR,
+			      A.CHARGPTR_NM,
+			      A.CHARGMGR,
+			      A.CHARGMGR_NM,
+			      A.RCRD_MGR,
+			      A.RCRD_MGR_NM,
+			      A.PRJT_FRDT,
+			      A.PRJT_TODT,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'DESIG_ADT_YN', A.DESIG_ADT_YN, 'NM') DESIG_ADT_YN_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SAT_TRGT_YN', A.SAT_TRGT_YN, 'NM') SAT_TRGT_YN_NM,
+			      (NVL((SELECT SUM(CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT WHERE P_PRJTCD = A.PRJTCD), 0) + A.CNTRT_FEE) TOT_CNTRT_FEE,
+                  DECODE(A.SAT_TRGT_YN, 'Y', NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INDUS', A.INDUS_CD, 'NM'), NULL) INDUS_NM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LISTDV', A.LIST_DV_CD, 'NM'), NULL) LIST_DV_NM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', A.INDIV_ASSET, NULL) INDIV_ASSET,
+			      DECODE(A.SAT_TRGT_YN, 'Y', A.CONSO_SALES, NULL) CONSO_SALES,
+			      DECODE(A.SAT_TRGT_YN, 'Y', A.CONSO_ASSET, NULL) CONSO_ASSET,
+			      DECODE(A.SAT_TRGT_YN, 'Y', ROUND( (A.CONSO_SALES + A.CONSO_ASSET)/2, 0), NULL) COMP_SIZE,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'BIZRPRT_YN', A.BIZ_RPRT_YN, 'NM'), NULL) BIZ_RPRT_YN_NM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP1_EXPT_YN', A.SATGRP1_EXPT_YN, 'NM'), NULL) SATGRP1_EXPT_YN_NM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', A.PRIOR_ADT_TM, NULL) PRIOR_ADT_TM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', A.SATGRP_CD, 'NM'), NULL) SATGRP_NM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'USALIST_YN', A.USA_LIST_YN, 'NM'), NULL) USA_LIST_YN_NM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'HOLDINGS_DV', A.HOLDINGS_DIV_CD, 'NM'), NULL) HOLDINGS_DIV_NM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'CONSO_YN', A.CONSO_FINSTAT_YN, 'NM'), NULL) CONSO_FINSTAT_YN_NM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', A.SBSID_CNT, NULL) SBSID_CNT,
+			      DECODE(A.SAT_TRGT_YN, 'Y', A.RPRT_SCDL_DT, NULL) RPRT_SCDL_DT,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'FIRST_YN', A.FIRST_ADT_YN, 'NM'), NULL) FIRST_ADT_YN_NM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', A.FIRST_ADT_FCTR, NULL) FIRST_ADT_FCTR,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'IFRS_YN', A.IFRS_YN, 'NM'), NULL) IFRS_YN_NM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', A.CONSO_ACCNT_RECEIV, NULL) CONSO_ACCNT_RECEIV,
+			      DECODE(A.SAT_TRGT_YN, 'Y', A.CONSO_INVNT, NULL) CONSO_INVNT,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LOSS_YN', A.CURR_CONSO_LOSS_YN, 'NM'), NULL) CURR_CONSO_LOSS_YN_NM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'ADTOPIN_YN', A.CURR_ADTOPIN_CD, 'NM'), NULL) CURR_ADTOPIN_NM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.INTR_TRAN_ASSET_SALES, 0), NULL) INTR_TRAN_ASSET_SALES,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.RELAT_COMP_ASSET, 0), NULL) RELAT_COMP_ASSET,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.SBSID_ASSET_WITH_INTR_TRAN, 0), NULL) SBSID_ASSET_WITH_INTR_TRAN,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.SBSID_SALES_WITH_INTR_TRAN, 0), NULL) SBSID_SALES_WITH_INTR_TRAN,
+			      DECODE(A.SAT_TRGT_YN, 'Y', ROUND(A.FACTOR_VAL, 2), NULL) FACTOR_VAL,
+			      DECODE(A.SAT_TRGT_YN, 'Y', A.CAL_ADT_TM, NULL) CAL_ADT_TM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INTR_ADT_YN', A.INTR_ADT_YN, 'NM'), NULL) INTR_ADT_YN_NM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', ROUND(A.INTR_ADT_TM, 2), NULL) INTR_ADT_TM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', ROUND(A.CAL_SAT, 2), NULL) CAL_SAT,
+			      DECODE(A.SAT_TRGT_YN, 'Y', A.ET_DFN_SAT, NULL) ET_DFN_SAT,
+			      DECODE(A.SAT_TRGT_YN, 'Y', A.BASE_WKMNSP, NULL) BASE_WKMNSP,
+			      DECODE(A.SAT_TRGT_YN, 'Y', A.ET_TRGT_ADT_TM, NULL) ET_TRGT_ADT_TM,
+			      NVL(A.ETC_BDGT_TM, 0) ETC_BDGT_TM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.ET_TRGT_ADT_TM, 0), 0) + NVL(A.ETC_BDGT_TM, 0) TOT_PRJT_BDGT,
+			      A.RA_BDGT_TM,
+			      A.FLCM_BDGT_TM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.ET_TRGT_ADT_TM, 0), 0) + NVL(A.ETC_BDGT_TM, 0)- A.RA_BDGT_TM - A.FLCM_BDGT_TM REMAIN_BDGT,
+			      NVL(A.NEW_STF_BDGT_TM, 0) NEW_STF_BDGT_TM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', A.NEW_STF_WKMNSP, TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'NEWSTAFF', 'VAL1'))) NEW_STF_WKMNSP,
+			      NVL(A.OTHER_BDGT_TM, 0) OTHER_BDGT_TM,
+			      DECODE(A.SAT_TRGT_YN, 'Y', A.OTHER_WKMNSP, TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'OHTER', 'VAL1'))) OTHER_WKMNSP,
+			      B.PRJTCD S_PRJTCD,
+			      C.PRJTNM S_PRJTNM,
+			      C.CHARGPTR S_CHARGPTR,
+			      NMSP.SF_EMP_NAME(C.CHARGPTR) S_CHARGPTR_NM,
+			      C.CHARGMGR S_CHARGMGR,
+			      NMSP.SF_EMP_NAME(C.CHARGMGR) S_CHARGMGR_NM,
+			      B.CNTRT_FEE S_CNTRT_FEE
+			FROM (SELECT * FROM (<include refid="satSql.authProjectInfo" />) A WHERE A.PRJT_FRDT >= #{baseDt}) A,
+				NMSP.WEB_SAT_SUB_PRJT B,
+       			NMSP.PMPRJTBS C
+       		WHERE A.PRJTCD = B.P_PRJTCD(+)
+			   AND B.PRJTCD1 = C.PRJTCD1(+)
+			   AND B.PRJTCD2 = C.PRJTCD2(+)
+			   AND B.PRJTCD3 = C.PRJTCD3(+) 
+			) PIVOT (MAX(S_PRJTCD) PRJTCD, MAX(S_PRJTNM) PRJTNM, MAX(S_CHARGPTR) CHARGPTR, MAX(S_CHARGPTR_NM) CHARGPTR_NM, MAX(S_CHARGMGR) CHARGMGR, MAX(S_CHARGMGR_NM) CHARGMGR_NM, MAX(S_CNTRT_FEE) CNTRT_FEE
+    		  FOR DIV IN ('S1' S1, 'S2' S2, 'S3' S3, 'S4' S4, 'S5' S5, 'S6' S6))
+	</select>
+	
+	
+	<select id="getSatPrjtInfoV2" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT *
+		FROM (
+			SELECT 'S'||(ROW_NUMBER() OVER(PARTITION BY A.PRJTCD ORDER BY B.ORDBY)) DIV,
+				  B.PRJTCD S_PRJTCD,
+			      C.PRJTNM S_PRJTNM,
+			      C.CHARGPTR S_CHARGPTR,
+			      NMSP.SF_EMP_NAME(C.CHARGPTR) S_CHARGPTR_NM,
+			      C.CHARGMGR S_CHARGMGR,
+			      NMSP.SF_EMP_NAME(C.CHARGMGR) S_CHARGMGR_NM,
+			      B.CNTRT_FEE S_CNTRT_FEE,
+				  A.*,
+				  A.CAL_RESULT * A.YEAR_RATE CAL_RATE_SAT,
+				  NVL((A.CONSO_ACCNT_RECEIV + A.CONSO_INVNT)/NULLIF(A.CONSO_ASSET, 0), 0) RISK_BASE,
+				  TO_CHAR(ADD_MONTHS(TO_DATE(A.FIRST_BIZ_DT, 'YYYY-MM'), -12), 'YYYY-MM') FST_BIZ_DT,
+              	  TO_CHAR(ADD_MONTHS(TO_DATE(A.FIRST_BIZ_DT, 'YYYY-MM'), +24), 'YYYY-MM') FST_BIZ_DT_3YEAR,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'DESIG_ADT_YN', A.DESIG_ADT_YN, 'NM') DESIG_ADT_YN_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SAT_TRGT_YN', A.SAT_TRGT_YN, 'NM') SAT_TRGT_YN_NM,
+			      (NVL((SELECT SUM(CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT WHERE P_PRJTCD = A.PRJTCD), 0) + A.CNTRT_FEE) TOT_CNTRT_FEE,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INDUS', A.INDUS_CD, 'NM') INDUS_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LISTDV_V2', A.LIST_DV_CD, 'NM') LIST_DV_NM,
+			      ROUND((A.CONSO_SALES + A.CONSO_ASSET)/2, 0) COMP_SIZE,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'BIZRPRT_YN', A.BIZ_RPRT_YN, 'NM') BIZ_RPRT_YN_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP1_EXPT_YN', A.SATGRP1_EXPT_YN, 'NM') SATGRP1_EXPT_YN_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', A.SATGRP_CD, 'NM') SATGRP_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'USALIST_YN', A.USA_LIST_YN, 'NM') USA_LIST_YN_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'HOLDINGS_DV', A.HOLDINGS_DIV_CD, 'NM') HOLDINGS_DIV_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'CONSO_YN', A.CONSO_FINSTAT_YN, 'NM') CONSO_FINSTAT_YN_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'FIRST_YN', A.FIRST_ADT_YN, 'NM') FIRST_ADT_YN_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'IFRS_YN', A.IFRS_YN, 'NM') IFRS_YN_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LOSS_YN', A.CURR_CONSO_LOSS_YN, 'NM') CURR_CONSO_LOSS_YN_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'ADTOPIN_YN', A.CURR_ADTOPIN_CD, 'NM') CURR_ADTOPIN_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INTR_ADT_YN', A.INTR_ADT_YN, 'NM') INTR_ADT_YN_NM,
+			      NVL(A.ET_TRGT_ADT_TM, 0) + NVL(A.ETC_BDGT_TM, 0) TOT_PRJT_BDGT,
+			      NVL(A.ET_TRGT_ADT_TM, 0) + NVL(A.ETC_BDGT_TM, 0)- A.RA_BDGT_TM - A.FLCM_BDGT_TM REMAIN_BDGT,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'CONTI_ADT_CNT', A.CONTI_ADT_CNT, 'NM') CONTI_ADT_CNT_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INTR_ADT_YCNT', A.INTR_ADT_YCNT, 'NM') INTR_ADT_YCNT_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'KAM_YN', A.KAM_YN, 'NM') KAM_YN_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_ADTOPIN_CHG_YN', A.PRIOR_ADTOPIN_CHG_YN, 'NM') PRIOR_ADTOPIN_CHG_YN_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_LOSS_YN', A.PRIOR_LOSS_YN, 'NM') PRIOR_LOSS_YN_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'MIN_MAX_YN', A.MIN_MAX_YN, 'NM') MIN_MAX_YN_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'MIN_MAX_REASON', A.MIN_MAX_REASON_CD, 'NM') MIN_MAX_REASON_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'FST_ADT_TM_REASON', A.FST_ADT_TM_REASON_CD, 'NM') FST_ADT_TM_REASON_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'FST_WKMNSP_REASON', A.FST_WKMNSP_REASON_CD, 'NM') FST_WKMNSP_REASON_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_ADT_TM_REASON', A.PRIOR_ADT_TM_REASON_CD, 'NM') PRIOR_ADT_TM_REASON_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_WKMNSP_REASON', A.PRIOR_WKMNSP_REASON_CD, 'NM') PRIOR_WKMNSP_REASON_NM,
+			      NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'ADTR', A.PRIOR_ADTR_CD, 'NM') PRIOR_ADTR_NM
+			FROM (SELECT * FROM (<include refid="satSql.authProjectInfo" />) A WHERE A.PRJT_FRDT >= #{baseDt}) A,
+				NMSP.WEB_SAT_SUB_PRJT B,
+       			NMSP.PMPRJTBS C
+       		WHERE A.PRJTCD = B.P_PRJTCD(+)
+			   AND B.PRJTCD1 = C.PRJTCD1(+)
+			   AND B.PRJTCD2 = C.PRJTCD2(+)
+			   AND B.PRJTCD3 = C.PRJTCD3(+) 
+			) PIVOT (MAX(S_PRJTCD) PRJTCD, MAX(S_PRJTNM) PRJTNM, MAX(S_CHARGPTR) CHARGPTR, MAX(S_CHARGPTR_NM) CHARGPTR_NM, MAX(S_CHARGMGR) CHARGMGR, MAX(S_CHARGMGR_NM) CHARGMGR_NM, MAX(S_CNTRT_FEE) CNTRT_FEE
+    		  FOR DIV IN ('S1' S1, 'S2' S2, 'S3' S3, 'S4' S4, 'S5' S5, 'S6' S6))
+	</select>
+	
+	
+	
+	<select id="getSatPrjtInfoV3" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+	SELECT A.PRJTNM 
+	     , A.CLNT_NM 
+	     , A.PRJTCD
+	     , A.SHRTNM 
+	     , A.CNTRT_FEE 
+	     , A.CHARGPTR 
+	     , A.CHARGPTR_NM 
+	     , A.CHARGMGR 
+	     , A.CHARGMGR_NM 
+	     , A.RCRD_MGR 
+	     , A.RCRD_MGR_NM
+	     , A.RCRD_MGR2 
+	     , A.RCRD_MGR_NM2
+	     , A.RCRD_MGR3 
+	     , A.RCRD_MGR_NM3
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SAT_TRGT_YN', A.SAT_TRGT_YN, 'NM') SAT_TRGT_YN_NM
+	     , A.BIZ_FRDT
+	     , A.BIZ_TODT 
+	     , A.PRJT_FRDT 
+	     , A.PRJT_TODT, NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INDUS', A.INDUS_CD, 'NM') INDUS_NM 
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', A.SATGRP_CD, 'NM') SATGRP_NM 
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LISTDV_V2', A.LIST_DV_CD, 'NM') LIST_DV_NM 
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'BIZRPRT_YN', A.BIZ_RPRT_YN, 'NM') BIZ_RPRT_YN_NM 
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP1_EXPT_YN', A.SATGRP1_EXPT_YN, 'NM') SATGRP1_EXPT_YN_NM 
+	     , A.INDIV_ASSET /* 개별 자산 */ 
+	     , A.CONSO_ASSET /* 연결 자산 */
+	     , A.CONSO_SALES /* 연결 매출 */ 
+	     , A.CONSO_ACCNT_RECEIV /* 연결 매출채권 */ 
+	     , A.CONSO_INVNT /* 연결 재고자산 */
+	     , ROUND((A.CONSO_SALES + A.CONSO_ASSET)/2) COMP_SIZE /* 기업규모 */ 
+	     , A.RPRT_SCDL_DT /* 보고서 발행 예정일 */
+	     , FIRST_BIZ_DT /* 최초적용 사업연도 종료월 */
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'CONTI_ADT_CNT', A.CONTI_ADT_CNT, 'NM') CONTI_ADT_CNT_NM /* 삼일회게법인 연속감사 횟수 */
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INTR_ADT_YCNT', A.INTR_ADT_YCNT, 'NM') INTR_ADT_YCNT_NM /* 내부회계감사 시행연차 */
+	     , (SELECT val1 FROM WEB_SAT_PRFL_GRP_FCTR WHERE FACTOR_CD='HARVWCNT' AND SATGRP_CD = A.SATGRP_CD) REVW_CNT /* 검토 횟수 */
+	     , A.SAME_ADTR_SBSID_YN
+	     , DECODE(SAME_ADTR_SBSID_YN, 'Y', NVL(A.INTR_TRAN_ASSET_SALES, 0)) INTR_TRAN_ASSET_SALES /* 연결 조정시 제거된 내부거래(매출+자산)  */
+	     , DECODE(SAME_ADTR_SBSID_YN, 'Y', NVL(A.SBSID_ASSET_WITH_INTR_TRAN, 0)) SBSID_ASSET_WITH_INTR_TRAN /* 내부거래제거전 자회사 자산  */ 
+	     , DECODE(SAME_ADTR_SBSID_YN, 'Y', NVL(A.RELAT_COMP_ASSET, 0)) RELAT_COMP_ASSET /* 관계회사의 자산금액  */
+	     , DECODE(SAME_ADTR_SBSID_YN, 'Y', NVL(A.SBSID_SALES_WITH_INTR_TRAN, 0)) SBSID_SALES_WITH_INTR_TRAN /* 내부거래제거전 자회사 매출 */
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'IFRS_YN', A.IFRS_YN, 'NM') IFRS_YN_NM
+	     , A.IFRS_FCTR
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'HOLDINGS_DV', A.HOLDINGS_DIV_CD, 'NM') HOLDINGS_DIV_NM 
+		 , A.HOLDINGS_FCTR
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'FIRST_YN', A.FIRST_ADT_YN, 'NM') FIRST_ADT_YN_NM 
+		 , A.FIRST_ADT_FCTR 
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'USALIST_YN', A.USA_LIST_YN, 'NM') USA_LIST_YN_NM 
+		 , USA_LIST_FCTR
+		 , NVL((A.CONSO_ACCNT_RECEIV + A.CONSO_INVNT)/NULLIF(A.CONSO_ASSET, 0), 0) RISK_BASE
+	     , RISK_FCTR
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'KAM_YN', A.KAM_YN, 'NM') KAM_YN_NM
+	     , KAM_FCTR
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'CONSO_YN', A.CONSO_FINSTAT_YN, 'NM') CONSO_FINSTAT_YN_NM
+		 , CONSO_FINSTAT_FCTR
+		 , SBSID_CNT
+		 , SBSID_CNT_FCTR
+		 , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'ADTOPIN_YN', A.CURR_ADTOPIN_CD, 'NM') CURR_ADTOPIN_NM
+		 , CURR_ADTOPIN_FCTR
+		 , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LOSS_YN', A.CURR_CONSO_LOSS_YN, 'NM') CURR_CONSO_LOSS_YN_NM
+		 , CURR_CONSO_LOSS_FCTR
+		 , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_ADTOPIN_CHG_YN', A.PRIOR_ADTOPIN_CHG_YN, 'NM') PRIOR_ADTOPIN_CHG_YN_NM
+		 , PRIOR_ADTOPIN_CHG_FCTR
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_LOSS_YN', A.PRIOR_LOSS_YN, 'NM') PRIOR_LOSS_YN_NM
+	     , PRIOR_LOSS_FCTR
+	     , ETC_FCTR
+	     , FACTOR_VAL
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'MIN_MAX_YN', A.MIN_MAX_YN, 'NM') MIN_MAX_YN_NM
+	     , DECODE(A.MIN_MAX_REASON_CD, '99', MIN_MAX_REASON_DSCRT,  NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'MIN_MAX_REASON', A.MIN_MAX_REASON_CD, 'NM')) MIN_MAX_REASON
+	     , TO_CHAR(ADD_MONTHS(TO_DATE(A.FIRST_BIZ_DT, 'YYYY-MM'), -12), 'YYYY-MM') FST_BIZ_DT
+	     , FST_MAX_TM
+	     , FST_ADT_TM
+	     , FST_ADTR_WKMNSP
+	     , DECODE(FST_ADT_TM_REASON_CD, '99', FST_ADT_TM_REASON_DSCRT, NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'FST_ADT_TM_REASON', A.FST_ADT_TM_REASON_CD, 'NM')) FST_ADT_TM_REASON
+	     , DECODE(FST_WKMNSP_REASON_CD, '99', FST_WKMNSP_REASON_DSCRT, NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'FST_WKMNSP_REASON', A.FST_WKMNSP_REASON_CD, 'NM')) FST_WKMNSP_REASON
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'ADTR', A.PRIOR_ADTR_CD, 'NM') PRIOR_ADTR_NM
+	     , PRIOR_BASE_WKMNSP
+	     , PRIOR_ADT_TM
+	     , PRIOR_ADTR_WKMNSP
+	     , DECODE(PRIOR_ADT_TM_REASON_CD, '99', PRIOR_ADT_TM_REASON_DSCRT, NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_ADT_TM_REASON', A.PRIOR_ADT_TM_REASON_CD, 'NM')) PRIOR_ADT_TM_REASON
+	     , DECODE(PRIOR_WKMNSP_REASON_CD, '99', PRIOR_WKMNSP_REASON_DSCRT, NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_WKMNSP_REASON', A.PRIOR_WKMNSP_REASON_CD, 'NM')) PRIOR_WKMNSP_REASON
+	     , NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INTR_ADT_YN', A.INTR_ADT_YN, 'NM') INTR_ADT_YN_NM
+	     , INTR_ADT_TM
+	     , MIN_TM
+	     , MAX_TM
+	     , INTPL_SAT
+	     , FACTOR_VAL
+	     , CAL_RESULT
+	     , YEAR_RATE * 100 YEAR_RATE
+	     , CAL_RESULT * YEAR_RATE CAL_RATE_SAT
+	     , CAL_ADT_TM
+	     , INTR_ADT_FCTR
+	     , CAL_ADT_TM * INTR_ADT_FCTR CAL_SAT
+	     , BASE_WKMNSP
+	     , ET_DFN_SAT 
+	     , REMARK
+	  FROM (<include refid="satSql.accessAuthProject" />) A 
+	  WHERE A.STAT IN ('RG', 'RQ', 'RJ', 'CO')
+	        AND A.BIZ_TODT BETWEEN #{sdt} AND #{edt}
+	        AND A.SAT_TRGT_YN = #{satTrgtYn}
+	</select>
+	
+	<select id="getSatBdgtInfoV3" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+	SELECT PRJTCD 
+	     , PRJTNM 
+	     , CHARGPTR_NM 
+	     , CHARGMGR_NM 
+	     , PRJT_FRDT 
+	     , PRJT_TODT 
+	     , BIZ_TODT 
+	     , RPRT_SCDL_DT 
+	     , EL_TM
+	     , PM_TM
+	     ,(TOTAL_TM - EL_TM - PM_TM - QC_TM - QRP_TM - RA_TM - FULCRUM_TM - NEWSTAFF_TM) TEAM_TM 
+	     , NEWSTAFF_TM 
+	     , QRP_TM 
+	     , QC_TM 
+	     , RA_TM 
+	     , FULCRUM_TM 
+	     , TOTAL_TM 
+	     , SAT_TRGT_YN
+	     , DECODE(SAT_TRGT_YN, 'Y', SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', SATGRP_CD, 'NM')) SATGRP_NM 
+	     , DECODE(SAT_TRGT_YN, 'Y', ROUND(ET_DFN_SAT)) ET_DFN_SAT 
+	     , DECODE(SAT_TRGT_YN, 'Y', BASE_WKMNSP) BASE_WKMNSP
+	     , DECODE(SAT_TRGT_YN, 'Y', ROUND(SAT_EXP_WKMNSP, 3)) SAT_EXP_WKMNSP 
+	     , DECODE(SAT_TRGT_YN, 'Y', ROUND(DECODE(SAT_EXP_WKMNSP, 0, 0, ET_DFN_SAT*BASE_WKMNSP/SAT_EXP_WKMNSP))) SAT_PLAN 
+	     , DECODE(SAT_TRGT_YN, 'Y', ET_TRGT_ADT_TM + 
+	       (SELECT NVL(SUM(DECODE(ADP.AUDITGB, '1', CNTRT_ADT_TM)), 0) 
+	         FROM WEB_SAT_SUB_PRJT SP 
+	            , PMAUDITPJTD ADP 
+	        WHERE SP.P_PRJTCD =(ADP.PRJTCD1_B(+)||'-'||ADP.PRJTCD2_B(+)||'-'||ADP.PRJTCD3_B(+)) 
+	              AND SP.PRJTCD =(ADP.PRJTCD1(+)||'-'||ADP.PRJTCD2(+)||'-'||ADP.PRJTCD3(+)) 
+	              AND SP.P_PRJTCD = A.PRJTCD 
+	       )) SAT_CNTRT_ADT_TM
+	     , SAT_BDGT_TM 
+	  FROM 
+	       (SELECT A.PRJTCD 
+	            , A.PRJTNM 
+	            , A.CHARGPTR_NM 
+	            , A.CHARGMGR_NM 
+	            , A.BIZ_FRDT 
+	            , A.BIZ_TODT 
+	            , A.PRJT_FRDT 
+	            , A.PRJT_TODT 
+	            , A.RPRT_SCDL_DT 
+	            , A.ET_TRGT_ADT_TM
+	            , A.ET_DFN_SAT /*한공회표준감사시간*/ 
+	            , A.BASE_WKMNSP /*기준숙련도*/ 
+	            , A.SAT_TRGT_YN
+	            , A.SATGRP_CD
+	            , NVL(SUM(BDGT.ASGN_TM), 0) TOTAL_TM /* 전체 */ 
+	            , NVL(SUM(DECODE(MEMB.MEMB_EMPLNO, A.CHARGPTR, BDGT.ASGN_TM)), 0) EL_TM /* [Bud099284get요약] 담당이사 */ 
+	            , NVL(SUM(DECODE(MEMB.MEMB_EMPLNO, A.CHARGMGR, BDGT.ASGN_TM)), 0) PM_TM /* [Budget요약] PM */ 
+	            , NVL(SUM 
+	              ( 
+	                CASE 
+	                  WHEN MEMB.MEMB_EMPLNO NOT IN(A.CHARGPTR, A.CHARGMGR) AND MEMB.ACTV_CD = '12' 
+	                  THEN BDGT.ASGN_TM 
+	                END 
+	              ) 
+	              , 0) QC_TM /* [Budget요약] QC */ 
+	            , NVL(SUM 
+	              ( 
+	                CASE 
+	                  WHEN MEMB.MEMB_EMPLNO NOT IN(A.CHARGPTR, A.CHARGMGR) AND MEMB.ACTV_CD = '16' 
+	                  THEN BDGT.ASGN_TM 
+	                END 
+	              ) 
+	              , 0) QRP_TM /* [Budget요약] QRP */ 
+	            , NVL(SUM 
+	              ( 
+	                CASE 
+	                  WHEN MEMB.MEMB_EMPLNO NOT IN(A.CHARGPTR, A.CHARGMGR) AND MEMB.ACTV_CD IN('09', '13') 
+	                  THEN BDGT.ASGN_TM 
+	                END 
+	              ) 
+	              , 0) RA_TM /* [Budget요약] RA */ 
+	            , NVL(SUM 
+	              ( 
+	                CASE 
+	                  WHEN MEMB.MEMB_EMPLNO NOT IN(A.CHARGPTR, A.CHARGMGR) AND MEMB.ACTV_CD = '14' 
+	                  THEN BDGT.ASGN_TM 
+	                END 
+	              ) 
+	              , 0) FULCRUM_TM /* [Budget요약] Fulcrum */ 
+	            , NVL(SUM 
+	              ( 
+	                CASE 
+	                  WHEN MEMB.ACTV_CD = '15' AND MEMB.TBD = 'Y' 
+	                  THEN BDGT.ASGN_TM 
+	                END 
+	              ) 
+	              , 0) NEWSTAFF_TM /* [Budget요약] New Staff */ 
+	            , DECODE(A.SAT_TRGT_YN, 'Y', NVL(SUM(DECODE(ADP.AUDITGB, '1', BDGT.ASGN_TM)), 0)) SAT_BDGT_TM /* [표준감사대상 대상] Budgeting hours */ 
+	            , DECODE(A.SAT_TRGT_YN, 'Y', DECODE(NVL(SUM(DECODE(ADP.AUDITGB, '1', BDGT.ASGN_TM)), 0), 0, 0, SUM(DECODE(ADP.AUDITGB, '1', BDGT.ASGN_TM) * MEMB.WKMNSP) /SUM(DECODE(ADP.AUDITGB, '1', BDGT.ASGN_TM)))) SAT_EXP_WKMNSP /* [표준감사대상 대상] 예상 팀 숙련도 */ 
+	            , DECODE(A.SAT_TRGT_YN, 'Y', NVL(SUM(BDGT.ASGN_TM * MEMB.WKMNSP), 0)) WKMNSP_BDGT 
+	         FROM 
+	              (<include refid="satSql.accessAuthProject" />) A 
+	            , (SELECT A.* 
+	                   , B.EMPLNO EMP_EMPLNO 
+	                   , B.GRADCD EMP_GRADCD 
+	                   , B.TEAMCD EMP_TEAMCD 
+	                   , B.EMP_ID 
+	                   , B.KORNM 
+	                FROM WEB_SAT_MEMB A 
+	                   , HREMP B 
+	               WHERE A.MEMB_EMPLNO = B.EMPLNO(+) 
+	              ) MEMB 
+	            , WEB_SAT_MEMB_BDGT BDGT 
+	            , (SELECT 'Y' TBD 
+	                   , CD CODE 
+	                   , 'system' EMPLNO 
+	                   , VAL1 GRADCD 
+	                   , VAL2 TEAMCD 
+	                FROM NMSP.APPMNG_CD 
+	               WHERE APP_CD = #{appCd} 
+	                     AND GRP_CD = 'DFT_BDGT_ROLE' 
+	              ) DBR 
+	            , PMAUDITPJTD ADP
+	        WHERE A.PRJTCD = MEMB.PRJTCD(+) 
+	              AND MEMB.PRJTCD = BDGT.PRJTCD(+) 
+	              AND MEMB.SUB_PRJTCD = BDGT.SUB_PRJTCD(+) 
+	              AND MEMB.ACTV_CD    = BDGT.ACTV_CD(+) 
+	              AND MEMB.LOCA_CD    = BDGT.LOCA_CD(+) 
+	              AND MEMB.MEMB_EMPLNO = BDGT.MEMB_EMPLNO(+) 
+	              AND MEMB.TBD         = DBR.TBD(+) 
+	              AND MEMB.ACTV_CD     = DBR.CODE(+) 
+	              AND MEMB.PRJTCD      =(ADP.PRJTCD1_B(+)||'-'||ADP.PRJTCD2_B(+)||'-'||ADP.PRJTCD3_B(+)) 
+	              AND MEMB.SUB_PRJTCD  =(ADP.PRJTCD1(+)||'-'||ADP.PRJTCD2(+)||'-'||ADP.PRJTCD3(+))
+              	  AND A.STAT IN ('RG', 'RQ', 'RJ', 'CO')
+	              AND A.BIZ_TODT BETWEEN #{sdt} AND #{edt}
+	              AND A.SAT_TRGT_YN = #{satTrgtYn}
+	          GROUP BY A.PRJTCD 
+	            , A.PRJTNM 
+	            , A.CHARGPTR_NM 
+	            , A.CHARGMGR_NM 
+	            , A.BIZ_FRDT 
+	            , A.BIZ_TODT 
+	            , A.PRJT_FRDT 
+	            , A.PRJT_TODT 
+	            , A.RPRT_SCDL_DT 
+	            , A.ET_DFN_SAT /*한공회표준감사시간*/ 
+	            , A.BASE_WKMNSP /*기준숙련도*/
+	            , A.ET_TRGT_ADT_TM 
+	            , A.SAT_TRGT_YN
+	            , A.SATGRP_CD
+	       ) A
+	</select>
+	
+	<select id="getBdgtByMembV3" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+	SELECT * 
+	  FROM 
+	       (SELECT MEMB_KOR_NM
+	            , DECODE(USER_DIV, 'USER', MEMB_EMPLNO) MEMB_EMPLNO 
+	            , DECODE(USER_DIV, 'USER', SF_ACWEMPTEAMCD(MEMB_EMPLNO)) MEMB_TEAM_NM 
+	            , DECODE(USER_DIV, 'USER', SF_EMP_GRADNM(MEMB_EMPLNO)) MEMB_GRAD_NM 
+	            , A.PRJTCD MAIN_PRJT_CD 
+	            , A.PRJTNM MAIN_PRJT_NM 
+	            , A.CHARGPTR_NM EL 
+	            , A.CHARGMGR_NM PM 
+	            , A.SUB_PRJTCD SUB_PRJT_CD 
+	            , (SELECT PRJTNM 
+	                FROM PMPRJTBS 
+	               WHERE PRJTCD1=SUBSTR(A.SUB_PRJTCD, 0, 5) 
+	                     AND PRJTCD2 = SUBSTR(A.SUB_PRJTCD, 7, 2) 
+	                     AND PRJTCD3 = SUBSTR(A.SUB_PRJTCD, 10) 
+	              ) SUB_PRJT_NM 
+	            , A.TBD 
+	            , A.LOCA_CD
+	            , SF_APPMNG_GET_COMMCD(#{appCd}, 'LOCA', A.LOCA_CD, 'NM') LOCA_NM 
+	            , SUM(ASGN_TM) OVER(PARTITION BY A.PRJTCD, A.SUB_PRJTCD, A.TBD, A.LOCA_CD, DECODE(USER_DIV, 'USER', A.MEMB_EMPLNO, A.ACTV_CD)) TOT_ASGN_TM 
+	            , TO_CHAR(A.DT, 'YYYY-MM-DD') WEEK_FRDT 
+	            , ASGN_TM 
+	         FROM 
+	              (SELECT A.*
+	                   , B.SUB_PRJTCD 
+	                   , B.TBD 
+	                   , B.ACTV_CD 
+	                   , CASE 
+	                       WHEN B.TBD = 'Y' AND D.CD IS NOT NULL 
+	                       THEN SF_APPMNG_GET_COMMCD(#{appCd}, 'ACTV_V3', B.ACTV_CD, 'NM') 
+	                       ELSE SF_EMP_NAME(B.MEMB_EMPLNO) 
+	                     END MEMB_KOR_NM 
+	                   , B.LOCA_CD 
+	                   , B.MEMB_EMPLNO 
+	                   , CASE 
+	                       WHEN B.TBD = 'Y' AND D.CD IS NOT NULL 
+	                       THEN 'ROLE' 
+	                       ELSE 'USER' 
+	                     END USER_DIV 
+	                   , DT.DT 
+	                   , C.ASGN_TM 
+	                FROM (<include refid="satSql.accessAuthProject" />) A 
+	                   , NMSP.WEB_SAT_MEMB B 
+	                   , 
+	                     (SELECT PRJTCD 
+	                          , SUB_PRJTCD 
+	                          , ACTV_CD 
+	                          , LOCA_CD 
+	                          , MEMB_EMPLNO 
+	                          , NEXT_DAY(TO_DATE(WEEK_FRDT, 'YYYY-MM-DD') - 6, 2) WEEK_FRDT 
+	                          , ASGN_TM 
+	                       FROM NMSP.WEB_SAT_MEMB_BDGT 
+	                     ) C 
+	                   , (SELECT CD 
+	                          , NM 
+	                       FROM NMSP.APPMNG_CD 
+	                      WHERE APP_CD = #{appCd} 
+	                            AND GRP_CD = 'DFT_BDGT_ROLE' 
+	                     ) D 
+	                   , (SELECT SDT +(LEVEL - 1) * 7 DT 
+	                       FROM 
+	                            (SELECT NEXT_DAY(TO_DATE(MIN(#{sdt}), 'YYYY-MM-DD') - 6, 2) SDT 
+	                                 , /*주 시작일은 월요일*/ 
+	                                   DECODE(TO_CHAR(TO_DATE(#{edt}, 'YYYY-MM-DD'), 'D'), '1', TO_DATE(#{edt}, 'YYYY-MM-DD'), NEXT_DAY(TO_DATE(#{edt}, 'YYYY-MM-DD'), 1)) EDT /*주 종료일은 일요일*/ 
+	                              FROM DUAL 
+	                            ) CONNECT BY EDT >= SDT +(LEVEL - 1) * 7 
+	                     ) DT 
+	               WHERE A.FORM_DIV in ('v3', 'v4') 
+	               		 AND A.STAT IN ('RG', 'RQ', 'RJ', 'CO')
+	               		 AND A.SAT_TRGT_YN = #{satTrgtYn}
+	                     AND DT.DT  = C.WEEK_FRDT(+) 
+	                     AND A.PRJTCD  = B.PRJTCD 
+	                     AND B.PRJTCD  = C.PRJTCD 
+	                     AND B.SUB_PRJTCD = C.SUB_PRJTCD 
+	                     AND B.ACTV_CD    = C.ACTV_CD 
+	                     AND B.LOCA_CD    = C.LOCA_CD 
+	                     AND B.MEMB_EMPLNO = C.MEMB_EMPLNO 
+	                     AND B.ACTV_CD     = D.CD(+) 
+	              ) A 
+	       ) PIVOT(SUM(ASGN_TM) FOR WEEK_FRDT IN (<foreach collection="weeks" item="week" separator=",">'${week.startDate}' AS week${week.weekNum}</foreach>))
+	       ORDER BY MEMB_KOR_NM, MEMB_EMPLNO, MAIN_PRJT_CD, SUB_PRJT_CD, TBD, LOCA_CD
+	</select>
+</mapper>

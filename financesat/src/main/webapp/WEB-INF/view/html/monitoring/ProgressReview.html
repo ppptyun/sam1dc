@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>표준감사시간관리</title>
+<link href="../../../resources/css/pwc.css" rel="stylesheet" type="text/css">
+<link href="../../../resources/css/pwc_mediaS.css" rel="stylesheet" type="text/css" media="(max-width:1600px)">
+<link href="../../../resources/lib/dhtmlx/skins/web/dhtmlx.css" rel="stylesheet" type="text/css">
+</head>
+
+<!--[if ie]><body class="lt-ie"><![endif]-->
+<body>
+<div id="wrapper" class="wrapper">
+    <header>
+        <p class="logo">Pwc</p>
+        <p class="pageTitle"><a href="#">표준감사시간관리</a></p>
+			<ul class="topUtil">
+				<li class="utilName"><a href="#">HG</a></li>
+				<li class="utilHelp"><a href="#">도움말</a></li>
+			</ul>
+		<nav>
+			<button type="button" class="navBtn">Menu</button>
+			<div class="navArea">
+				<img src="../../../resources/images/dummy/@nav.gif" alt="">
+			</div>
+		</nav>
+    </header>
+    <hr>
+	
+    <section id="container" class="container">
+        
+        <div id="contents" class="contents">
+           	<!-- 컨텐츠 시작 -->
+            <h1 class="hidden">Progress Review</h1>
+			
+			<div class="boxWhite">
+				
+				<div class="searchBox">
+					<dl class="item">
+						<dt>EL/PM/RM</dt>
+						<dd class="frmNowrap"><input type="text" readonly><button type="button" class="btIco btnSearch02 gapL">임직원 검색</button></dd>
+					</dl>
+					
+					<p class="txtInfo">Engagement Leader / Project Manager / Record Manager (퇴직자 포함)로 등록된 Project를 검색할 수 있습니다.</p>
+					
+					<div class="btns">
+						<button type="button" class="btnPwc btnM action">Search</button>
+					</div>
+				</div>
+				
+				<!-- 2019-03-18 수정 -->
+				<div class="titArea">
+					<div class="btnArea side">
+						<button type="button" class="btnPwc btnM">Excel Export</button>
+					</div>
+				</div>
+				<!-- //2019-03-14 수정 -->
+				
+				<div id="progress-review-grid" class="gridbox gridHp05">그리드 영역</div>
+					
+			
+			</div><!-- //boxWhite -->
+            <!-- //컨텐츠 끝 -->        
+        </div>
+    </section>
+</div>
+<div id="popInner">
+	
+</div><!-- 레이어팝업 들어가는 부분 -->
+<div class="dimmed"></div>
+
+
+<script type="text/javascript" src="../../../resources/lib/jquery/jquery-3.3.1.min.js"></script>
+
+<script type="text/javascript" src="../../../resources/lib/dhtmlx/codebase/dhtmlx.js"></script>
+<script type="text/javascript" src="../../../resources/js/dhtmlxCustom.js"></script>
+
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery-ui.min.js"></script>
+<script type="text/javascript" src="../../../resources/lib/jqueryui/jquery.jscrollpane.min.js"></script>
+
+<script type="text/javascript" src="../../../resources/js/selectbox_pwc.js"></script>
+<script type="text/javascript" src="../../../resources/js/pwc_ui.js"></script>
+
+<script type="text/javascript" src="../../../resources/lib/css-element-queries/ElementQueries.js"></script>
+<script type="text/javascript" src="../../../resources/lib/css-element-queries/ResizeSensor.js"></script>
+
+
+
+<script>
+	$(document).ready(function(){
+		const testData = [
+			{id:"1", C1:"(주)KB금융지주/2018IFRS감사", C2:"13998-01-025", C3:"16524", C4:"8061.5", C5:"48.79", C6:"272.06", C7:"762.25", C8:"2.8", C9:"61.91", C10:"48.27", C11:"0.78", C12:"6.9", C13:"3.67", C14:"3.24", C15:"0.53"},
+			{id:"2", C1:"(주)케이비국민카드/2018IFRS감사", C2:"01520-01-020", C3:"8291", C4:"8251.75", C5:"99.53", C6:"1184.84", C7:"2048.52", C8:"1.73", C9:"137.59", C10:"61.11", C11:"0.44", C12:"10.57", C13:"7.46", C14:"3.11", C15:"0.71"},
+			{id:"3", C1:"(주)케이비국민카드/2019회계감사", C2:"01520-01-021", C3:"8291", C4:"58.5", C5:"0.71", C6:"1003.54", C7:"11.32", C8:"0.01", C9:"159.41", C10:"0.98", C11:"0.01", C12:"23.98", C13:"0.2", C14:"23.78", C15:"0.01"},
+			{id:"4", C1:"미래에셋생명보험(주)/2019IFRS감사", C2:"00671-01-009", C3:"5388", C4:"0.75", C5:"0.01", C6:"1333.67", C7:"0.11", C8:"0", C9:"10.05", C10:"0", C11:"0", C12:"0.38", C13:"0", C14:"0.38", C15:"0"},
+			{id:"5", C1:"(주)전북은행/2019회계감사", C2:"01193-01-001", C3:"4118", C4:"234", C5:"5.68", C6:"730.32", C7:"17.81", C8:"0.02", C9:"166.21", C10:"3.37", C11:"0.02", C12:"5.28", C13:"0.28", C14:"5", C15:"0.05"},
+			{id:"6", C1:"(주)KB금융지주/2018PCAOB 감사", C2:"13998-01-027", C3:"3600", C4:"1534.5", C5:"42.63", C6:"513.59", C7:"87.77", C8:"0.17", C9:"51.3", C10:"12.18", C11:"0.24", C12:"5.39", C13:"2.68", C14:"2.71", C15:"0.5"},
+			{id:"7", C1:"(주)JB금융지주/2019외부감사", C2:"20807-01-000", C3:"3300", C4:"4", C5:"0.12", C6:"801.97", C7:"0.09", C8:"0", C9:"30.89", C10:"0.01", C11:"0", C12:"5.8", C13:"0", C14:"5.8", C15:"0"},
+			{id:"8", C1:"(주)KB금융지주/2018공통감사", C2:"13998-01-026", C3:"2500", C4:"266.25", C5:"10.65", C6:"586.23", C7:"59.39", C8:"0.1", C9:"71.34", C10:"0.4", C11:"0.01", C12:"1.3", C13:"0.02", C14:"1.28", C15:"0.01"},
+			{id:"9", C1:"미래에셋컨설팅(주)/2018회계감사", C2:"14554-01-006", C3:"1184", C4:"441.5", C5:"37.29", C6:"242.89", C7:"9.72", C8:"0.04", C9:"21.05", C10:"0.06", C11:"0", C12:"0.28", C13:"0", C14:"0.28", C15:"0"},
+			{id:"10", C1:"케이비자산운용(주)/2018IFRS감사", C2:"10337-01-010", C3:"1090", C4:"1149", C5:"105.41", C6:"215.02", C7:"15.14", C8:"0.07", C9:"31.17", C10:"3.04", C11:"0.1", C12:"3.42", C13:"0.74", C14:"2.69", C15:"0.21"},
+			{id:"11", C1:"(주)삼양패키징/2018IFRS감사", C2:"22872-01-000", C3:"1050", C4:"1141.25", C5:"108.69", C6:"138.37", C7:"149.27", C8:"1.08", C9:"15.2", C10:"24", C11:"1.58", C12:"3.11", C13:"5.77", C14:"-2.66", C15:"1.86"},
+			{id:"12", C1:"루닛/2018회계감사", C2:"31439-01-000", C3:"258", C4:"137.5", C5:"53.29", C6:"12.01", C7:"27.01", C8:"2.25", C9:"2.92", C10:"5.43", C11:"1.86", C12:"0.2", C13:"0.98", C14:"-0.79", C15:"4.99"},
+			{id:"13", C1:"이지스전문투자형사모부동산투자신탁85호/2018IFRS패키지감사", C2:"24656-01-002", C3:"210", C4:"218", C5:"103.81", C6:"11.4", C7:"6.87", C8:"0.6", C9:"1.88", C10:"1.41", C11:"0.75", C12:"0.32", C13:"0.18", C14:"0.14", C15:"0.57"},
+			{id:"14", C1:"이지스자산운용(주)/2018IFRS패키지감사", C2:"26008-01-001", C3:"210", C4:"228.25", C5:"108.69", C6:"35.22", C7:"24.96", C8:"0.71", C9:"0.09", C10:"5.56", C11:"64.71", C12:"0.02", C13:"0.84", C14:"-0.82", C15:"40.38"},
+			{id:"15", C1:"한국투자밸류자산운용(주)/2018펀드감사", C2:"10980-01-014", C3:"190", C4:"164.5", C5:"86.58", C6:"38.8", C7:"30.59", C8:"0.79", C9:"3.84", C10:"2.13", C11:"0.56", C12:"0.95", C13:"0.33", C14:"0.61", C15:"0.35"},
+			{id:"16", C1:"에너지인프라자산운용(주)/2017IFRS감사", C2:"25677-01-001", C3:"184", C4:"277", C5:"150.54", C6:"38.39", C7:"37.61", C8:"0.98", C9:"5.65", C10:"5.24", C11:"0.93", C12:"0.37", C13:"0.15", C14:"0.22", C15:"0.4"},
+			{id:"17", C1:"제이알전문투자형사모부동산투자신탁제3호/2018패키지감사", C2:"31092-01-000", C3:"68", C4:"36", C5:"52.94", C6:"8.98", C7:"8.65", C8:"0.96", C9:"1.46", C10:"0.97", C11:"0.67", C12:"0.14", C13:"0.02", C14:"0.12", C15:"0.16"},
+			{id:"18", C1:"브이아이피사모주식형펀드일호/2017펀드감사", C2:"30575-01-000", C3:"54", C4:"50.5", C5:"93.52", C6:"10.11", C7:"10.7", C8:"1.06", C9:"2.14", C10:"1.52", C11:"0.71", C12:"0.35", C13:"0.24", C14:"0.12", C15:"0.67"},
+			{id:"19", C1:"케이비국민카드제삼차유동화전문(유)/2018임의감사", C2:"26056-01-001", C3:"36", C4:"0.5", C5:"1.39", C6:"6.28", C7:"0.06", C8:"0.01", C9:"0.46", C10:"0.01", C11:"0.01", C12:"0", C13:"0", C14:"0", C15:"0.44"},
+			{id:"20", C1:"와이즈모바일제십칠차유동화전문(유)/2018회계감사", C2:"24147-01-003", C3:"14", C4:"11.5", C5:"82.14", C6:"0.49", C7:"1.07", C8:"2.18", C9:"0.09", C10:"0.1", C11:"1.13", C12:"0.01", C13:"0", C14:"0.01", C15:"0.43"},
+			{id:"21", C1:"와이즈모바일제십팔차유동화전문(유)/2018회계감사", C2:"24148-01-003", C3:"14", C4:"21.5", C5:"153.57", C6:"0.41", C7:"1.06", C8:"2.57", C9:"0.02", C10:"0.16", C11:"8.06", C12:"0", C13:"0", C14:"0", C15:"1.79"}
+		]
+		const progressGridDefinition = {
+				parent: "progress-review-grid",
+				image_path: "../../../resources/lib/dhtmlx/skins/web/imgs/",
+				skin: "dhx_web",
+				columns: [
+					{id:"C1", label:["Project Name", "#rspan"], type:"ro", align: "left"},
+					{id:"C2", label:["Project Code", "#rspan"], type:"ro", align: "center"},
+					{id:"C3", label:["Total Budget Hour (C)", "#rspan"], type:"ron", align: "right"},
+					{id:"C4", label:["Actual 누적 Time", "#rspan"], type:"ron", align: "right"},
+					{id:"C5", label:["Progress", "#rspan"], type:"ron", align: "right"},
+					{id:"C6", label:["배부 예산 실적집계", "RA 배부예산 (E)"], type:"ron", align: "right"},
+					{id:"C7", label:["#cspan", "RA Actual Time (F)"], type:"ron", align: "right"},
+					{id:"C8", label:["#cspan", "Progress (F/E)"], type:"ron", align: "right"},
+					{id:"C9", label:["#cspan", "Fulcrum 배부예산 (G)"], type:"ron", align: "right"},
+					{id:"C10", label:["#cspan", "Fulcrum Actual Time (H)"], type:"ron", align: "right"},
+					{id:"C11", label:["#cspan", "Progress (H/G)"], type:"ron", align: "right"},
+					{id:"C12", label:["#cspan", "Other 배부예산 (I)"], type:"ron", align: "right"},
+					{id:"C13", label:["#cspan", "Other Actual Time (J)"], type:"ron", align: "right"},
+					{id:"C14", label:["#cspan", "잔여예산 (J-I)"], type:"ron", align: "right"},
+					{id:"C15", label:["#cspan", "Progress (J/I)"], type:"ron", align: "right"}
+				]
+		};
+		
+		let progressGrid = new dhtmlXGridObject(progressGridDefinition);
+		
+		progressGrid.setInitWidths("200,98,98,98,60,107,107,76,107,98,76,95,95,95,79");
+		
+		progressGrid.setStyle("text-align:center");
+		
+		progressGrid.setNumberFormat("0,000.00",progressGrid.getColIndexById("C3"),".",",");
+		progressGrid.setNumberFormat("0,000.00",progressGrid.getColIndexById("C4"),".",",");
+		progressGrid.setNumberFormat("0,000.00 %",progressGrid.getColIndexById("C5"),".",",");
+		progressGrid.setNumberFormat("0,000.00",progressGrid.getColIndexById("C6"),".",",");
+		progressGrid.setNumberFormat("0,000.00",progressGrid.getColIndexById("C7"),".",",");
+		progressGrid.setNumberFormat("0,000.00 %",progressGrid.getColIndexById("C8"),".",",");
+		progressGrid.setNumberFormat("0,000.00",progressGrid.getColIndexById("C9"),".",",");
+		progressGrid.setNumberFormat("0,000.00",progressGrid.getColIndexById("C10"),".",",");
+		progressGrid.setNumberFormat("0,000.00 %",progressGrid.getColIndexById("C11"),".",",");
+		progressGrid.setNumberFormat("0,000.00",progressGrid.getColIndexById("C12"),".",",");
+		progressGrid.setNumberFormat("0,000.00",progressGrid.getColIndexById("C13"),".",",");
+		progressGrid.setNumberFormat("0,000.00",progressGrid.getColIndexById("C14"),".",",");
+		progressGrid.setNumberFormat("0,000.00 %",progressGrid.getColIndexById("C15"),".",",");
+		
+		progressGrid.splitAt(5);
+		
+		progressGrid.parse(testData, 'js');
+		
+		let RS = new ResizeSensor($('#contents'), function(){progressGrid.setSizes();});
+		
+	});
+</script>
+
+</body>
+</html>

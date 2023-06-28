@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.samil.stdadt.retain.mapper.RetainMapper">
+	
+	<select id="getResId" parameterType="RetainVO" resultType="Long">
+		 SELECT MAX(RES_ID) RES_ID 
+		 FROM Retaine.DBO.RES 
+		 WHERE RES_STAFFNO = #{membEmplNo} 
+		   AND RES_UPDATED_BY = 'RetainAdmin'
+	</select>
+	
+	
+	<select id="getBkgId" parameterType="Long" resultType="Long">
+		SELECT ISNULL(MAX(BKG_ID), 0) + 1 
+		  FROM RETAINE.DBO.BKG
+		 WHERE BKG_ID <![CDATA[<=]]> #{maxId}
+	</select>
+	
+	<!--
+	#{resId} 			=> Retain에 등록된 ID
+	#{bkgId}  			=> selectKey
+	#{sDt}     			=> 시작일 YYYY-MM-DD
+	#{eDt}     			=> 종료일 YYYY-MM-DD
+	#{workDay} 			=> 업무일수
+	#{bdgtMinuteByDay} 	=> 하루당 Budget 시간 
+	#{sessInteId} 		=> 세션 inteId
+	#{sessKorNm} 		=> 세션 korNm
+	#{prjtCd} 			=> 프로젝트 코드 (00000-00-000)
+	-->
+	<insert id="insertBookingInfo" parameterType="RetainVO">
+		<!-- <selectKey keyProperty="bkgId" order="BEFORE" resultType="long">
+		select isnull(max(bkg_id), 0) + 1 from RETAINE.DBO.BKG where bkg_id <![CDATA[<]]> 996349 
+		</selectKey> -->
+		INSERT INTO [Retaine].[dbo].[BKG]
+	           ([BKG_ID]
+	           ,[BKG_START]
+	           ,[BKG_END]
+	           ,[BKG_BTY_ID]
+	           ,[BKG_CUR_CODE1]
+	           ,[BKG_CUR_CODE2]
+	           ,[BKG_CUSTOM_RATE]
+	           ,[BKG_COST1]
+	           ,[BKG_COST2]
+	           ,[BKG_TIME]
+	           ,[BKG_LOADING]
+	           ,[BKG_NON_WORK]
+	           ,[BKG_FIXEDTIME]
+	           ,[BKG_NOTES]
+	           ,[BKG_UPDATED_BY]
+	           ,[BKG_UPDATED_ON]
+	           ,[BKG_CHANGE_USR_ID]
+	           ,[BKG_RES_ID]
+	           ,[BKG_JOB_ID]
+	           ,[BKG_CMP_ID]
+	           ,[BKG_JAS_ID]
+	           ,[BKG_BKG_ID]
+	           ,[BKG_DELETED]
+	           ,[BKG_STATUS]
+	           ,[BKG_BRQ_ID]
+	           ,[BKG_GHOST]
+	           ,[BKG_RATE1]
+	           ,[BKG_RATE2]
+	           ,[BKG_NON_DIARY]
+	           ,[BKG_PRIORITY]
+	           ,[BKG_RESTASK_ID]
+	           ,[BKG_GRADE]
+	           ,[BKG_CODE]
+	           ,[REQUESTED_ON]
+	           ,[REQUESTED_BY]
+	           ,[REQUESTED_USR_ID]
+	           ,[BKG_LOCKED]
+	           ,[BKG_RES_CRD_ID]
+	           ,[BKG_JOB_CRD_ID]
+	           ,[BKG_JAS_CRD_ID]
+	           ,[BKG_TMR_ID]
+	           ,[BKG_SCN_CODE]
+	           ,[BKG_AUDIT_TRAIL]
+	           ,[BKG_GROUPED_BIT]
+	           ,[BKG_CHANGE_DATE]
+	           ,[BKG_CHANGE_RES_ID]
+	           ,[BKG_IS_NEW_BIT]
+	           ,[BKG_ISFORECAST]
+	           ,[BKG_CHANGE_COUNT]
+	           ,[BKG_RESRES_ID]
+	           ,[BKG_PTL_CNFLICT]
+	           ,[BKG_IGNORE_CONFLICT]
+	           ,[BKG_UPDATED_BY2]
+	           ,[BKG_UPDATED_ON2]
+	           ,[BKG_UPDATED_BY3]
+	           ,[BKG_UPDATED_ON3]
+	           ,[BKG_BRQ_ORIGINATOR])
+	 VALUES(          
+	          
+	            #{bkgId}							
+	           ,CONVERT(DATETIME, #{fromDt} + ' 09:00:00')	/* 시간 고정 09:00 */
+	           ,CONVERT(DATETIME, #{toDt} + ' 18:00:00') /* 시간 고정 18:00 */
+	           ,#{bkgBtyId}
+	           ,null
+	           ,null
+	           ,'N'
+	           ,'0'
+	           ,'0'
+	           , #{bdgtByDay} * 60 * #{workDay}
+	           , ROUND(#{bdgtByDay} / 8 * 100, 0)
+	           ,'0'
+	           ,'0'
+	           ,#{notes}
+	           ,('SAMILAD\' + #{retainTranInteId})
+	           ,GETDATE()
+	           ,161
+	           ,#{resId}
+	           ,(SELECT MAX(JOB_ID) JOB_ID FROM Retaine.DBO.JOB WHERE JOB_JOBCODE = #{prjtCd} and job_updated_by = 'RetainAdmin')
+	           ,'0'
+	           ,'0'
+	           ,'0'
+	           ,'0'
+	           ,'P'
+	           ,null
+	           ,'C'
+	           ,null
+	           ,null
+	           ,'0'
+	           ,' '
+	           ,null
+	           ,' '
+	           ,' '
+	           ,null
+	           ,' '
+	           ,null
+	           ,' '
+	           ,null
+	           ,null
+	           ,null
+	           ,null
+	           ,' '
+	           ,'Booking inserted by ' + #{retainTranKorNm} + ' on '+ convert(char(11), getdate(), 106) + ' at ' + convert(char(10), CURRENT_TIMESTAMP, 24)
+	           ,'0'
+	           ,GETDATE()
+	           ,#{resId}
+	           ,'1'
+	           ,'0'
+	           ,'1'
+	           ,null
+	           ,null
+	           ,null
+	           ,' '
+	           ,null
+	           ,' '
+	           ,null
+	           ,' '
+	)
+	</insert>
+	
+	<!--
+	#{bkgId}
+	-->
+	<insert id="insertBCG" parameterType="RetainVO">
+		insert into bcg(bcg_bkg_id,bcg_res_id, bcg_job_id, bcg_start, bcg_end, bcg_change_date, bcg_status, bcg_ghost, bcg_is_new_bit) 
+		select bkg_id, bkg_res_id, bkg_job_id, bkg_start, bkg_end, bkg_change_date, bkg_status, bkg_ghost, 1
+		from bkg  
+		where bkg_id= #{bkgId} 
+	</insert>
+	
+	<!--
+	#{resId}
+	#{bkgId}
+	-->
+	<insert id="insertConflict" parameterType="RetainVO">
+		insert Into cfl (CFL_BKG_ID, CFL_RES_ID, CFL_JOB_ID, CFL_START, CFL_END, CFL_NOSCENARIO) 
+		select BC.BKG_ID, BC.BKG_RES_ID, BC.BKG_JOB_ID, BC.BKG_START, BC.BKG_END,   
+		/*  IntConflictNSs  */ 
+			Cast((Case when  
+					/*  IntNewBkgConflictNS  */ 
+					Cast(( Case /*  IntConflictNSCase  */ DBO.RIC3_303BF242B997C37A4BF55EFFE4BC72BDDA81( BC.BKG_END,BC.BKG_ID,BC.BKG_RES_ID,BC.BKG_START) 
+						when 0 then 0 
+						when 1 then BC.BKG_LOADING 
+						when 2 then /*  IntDBlBKGCnflctNS  */ DBO.RIC3_303B515806D120FE81B8FA4C592F547B148E( BC.BKG_END,BC.BKG_RES_ID,BC.BKG_START) 
+						else /*  IntMultiCnflctNS  */ DBO.RIC3_303B5079A61CA075E216A72BEFC586E7DF95( BC.BKG_ID) end) as float) <![CDATA[>=]]> 131 
+					then 1 
+				else 0 end) as Integer) 
+		from BKG BC, BKG BD 
+		where BC.BKG_RES_ID = BD.BKG_RES_ID and  1=1 
+		and  CAST(CAST(BC.BKG_START - .5 as INT) as DATETIME) <![CDATA[<=]]> BD.BKG_END 
+		and BC.BKG_END >=  CAST(CAST(BD.BKG_START - .5 as INT) as DATETIME) 
+		and BD.BKG_ID =  #{bkgId}  
+		and   /*  IntConflictASs  */ 
+		Cast((Case when  /*  IntNewBkgConflictAS  */ 
+				Cast(( Case /*  IntConflictASCase  */ DBO.RIC3_303B1DB68B33AB151A160EAE3EDD1F5720D4( BC.BKG_END,BC.BKG_ID,BC.BKG_RES_ID,BC.BKG_START,  #{resId},  161) 
+						when 0 then 0 
+						when 1 then BC.BKG_LOADING 
+						when 2 then 
+						/*  IntDBlBKGCnflctAS  */ DBO.RIC3_303B84F5335A214C9A49159138F15CFDB628( BC.BKG_END,BC.BKG_RES_ID,BC.BKG_START,  #{resId},  161) 
+						else /*  IntMultiCnflctAS  */ DBO.RIC3_303B995E5A9F9672F60151062C1BE85721A8( BC.BKG_ID,  #{resId},  161) end) 
+			as float) >= 131 then 1 else 0 end) as Integer) = 1 
+		and not Exists (select 1 from CFL where CFL_BKG_ID = BC.BKG_ID)   
+	</insert>
+	
+	<!--
+	#{bkgId}
+	-->
+	<insert id="insertLog" parameterType="RetainVO">
+		INSERT INTO [Retaine].[dbo].[BKG_LOG]
+	           ([BKG_LOG_ID]
+	           ,[BKG_LOG_UPDATE]
+	           ,[BKG_ID]
+	           ,[BKG_START]
+	           ,[BKG_END]
+	           ,[BKG_BTY_ID]
+	           ,[BKG_CUR_CODE1]
+	           ,[BKG_CUR_CODE2]
+	           ,[BKG_CUSTOM_RATE]
+	           ,[BKG_COST1]
+	           ,[BKG_COST2]
+	           ,[BKG_TIME]
+	           ,[BKG_LOADING]
+	           ,[BKG_NON_WORK]
+	           ,[BKG_FIXEDTIME]
+	           ,[BKG_NOTES]
+	           ,[BKG_UPDATED_BY]
+	           ,[BKG_UPDATED_ON]
+	           ,[BKG_CHANGE_USR_ID]
+	           ,[BKG_RES_ID]
+	           ,[BKG_JOB_ID]
+	           ,[BKG_CMP_ID]
+	           ,[BKG_JAS_ID]
+	           ,[BKG_BKG_ID]
+	           ,[BKG_DELETED]
+	           ,[BKG_STATUS]
+	           ,[BKG_BRQ_ID]
+	           ,[BKG_GHOST]
+	           ,[BKG_RATE1]
+	           ,[BKG_RATE2]
+	           ,[BKG_NON_DIARY]
+	           ,[BKG_PRIORITY]
+	           ,[BKG_RESTASK_ID]
+	           ,[BKG_GRADE]
+	           ,[BKG_CODE]
+	           ,[REQUESTED_ON]
+	           ,[REQUESTED_BY]
+	           ,[REQUESTED_USR_ID]
+	           ,[BKG_LOCKED]
+	           ,[BKG_RES_CRD_ID]
+	           ,[BKG_JOB_CRD_ID]
+	           ,[BKG_JAS_CRD_ID]
+	           ,[BKG_TMR_ID]
+	           ,[BKG_SCN_CODE]
+	           ,[BKG_AUDIT_TRAIL]
+	           ,[BKG_GROUPED_BIT]
+	           ,[BKG_CHANGE_DATE]
+	           ,[BKG_CHANGE_RES_ID]
+	           ,[BKG_IS_NEW_BIT]
+	           ,[BKG_ISFORECAST]
+	           ,[BKG_CHANGE_COUNT]
+	           ,[BKG_RESRES_ID]
+	           ,[BKG_PTL_CNFLICT]
+	           ,[BKG_IGNORE_CONFLICT]
+	           ,[BKG_UPDATED_BY2]
+	           ,[BKG_UPDATED_ON2]
+	           ,[BKG_UPDATED_BY3]
+	           ,[BKG_UPDATED_ON3]
+	           ,[BKG_BRQ_ORIGINATOR])
+	     SELECT 
+			   (SELECT MAX(BKG_LOG_ID) + 1 FROM Retaine.DBO.BKG_LOG)
+			   , 'I'													/*I: Insert, U: Update, D:Delete */
+			   ,[BKG_ID]
+	           ,[BKG_START]
+	           ,[BKG_END]
+	           ,[BKG_BTY_ID]
+	           ,[BKG_CUR_CODE1]
+	           ,[BKG_CUR_CODE2]
+	           ,[BKG_CUSTOM_RATE]
+	           ,[BKG_COST1]
+	           ,[BKG_COST2]
+	           ,[BKG_TIME]
+	           ,[BKG_LOADING]
+	           ,[BKG_NON_WORK]
+	           ,[BKG_FIXEDTIME]
+	           ,[BKG_NOTES]
+	           ,[BKG_UPDATED_BY]
+	           ,[BKG_UPDATED_ON]
+	           ,[BKG_CHANGE_USR_ID]
+	           ,[BKG_RES_ID]
+	           ,[BKG_JOB_ID]
+	           ,[BKG_CMP_ID]
+	           ,[BKG_JAS_ID]
+	           ,[BKG_BKG_ID]
+	           ,[BKG_DELETED]
+	           ,[BKG_STATUS]
+	           ,[BKG_BRQ_ID]
+	           ,[BKG_GHOST]
+	           ,[BKG_RATE1]
+	           ,[BKG_RATE2]
+	           ,[BKG_NON_DIARY]
+	           ,[BKG_PRIORITY]
+	           ,[BKG_RESTASK_ID]
+	           ,[BKG_GRADE]
+	           ,[BKG_CODE]
+	           ,[REQUESTED_ON]
+	           ,[REQUESTED_BY]
+	           ,[REQUESTED_USR_ID]
+	           ,[BKG_LOCKED]
+	           ,[BKG_RES_CRD_ID]
+	           ,[BKG_JOB_CRD_ID]
+	           ,[BKG_JAS_CRD_ID]
+	           ,[BKG_TMR_ID]
+	           ,[BKG_SCN_CODE]
+	           ,[BKG_AUDIT_TRAIL]
+	           ,[BKG_GROUPED_BIT]
+	           ,[BKG_CHANGE_DATE]
+	           ,[BKG_CHANGE_RES_ID]
+	           ,[BKG_IS_NEW_BIT]
+	           ,[BKG_ISFORECAST]
+	           ,[BKG_CHANGE_COUNT]
+	           ,[BKG_RESRES_ID]
+	           ,[BKG_PTL_CNFLICT]
+	           ,[BKG_IGNORE_CONFLICT]
+	           ,[BKG_UPDATED_BY2]
+	           ,[BKG_UPDATED_ON2]
+	           ,[BKG_UPDATED_BY3]
+	           ,[BKG_UPDATED_ON3]
+	           ,[BKG_BRQ_ORIGINATOR]
+			FROM Retaine.DBO.BKG 
+			WHERE BKG_ID = #{bkgId}
+	</insert>
+	
+	
+	
+</mapper>

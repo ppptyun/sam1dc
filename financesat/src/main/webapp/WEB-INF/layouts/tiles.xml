@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN" "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+<tiles-definitions>
+    <definition name="layout" template="/WEB-INF/layouts/templates/pageTemplate.jsp" preparer="com.samil.stdadt.comm.config.PagePreparer">
+        <put-attribute name="header" value="/WEB-INF/layouts/components/header.jsp" />
+        <put-attribute name="nav" value="/WEB-INF/layouts/components/navigator.jsp" />
+    </definition>
+    
+    <definition name="layout-v2" template="/WEB-INF/layouts/templates/pageTemplateV2.jsp" preparer="com.samil.stdadt.comm.config.PagePreparer">
+        <put-attribute name="header" value="/WEB-INF/layouts/components/header.jsp" />
+        <put-attribute name="nav" value="/WEB-INF/layouts/components/navigator.jsp" />
+    </definition>
+    <!-- v3 20200424 추가 -->
+    <definition name="layout-v3" template="/WEB-INF/layouts/templates/pageTemplateV3.jsp" preparer="com.samil.stdadt.comm.config.PagePreparer">
+        <put-attribute name="header" value="/WEB-INF/layouts/components/header.jsp" />
+        <put-attribute name="nav" value="/WEB-INF/layouts/components/navigator.jsp" />
+    </definition>
+    
+	<!-- ==================================================
+		[시작] 20220210 남웅주  2022년도 표준감사시간 개정
+	  ===================================================== -->
+    <definition name="layout-v4" template="/WEB-INF/layouts/templates/pageTemplateV4.jsp" preparer="com.samil.stdadt.comm.config.PagePreparer">
+        <put-attribute name="header" value="/WEB-INF/layouts/components/header.jsp" />
+        <put-attribute name="nav" value="/WEB-INF/layouts/components/navigator.jsp" />
+    </definition>
+	<!-- ==================================================
+		[종료] 20220210 남웅주  2022년도 표준감사시간 개정
+	  ===================================================== -->
+	    
+    <definition name="popupLayout" template="/WEB-INF/layouts/templates/popupTemplate.jsp" />
+    <definition name="emptyLayout" template="/WEB-INF/layouts/templates/emptyTemplate.jsp" />
+    
+    <!-- user pages -->
+    <definition name="/pages/admin/*" extends="layout-v3">
+        <put-attribute name="content" value="/WEB-INF/view/pages/admin/{1}.jsp" cascade="true" />
+    </definition>
+    <definition name="/pages/*/*" extends="layout">
+        <put-attribute name="content" value="/WEB-INF/view/pages/{1}/{2}.jsp" cascade="true" />
+    </definition>
+    <definition name="/pages/*/v1/*" extends="layout">
+        <put-attribute name="content" value="/WEB-INF/view/pages/{1}/v1/{2}.jsp" cascade="true" />
+    </definition>
+    <definition name="/pages/*/v2/*" extends="layout-v2">
+        <put-attribute name="content" value="/WEB-INF/view/pages/{1}/v2/{2}.jsp" cascade="true" />
+    </definition>
+    <!-- v3 20200424 추가 -->
+    <definition name="/pages/*/v3/*" extends="layout-v3">
+        <put-attribute name="content" value="/WEB-INF/view/pages/{1}/v3/{2}.jsp" cascade="true" />
+    </definition>
+
+	<!-- ==================================================
+		[시작] 20220210 남웅주  2022년도 표준감사시간 개정
+	  ===================================================== -->
+    <definition name="/pages/*/v4/*" extends="layout-v4">
+        <put-attribute name="content" value="/WEB-INF/view/pages/{1}/v4/{2}.jsp" cascade="true" />
+    </definition>
+	<!-- ==================================================
+		[종료] 20220210 남웅주  2022년도 표준감사시간 개정
+	  ===================================================== -->
+       
+    <!-- popup -->
+    <definition name="/popup/*" extends="popupLayout">
+        <put-attribute name="content" value="/WEB-INF/view/popup/{1}.jsp" cascade="true" />
+    </definition>
+    
+    <!-- redirect pages -->
+    <definition name="/redirect/*" extends="emptyLayout">
+        <put-attribute name="content" value="/WEB-INF/view/redirect/{1}.jsp" cascade="true" />
+    </definition>
+    
+</tiles-definitions>

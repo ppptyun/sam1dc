@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+						http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	
+	<!-- [Common] Sql Session Factory -->
+	<bean id="sqlSessionFactoryCommn" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSourceOracle" />
+		<property name="mapperLocations">
+			<list>
+				<value>classpath:mybatis/mapper/comm/*-mapper.xml</value>
+			</list>
+		</property>
+		<property name="configLocation">
+			<value>classpath:mybatis/config/mybatis-comm-config.xml</value>
+		</property>
+	</bean>
+	<!-- [Common] Scanner -->
+	<bean id="dsScannerComm" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.samil.stdadt.comm.mapper" />
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactoryCommn" />
+	</bean>
+</beans>

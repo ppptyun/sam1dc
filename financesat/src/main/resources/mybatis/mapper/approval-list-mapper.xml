@@ -1,0 +1,753 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.samil.stdadt.mapper.ApprovalListMapper">
+
+	<select id="getProjectList" parameterType="hashmap" resultType="ApprovalListVO">
+		SELECT DECODE(FORM_DIV, 'v3'
+				   , (NVL(A.ET_TRGT_ADT_TM, 0) + NVL((SELECT SUM(CNTRT_ADT_TM) FROM WEB_SAT_SUB_PRJT SUB WHERE SUB.P_PRJTCD = A.PRJTCD), 0))
+				    ,'v4'
+           			, (NVL(A.ET_TRGT_ADT_TM, 0) + NVL((SELECT SUM(CNTRT_ADT_TM) FROM WEB_SAT_SUB_PRJT SUB WHERE SUB.P_PRJTCD = A.PRJTCD), 0))
+				   , (NVL(A.ET_TRGT_ADT_TM, 0) + NVL(A.ETC_BDGT_TM, 0))
+			   ) CNTRT_ADT_TM  
+			 , A.PRJTCD ID 
+		     , A.PRJTCD BTN 
+		     , A.PRJTCD 
+		     , A.PRJTNM 
+		     , A.CHARGPTR 
+		     , A.CHARGPTR_NM 
+		     , A.CHARGMGR 
+		     , A.CHARGMGR_NM
+		     , NVL(SUM(B.ASGN_TM), 0) TOT_BDGT_TM 
+		     , NVL(DECODE(A.FORM_DIV, 'v3', SUM(CASE WHEN B.ACTV_CD IN ('09', '13') THEN B.ASGN_TM END), 'v4', SUM(CASE WHEN B.ACTV_CD IN ('09', '13') THEN B.ASGN_TM END), A.RA_BDGT_TM), 0) SPA_BDGT_TM
+		     , NVL(DECODE(A.FORM_DIV, 'v3', SUM(CASE WHEN B.ACTV_CD = '14' THEN B.ASGN_TM END), 'v4', SUM(CASE WHEN B.ACTV_CD = '14' THEN B.ASGN_TM END), A.FLCM_BDGT_TM), 0) FLCM_BDGT_TM
+		     , NVL(DECODE(A.FORM_DIV, 'v3', SUM(CASE WHEN B.ACTV_CD = '15' AND B.TBD='Y' THEN B.ASGN_TM END), 'v4', SUM(CASE WHEN B.ACTV_CD = '15' AND B.TBD='Y' THEN B.ASGN_TM END), NEW_STF_BDGT_TM), 0) NEW_STF_BDGT_TM
+		     , A.STAT 
+		     , SF_APPMNG_GET_COMMCD(#{appCd}, 'PRJT_STAT', A.STAT, 'NM') STAT_NM 
+		     , TO_CHAR(A.APRV_REQ_DT, 'YYYY-MM-DD') APRV_REQ_DT
+		  FROM (<include refid="satSql.aprvProjectInfo" />) A
+		     , (SELECT A.PRJTCD 
+		            , A.ACTV_CD 
+		            , A.TBD 
+		            , SUM(B.ASGN_TM) ASGN_TM 
+		         FROM NMSP.WEB_SAT_MEMB A 
+		            , NMSP.WEB_SAT_MEMB_BDGT B 
+		        WHERE A.PRJTCD = B.PRJTCD 
+		              AND A.ACTV_CD = B.ACTV_CD 
+		              AND A.LOCA_CD = B.LOCA_CD 
+		              AND A.MEMB_EMPLNO = B.MEMB_EMPLNO 
+		              AND A.SUB_PRJTCD  = B.SUB_PRJTCD 
+		          GROUP BY A.PRJTCD 
+		            , A.TBD 
+		            , A.ACTV_CD
+		       ) B 
+		 WHERE A.PRJTCD = B.PRJTCD(+)  
+		   AND A.STAT IN ('RQ', 'RJ', 'CO')
+		   GROUP BY A.PRJTCD 
+		     , A.PRJTNM 
+		     , A.CHARGPTR 
+		     , A.CHARGPTR_NM 
+		     , A.CHARGMGR 
+		     , A.CHARGMGR_NM
+		     , A.RA_BDGT_TM
+		     , A.FLCM_BDGT_TM
+		     , A.NEW_STF_BDGT_TM
+		     , A.STAT 
+		     , A.FORM_DIV
+		     , A.ET_TRGT_ADT_TM 
+     		 , A.ETC_BDGT_TM
+     		 , A.APRV_REQ_DT
+		 ORDER BY APRV_REQ_DT DESC
+	</select>
+	
+	
+	
+
+	<select id="getProjectList_bk" parameterType="hashmap" resultType="ApprovalListVO">
+		SELECT A.*,
+		       CASE WHEN TOT_BDGT = 0 OR TOT_BDGT_WKMNSP = 0 OR WKMNSP_SAT = 0 THEN NULL ELSE ROUND(WKMNSP_SAT / (TOT_BDGT_WKMNSP/ TOT_BDGT), 2) END PLAN_SAT,
+		       CASE WHEN TOT_BDGT = 0 OR TOT_BDGT_WKMNSP = 0 OR WKMNSP_SAT = 0 THEN NULL ELSE ROUND(TOT_BDGT /(A.WKMNSP_SAT / (TOT_BDGT_WKMNSP/ TOT_BDGT)) * 100, 2) END ACHV_RATE
+		FROM (SELECT A.*, 
+					SUM_MEMB_BDGT + RA_BDGT_TM + FLCM_BDGT_TM + NEW_STF_BDGT_TM + OTHER_BDGT_TM TOT_BDGT,
+		      ROUND(SUM_MEMB_BDGT_WKMNSP + (RA_BDGT_TM * BASE_WKMNSP)  + (FLCM_BDGT_TM * BASE_WKMNSP) + (NEW_STF_BDGT_TM * NEW_STF_WKMNSP) + (OTHER_BDGT_TM * OTHER_WKMNSP), 2) TOT_BDGT_WKMNSP
+				FROM (
+				  SELECT A.PRJTCD ID,
+						 A.PRJTCD BTN,
+						 A.PRJTCD,
+					     A.PRJTNM,
+					     A.CHARGPTR,
+					     A.CHARGPTR_NM,
+					     A.CHARGMGR,
+					     A.CHARGMGR_NM,
+					     A.RCRD_MGR,
+					     A.RCRD_MGR_NM,
+					     A.LIST_DV_CD,
+					     NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LISTDV', A.LIST_DV_CD, 'NM') LIST_DV_NM,
+					     DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.BASE_WKMNSP, 0), 1) BASE_WKMNSP,
+		         	     DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.NEW_STF_WKMNSP, 0), TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'NEWSTAFF', 'VAL1'))) NEW_STF_WKMNSP,
+		         	     DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.OTHER_WKMNSP, 0), TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'OHTER', 'VAL1'))) OTHER_WKMNSP,
+		             	 NVL(A.WKMNSP_SAT, 0) WKMNSP_SAT,
+		             	 NVL(A.ET_DFN_SAT, 0) ET_DFN_SAT,
+		             	 NVL(A.ET_TRGT_ADT_TM, 0) ET_TRGT_ADT_TM,
+		              	 NVL(B.SUM_MEMB_BDGT, 0) SUM_MEMB_BDGT,
+					   	 NVL(B.SUM_MEMB_BDGT_WKMNSP, 0) SUM_MEMB_BDGT_WKMNSP,
+		              	 NVL(A.RA_BDGT_TM, 0) RA_BDGT_TM,
+					   	 NVL(A.FLCM_BDGT_TM, 0) FLCM_BDGT_TM,
+					   	 NVL(A.NEW_STF_BDGT_TM, 0) NEW_STF_BDGT_TM,
+					   	 NVL(A.OTHER_BDGT_TM, 0) OTHER_BDGT_TM,
+					     A.STAT,
+					     SF_APPMNG_GET_COMMCD(#{appCd}, 'PRJT_STAT', A.STAT, 'NM') STAT_NM,
+					     TO_CHAR(A.APRV_REQ_DT, 'YYYY-MM-DD') APRV_REQ_DT
+					FROM (<include refid="satSql.aprvProjectInfo" />) A,
+			             (SELECT A.PRJTCD, SUM(B.ASGN_TM) SUM_MEMB_BDGT, SUM(A.WKMNSP * B.ASGN_TM) SUM_MEMB_BDGT_WKMNSP
+			               FROM NMSP.WEB_SAT_MEMB A, 
+			                    NMSP.WEB_SAT_MEMB_BDGT B
+			              WHERE A.PRJTCD= B.PRJTCD 	
+	                       	    AND A.ACTV_CD = B.ACTV_CD 
+			                    AND A.LOCA_CD = B.LOCA_CD 
+			                    AND A.MEMB_EMPLNO = B.MEMB_EMPLNO
+			              GROUP BY A.PRJTCD) B
+					 WHERE A.PRJTCD = B.PRJTCD(+)
+		       ) A
+		) A
+		ORDER BY APRV_REQ_DT DESC
+	</select>
+	
+	<select id="getApprovalDetails" parameterType="hashmap" resultType="ProjectBudgetSummaryVO">
+		SELECT A.*,
+			(A.RA_BDGT_TM + A.FLCM_BDGT_TM + A.NEW_STF_BDGT_TM +  A.OTHER_BDGT_TM + A.SUM_MEMB_BDGT) TOT_MEMB_BDGT,
+			(A.RA_BDGT_TM * A.BASE_WKMNSP + A.FLCM_BDGT_TM * A.BASE_WKMNSP + A.NEW_STF_BDGT_TM * A.NEW_STF_WKMNSP + A.OTHER_BDGT_TM * A.OTHER_WKMNSP + A.SUM_MEMB_BDGT_WKMNSP) TOT_MEMB_BDGT_WKMNSP
+		FROM (
+			SELECT 
+			   A.PRJTCD, 
+			   A.CAN_EDIT,
+			   A.PROF_RETAIN_TRAN_YN,
+			   A.RETAIN_SCDL_YN,
+			   A.PRFL_ID, 
+			   A.PRJTNM, 
+			   A.PRJT_FRDT, 
+			   A.PRJT_TODT, 	
+			   A.SATGRP_CD,
+			   A.RETAIN_TRAN_YN, 
+			   A.SAT_TRGT_YN,
+			   SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', A.SATGRP_CD, 'NM') SATGRP_NM, 
+			   A.CNTRT_FEE, 
+			   ((NVL((SELECT SUM(SPRJT.CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT SPRJT WHERE SPRJT.P_PRJTCD = A.PRJTCD),0) + NVL(A.CNTRT_FEE,0))/ 1000000) TOT_CNTRT_FEE, 
+			   DECODE(A.SAT_TRGT_YN, 'Y', A.CAL_SAT, 0) CAL_SAT, 
+			   DECODE(A.SAT_TRGT_YN, 'Y', A.ET_DFN_SAT, 0) ET_DFN_SAT,
+			   A.ETC_BDGT_TM,
+			   A.WKMNSP_SAT,
+			   DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.ET_TRGT_ADT_TM, 0), 0) + NVL(A.ETC_BDGT_TM, 0) TOT_PRJT_BDGT,
+			   NVL(B.SUM_MEMB_BDGT, 0) SUM_MEMB_BDGT,
+			   NVL(B.SUM_MEMB_BDGT_WKMNSP, 0) SUM_MEMB_BDGT_WKMNSP,
+			   NVL(A.RA_BDGT_TM, 0) RA_BDGT_TM,
+			   NVL(A.FLCM_BDGT_TM, 0) FLCM_BDGT_TM,
+			   NVL(A.NEW_STF_BDGT_TM, 0) NEW_STF_BDGT_TM,
+			   NVL(A.OTHER_BDGT_TM, 0) OTHER_BDGT_TM,
+			   DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.BASE_WKMNSP, 0), 1) BASE_WKMNSP,
+        	   DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.NEW_STF_WKMNSP, 0), TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'NEWSTAFF', 'VAL1'))) NEW_STF_WKMNSP,
+        	   DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.OTHER_WKMNSP, 0), TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'OHTER', 'VAL1'))) OTHER_WKMNSP,
+			   A.OUTEXPAMT,
+			   A.OTHEXPAMT,
+			   A.OTHBILAMT,
+			   A.PRE_OUTEXPAMT,
+			   A.PRE_OTHEXPAMT,
+			   A.PRE_OTHBILAMT,
+			   NVL(B.EMPL_CST, 0) EMPL_CST,
+			   NVL(B.CST, 0) CST,
+			   NVL((SELECT SUM(SPRJT.CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT SPRJT WHERE SPRJT.P_PRJTCD = A.PRJTCD),0) + NVL(A.CNTRT_FEE,0) - NVL(PRE_OUTEXPAMT,0) - NVL(PRE_OTHEXPAMT,0) + NVL(PRE_OTHBILAMT,0) NET_RVNU,
+			   ROUND((NVL((SELECT SUM(SPRJT.CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT SPRJT WHERE SPRJT.P_PRJTCD = A.PRJTCD),0) + NVL(A.CNTRT_FEE,0)  - NVL(PRE_OUTEXPAMT,0) - NVL(PRE_OTHEXPAMT,0) + NVL(PRE_OTHBILAMT,0) - NVL(EMPL_CST,0) - NVL(CST, 0))/1000000) EXP_CM,
+			   A.STAT
+			FROM
+			(
+			SELECT <choose>
+						<when test=" !'sysadmin'.equals(session.roleCd) and !'admin'.equals(session.roleCd)">
+							CASE WHEN A.CHARGPTR = #{session.emplNo} THEN '1' ELSE '0' END CAN_EDIT,
+						</when>
+						<otherwise>
+						    '1' CAN_EDIT,
+						</otherwise>
+				  </choose>
+				   A.*,
+				   NVL(SF_APPMNG_GET_COMMCD(#{appCd}, 'RETAIN_TRAN_PROF', A.CHARGPTR_BONBCD, 'VAL1'), 'N') PROF_RETAIN_TRAN_YN,
+				   B.OUTEXPAMT,      /* 외주비 */ 
+			       B.OTHEXPAMT,      /* 부대비용 */ 
+			       B.OTHBILAMT,      /* 부대비용 청구 */ 
+			       B.PRE_OUTEXPAMT,  /* 예상 외주비 */ 
+			       B.PRE_OTHEXPAMT,  /* 예상 부대비용 */ 
+			       B.PRE_OTHBILAMT   /* 예상 부대비용 청구 */ 
+			  FROM (<include refid="satSql.aprvProjectInfo" />) A,
+			       PMCONTEST B
+			 WHERE A.PRJTCD1 = B.PRJTCD1(+)
+		       AND A.PRJTCD2 = B.PRJTCD2(+)
+		       AND A.PRJTCD3 = B.PRJTCD3(+)
+			) A,
+			(
+			SELECT B.PRJTCD,
+				   SUM(TOT_ASGN_TM) SUM_MEMB_BDGT,							/* 예산 시간 */ 
+			       SUM(TOT_ASGN_TM_WKMNSP)  SUM_MEMB_BDGT_WKMNSP,			/* 예산 시간 * 숙련도 */
+			       SUM(FIXPARATE * TOT_ASGN_TM) EMPL_CST, 		    		/* 총 인건비 */
+			       ROUND(SUM(FIXPARATE * TOT_ASGN_TM * EXPRATE / 100)) CST 	/* 경비 */
+			  FROM 
+			       (SELECT C.CMOFCD, 
+			              A.GRADE CMGRADCD , 
+			              A.FIXPARATE, 
+			              B.EXPRATE 
+			         FROM PMSTPAYRATE A, 
+			              PMSTEXP B, 
+			              CMTEAMCD C 
+			        WHERE A.YEARLY = B.YEARLY 
+			              AND A.BONBCD = B.BONBCD 
+			              AND A.YEARLY = SF_PM_GET_CYEARLY('01',TO_CHAR((SELECT CREDT FROM WEB_SAT_PRJT WHERE PRJTCD=#{prjtCd}),'YYYYMM'),'2') 
+			              AND A.BONBCD = C.TEAMCD 
+			          ) A, 
+			      (SELECT A.PRJTCD, 
+			             C.CMGRADCD, 
+			             D.CMOFCD, 
+			             SUM(TOT_ASGN_TM) TOT_ASGN_TM,
+			             SUM(TOT_ASGN_TM * WKMNSP) TOT_ASGN_TM_WKMNSP
+			        FROM (SELECT A.PRJTCD, 
+			        			 A.MEMB_EMPLNO,
+			        			 A.GRADCD, 
+			        			 SF_WEB_SAT_GET_TOT_BDGT(A.PRJTCD, A.MEMB_EMPLNO, A.ACTV_CD, A.LOCA_CD) TOT_ASGN_TM, 
+			        			 A.WKMNSP, 
+			        			 A.CREDT  
+			        		FROM NMSP.WEB_SAT_MEMB A 
+			        	   WHERE A.PRJTCD = #{prjtCd}) A, 
+			             NMSP.HREMP B, 
+			             NMSP.HRGRAD C, 
+			             NMSP.CMTEAMH D 
+			       WHERE A.MEMB_EMPLNO = B.EMPLNO 
+			             AND A.GRADCD = C.GRADCD 
+			             AND D.TEAMCD = SAC_HR.F_FRM_CAM_HISTORY(B.EMP_ID, 'KO', A.CREDT, 'ORG_CD') 
+			             AND D.YEARLY = NMSP.SF_PM_GET_CYEARLY('01', TO_CHAR(A.CREDT, 'YYYYMM'), '2') 
+			       GROUP BY A.PRJTCD, 
+			       			C.CMGRADCD, 
+			                D.CMOFCD 
+			      ) B 
+			    WHERE A.CMGRADCD(+) = B.CMGRADCD 
+			          AND A.CMOFCD(+) = B.CMOFCD 
+					GROUP BY B.PRJTCD
+			) B
+			WHERE A.PRJTCD= B.PRJTCD(+)
+		) A
+	</select>
+	
+	<select id="getApprovalDetailsV3" parameterType="hashmap" resultType="ProjectBudgetSummaryV3VO">
+		SELECT A.*
+			 , B.* 
+	 <choose>
+			<when test=" !'sysadmin'.equals(session.roleCd) and !'admin'.equals(session.roleCd)">
+			 , CASE WHEN A.CHARGPTR = #{session.emplNo} THEN '1' ELSE '0' END CAN_EDIT
+			</when>
+			<otherwise>
+			 , '1' CAN_EDIT
+			</otherwise>
+	  </choose>
+		     , SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', A.SATGRP_CD, 'NM') SATGRP_NM -- [표준감사대상 대상] 그룹명 
+		     ,(B.TOTAL_TM - B.EL_TM - B.PM_TM - B.QC_TM - B.QRP_TM - B.RA_TM - B.FULCRUM_TM - B.NEWSTAFF_TM) ADTTEAM_TM -- [Budget요약] 감사팀 
+		     , DECODE(B.SAT_BDGT_TM, 0, 0, DECODE(B.SAT_WKMNSP_BDGT, 0, 0, A.ET_DFN_SAT * A.BASE_WKMNSP /(B.SAT_WKMNSP_BDGT / B.SAT_BDGT_TM))) PLAN_SAT -- 계획단계 표준감사시간 
+		     , DECODE(B.TOTAL_TM, 0, 0, B.WKMNSP_BDGT / B.TOTAL_TM) EXP_WKMNSP /* 예상 팀 숙련도 */ 
+		     , DECODE(B.SAT_BDGT_TM, 0, 0, B.SAT_WKMNSP_BDGT / B.SAT_BDGT_TM) SAT_EXP_WKMNSP /* [표준감사대상 대상] 예상 팀 숙련도 */ 
+		     , A.TOT_CNTRT_FEE /* 총 계약금액 */ 
+		       + NVL(A.PRE_OTHBILAMT, 0) /* 예상 청구 부대비용 */ 
+		       - NVL(A.PRE_OUTEXPAMT, 0) /* 예상 외주비 */ 
+		       - NVL(A.PRE_OTHEXPAMT, 0) /* 예상 부대비용 */ 
+		       NET_RVNU 
+		     , ROUND((A.TOT_CNTRT_FEE /* 총 계약금액 */ 
+		       + NVL(A.PRE_OTHBILAMT, 0) /* 예상 청구 부대비용 */ 
+		       - NVL(A.PRE_OUTEXPAMT, 0) /* 예상 외주비 */ 
+		       - NVL(A.PRE_OTHEXPAMT, 0) /* 예상 부대비용 */ 
+		       - B.EMP_COST - B.COST) / 1000000) EXP_CM 
+		      
+		  FROM  
+		       (SELECT A.* 
+		            , A.CNTRT_FEE + 
+		              (SELECT NVL(SUM(B.CNTRT_FEE), 0) 
+		                FROM WEB_SAT_SUB_PRJT B 
+		               WHERE B.P_PRJTCD = A.PRJTCD 
+		                     AND EXISTS 
+		                     (SELECT 1 
+		                       FROM PMPRJTDT C 
+		                      WHERE C.PRJTCD1 = B.PRJTCD1 
+		                            AND C.PRJTCD2 = B.PRJTCD2 
+		                            AND C.PRJTCD3 = B.PRJTCD3 
+		                            AND C.CREATEDV IN('1', '3') 
+		                     ) 
+		              ) TOT_CNTRT_FEE 
+		            , (SELECT SUM(AA.CNTRT_ADT_TM) 
+		                FROM (<include refid="satSql.baseCisPrjt" />) AA 
+		                   , PMAUDITPJTD BB 
+		               WHERE AA.PRJTCD1 = BB.PRJTCD1 
+		                     AND AA.PRJTCD2 = BB.PRJTCD2 
+		                     AND AA.PRJTCD3 = BB.PRJTCD3 
+		                     AND BB.AUDITGB = 1 
+		                     AND AA.MAIN_PRJTCD = A.PRJTCD 
+		              ) CNTRT_ADT_TM 
+		            , NVL(B.PRE_OTHBILAMT, 0) PRE_OTHBILAMT /* 예상 청구 부대비용 */ 
+		            , NVL(B.PRE_OUTEXPAMT, 0) PRE_OUTEXPAMT /* 예상 외주비 */ 
+		            , NVL(B.PRE_OTHEXPAMT, 0) PRE_OTHEXPAMT /* 예상 부대비용 */ 
+		         FROM 
+		              (<include refid="satSql.aprvProjectInfo"></include>) A 
+		            , PMCONTEST B 
+		        WHERE A.PRJTCD1 = B.PRJTCD1(+) 
+		              AND A.PRJTCD2 = B.PRJTCD2(+) 
+		              AND A.PRJTCD3 = B.PRJTCD3(+) 
+		       ) A
+		     , 
+		       (SELECT A.PRJTCD 
+		            , SUM(EMP_COST) EMP_COST 
+		            , SUM(COST) COST 
+		            , NVL(SUM(A.ASGN_TM), 0) TOTAL_TM /* 전체 */ 
+		            , NVL(SUM(DECODE(A.MEMB_EMPLNO, A.CHARGPTR, A.ASGN_TM)), 0) EL_TM /* [Bud099284get요약] 담당이사 */ 
+		            , NVL(SUM(DECODE(A.MEMB_EMPLNO, A.CHARGMGR, A.ASGN_TM)), 0) PM_TM /* [Budget요약] PM */ 
+		            , NVL(SUM(DECODE(A.ACTV_CD, '12', A.ASGN_TM)), 0) QC_TM /* [Budget요약] QC */
+		            , NVL(SUM(DECODE(A.ACTV_CD, '16', A.ASGN_TM)), 0) QRP_TM /* [Budget요약] QRP */  
+		            , NVL(SUM(DECODE(A.ACTV_CD, '13', A.ASGN_TM)), 0) + NVL(SUM(DECODE(A.ACTV_CD, '09', A.ASGN_TM)), 0) RA_TM /* [Budget요약] RA */ 
+		            , NVL(SUM(DECODE(A.ACTV_CD, '14', A.ASGN_TM)), 0) FULCRUM_TM /* [Budget요약] Fulcrum */ 
+		            , NVL(SUM(CASE WHEN A.ACTV_CD = '15' AND A.TBD = 'Y' THEN A.ASGN_TM END), 0) NEWSTAFF_TM /* [Budget요약] New Staff */
+		            , NVL(SUM(DECODE(A.AUDITGB, '1', A.ASGN_TM)), 0) SAT_BDGT_TM /* [표준감사대상 대상] Budgeting hours */ 
+		            , SUM(DECODE(A.AUDITGB, '1', A.ASGN_TM) * A.WKMNSP) SAT_WKMNSP_BDGT 
+		            , SUM(A.ASGN_TM * A.WKMNSP) WKMNSP_BDGT 
+		         FROM 
+		              (SELECT A.PRJTCD 
+		                   , B.CHARGPTR 
+		                   , B.CHARGMGR 
+		                   , NVL(D.FIXPARATE * C.ASGN_TM, 0) EMP_COST 
+		                   , NVL(D.FIXPARATE * C.ASGN_TM * D.EXPRATE / 100, 0) COST 
+		                   , C.MEMB_EMPLNO 
+		                   , C.ASGN_TM 
+		                   , C.ACTV_CD 
+		                   , C.WKMNSP 
+		                   , C.AUDITGB 
+		                   , C.TBD
+		                FROM NMSP.WEB_SAT_PRJT A 
+		                   , NMSP.PMPRJTBS B 
+		                   , (<include refid="satSql.baseMemberBudget"></include>) C
+		                   , 
+		                     (SELECT A.YEARLY 
+		                          , A.GRADE CMGRADCD 
+		                          , A.BONBCD 
+		                          , A.FIXPARATE 
+		                          , B.EXPRATE 
+		                       FROM PMSTPAYRATE A 
+		                          , PMSTEXP B 
+		                      WHERE A.YEARLY = B.YEARLY 
+		                            AND A.BONBCD = B.BONBCD 
+		                     ) D 
+		               WHERE A.PRJTCD1 = B.PRJTCD1 
+		                     AND A.PRJTCD2 = B.PRJTCD2 
+		                     AND A.PRJTCD3 = B.PRJTCD3 
+		                     AND A.PRJTCD = C.PRJTCD(+) 
+		                     AND C.YEARLY_BY_WEEK = D.YEARLY(+) 
+		                     AND C.BONBCD = D.BONBCD(+) 
+		                     AND C.CMGRADCD = D.CMGRADCD(+) 
+		                     AND A.PRJTCD= #{prjtCd} 
+		              ) A 
+		        GROUP BY A.PRJTCD 
+		       ) B 
+		 WHERE A.PRJTCD = B.PRJTCD
+	</select>
+	
+	<select id="getApprovalDetails_BK" parameterType="hashmap" resultType="ProjectBudgetSummaryVO">
+		SELECT A.*,
+			(A.RA_BDGT_TM + A.FLCM_BDGT_TM + A.NEW_STF_BDGT_TM +  A.OTHER_BDGT_TM + A.SUM_MEMB_BDGT) TOT_MEMB_BDGT,
+			(A.RA_BDGT_TM * A.BASE_WKMNSP + A.FLCM_BDGT_TM * A.BASE_WKMNSP + A.NEW_STF_BDGT_TM * A.NEW_STF_WKMNSP + A.OTHER_BDGT_TM * A.OTHER_WKMNSP + A.SUM_MEMB_BDGT_WKMNSP) TOT_MEMB_BDGT_WKMNSP
+		FROM (
+			SELECT 
+			   A.PRJTCD, 
+		    <choose>
+				<when test=" !'sysadmin'.equals(session.roleCd) and !'admin'.equals(session.roleCd)">
+					CASE WHEN A.CHARGPTR = #{session.emplNo} THEN '1' ELSE '0' END CAN_EDIT,
+				</when>
+				<otherwise>
+				    '1' CAN_EDIT,
+				</otherwise>
+			</choose>
+			   A.PRFL_ID, 
+			   A.PRJTNM, 
+			   A.PRJT_FRDT, 
+			   A.PRJT_TODT, 	
+			   A.SATGRP_CD,
+			   A.RETAIN_TRAN_YN, 
+			   SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', A.SATGRP_CD, 'NM') SATGRP_NM, 
+			   A.CNTRT_FEE, 
+			   ((NVL((SELECT SUM(SPRJT.CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT SPRJT WHERE SPRJT.P_PRJTCD = A.PRJTCD),0) + NVL(A.CNTRT_FEE,0))/ 1000000) TOT_CNTRT_FEE, 
+			   A.CAL_SAT, 
+			   A.ET_DFN_SAT,
+			   A.ETC_BDGT_TM,
+			   A.WKMNSP_SAT,
+			   NVL(A.ET_TRGT_ADT_TM, 0) + NVL(A.ETC_BDGT_TM, 0) TOT_PRJT_BDGT,
+			   NVL(B.SUM_MEMB_BDGT, 0) SUM_MEMB_BDGT,
+			   NVL(B.SUM_MEMB_BDGT_WKMNSP, 0) SUM_MEMB_BDGT_WKMNSP,
+			   NVL(A.RA_BDGT_TM, 0) RA_BDGT_TM,
+			   NVL(A.FLCM_BDGT_TM, 0) FLCM_BDGT_TM,
+			   NVL(A.NEW_STF_BDGT_TM, 0) NEW_STF_BDGT_TM,
+			   NVL(A.OTHER_BDGT_TM, 0) OTHER_BDGT_TM,
+   			   DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.BASE_WKMNSP, 0), 1) BASE_WKMNSP,
+        	   DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.NEW_STF_WKMNSP, 0), TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'NEWSTAFF', 'VAL1'))) NEW_STF_WKMNSP,
+        	   DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.OTHER_WKMNSP, 0), TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'OHTER', 'VAL1'))) OTHER_WKMNSP,
+			   A.OUTEXPAMT,
+			   A.OTHEXPAMT,
+			   A.OTHBILAMT,
+			   A.PRE_OUTEXPAMT,
+			   A.PRE_OTHEXPAMT,
+			   A.PRE_OTHBILAMT,
+			   NVL(B.EMPL_CST, 0) EMPL_CST,
+			   NVL(B.CST, 0) CST,
+			   NVL((SELECT SUM(SPRJT.CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT SPRJT WHERE SPRJT.P_PRJTCD = A.PRJTCD),0) + NVL(A.CNTRT_FEE,0) - NVL(PRE_OUTEXPAMT,0) - NVL(PRE_OTHEXPAMT,0) + NVL(PRE_OTHBILAMT,0) NET_RVNU,
+			   ROUND((NVL((SELECT SUM(SPRJT.CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT SPRJT WHERE SPRJT.P_PRJTCD = A.PRJTCD),0) + NVL(A.CNTRT_FEE,0)  - NVL(PRE_OUTEXPAMT,0) - NVL(PRE_OTHEXPAMT,0) + NVL(PRE_OTHBILAMT,0) - NVL(EMPL_CST,0) - NVL(CST, 0))/1000000) EXP_CM,
+			   A.STAT
+			FROM
+			(	SELECT A.*,
+				   NVL(SF_APPMNG_GET_COMMCD(#{appCd}, 'RETAIN_TRAN_PROF', A.CHARGPTR_BONBCD, 'VAL1'), 'N') PROF_RETAIN_TRAN_YN,
+				   B.OUTEXPAMT,      /* 외주비 */ 
+			       B.OTHEXPAMT,      /* 부대비용 */ 
+			       B.OTHBILAMT,      /* 부대비용 청구 */ 
+			       B.PRE_OUTEXPAMT,  /* 예상 외주비 */ 
+			       B.PRE_OTHEXPAMT,  /* 예상 부대비용 */ 
+			       B.PRE_OTHBILAMT   /* 예상 부대비용 청구 */ 
+			  FROM (<include refid="satSql.aprvProjectInfo" />) A,
+			       PMCONTEST B
+			 WHERE A.PRJTCD1 = B.PRJTCD1(+)
+		       AND A.PRJTCD2 = B.PRJTCD2(+)
+		       AND A.PRJTCD3 = B.PRJTCD3(+)
+			) A,
+			(
+			SELECT B.PRJTCD,
+				   SUM(TOT_ASGN_TM) SUM_MEMB_BDGT,							/* 예산 시간 */ 
+			       SUM(TOT_ASGN_TM_WKMNSP)  SUM_MEMB_BDGT_WKMNSP,			/* 예산 시간 * 숙련도 */
+			       SUM(FIXPARATE * TOT_ASGN_TM) EMPL_CST, 		    		/* 총 인건비 */
+			       ROUND(SUM(FIXPARATE * TOT_ASGN_TM * EXPRATE / 100)) CST 	/* 경비 */
+			  FROM 
+			       (SELECT C.CMOFCD, 
+			              A.GRADE CMGRADCD , 
+			              A.FIXPARATE, 
+			              B.EXPRATE 
+			         FROM PMSTPAYRATE A, 
+			              PMSTEXP B, 
+			              CMTEAMCD C 
+			        WHERE A.YEARLY = B.YEARLY 
+			              AND A.BONBCD = B.BONBCD 
+			              AND A.YEARLY = SF_PM_GET_CYEARLY('01',TO_CHAR((SELECT CREDT FROM WEB_SAT_PRJT WHERE PRJTCD=#{prjtCd}),'YYYYMM'),'2') 
+			              AND A.BONBCD = C.TEAMCD 
+			          ) A, 
+			      (SELECT A.PRJTCD, 
+			             C.CMGRADCD, 
+			             D.CMOFCD, 
+			             SUM(TOT_ASGN_TM) TOT_ASGN_TM,
+			             SUM(TOT_ASGN_TM * WKMNSP) TOT_ASGN_TM_WKMNSP
+			        FROM (SELECT A.PRJTCD, 
+			        			 A.MEMB_EMPLNO, 
+			        			 SF_WEB_SAT_GET_TOT_BDGT(A.PRJTCD, A.MEMB_EMPLNO, A.ACTV_CD, A.LOCA_CD) TOT_ASGN_TM, 
+			        			 A.WKMNSP, 
+			        			 A.CREDT  
+			        		FROM NMSP.WEB_SAT_MEMB A 
+			        	   WHERE A.PRJTCD = #{prjtCd}) A, 
+			             NMSP.HREMP B, 
+			             NMSP.HRGRAD C, 
+			             NMSP.CMTEAMH D 
+			       WHERE A.MEMB_EMPLNO = B.EMPLNO 
+			             AND B.GRADCD = C.GRADCD 
+			             AND A.PRJTCD = #{prjtCd} 
+			             AND D.TEAMCD = SAC_HR.F_FRM_CAM_HISTORY(B.EMP_ID, 'KO', A.CREDT, 'ORG_CD') 
+			             AND D.YEARLY = NMSP.SF_PM_GET_CYEARLY('01', TO_CHAR(A.CREDT, 'YYYYMM'), '2') 
+			       GROUP BY A.PRJTCD, 
+			       			 C.CMGRADCD, 
+			             D.CMOFCD 
+			      ) B 
+			    WHERE A.CMGRADCD = B.CMGRADCD 
+			          AND A.CMOFCD = B.CMOFCD 
+					GROUP BY B.PRJTCD
+			) B
+			WHERE A.PRJTCD= B.PRJTCD(+)
+		) A
+	</select>
+	
+
+	<update id="approveProjectInfo" parameterType="map">
+		UPDATE NMSP.WEB_SAT_PRJT A
+		SET A.STAT = 'CO',
+			A.PREV_STAT = A.STAT, 
+			A.APRV_CMPLT_DT = SYSDATE
+		WHERE A.PRJTCD = #{prjtCd}
+	</update>
+	
+	
+	
+	<insert id="approveProjectMailReceiverInsert" parameterType="map">
+		INSERT INTO SAC_NEWS.RTMS_RECIPIENTINFO(MID, SUBID, TID, RID, RNAME, RMAIL) 
+		SELECT DISTINCT #{appCd}||#{mailID} AS MID, 
+		       0 AS SUBID, 
+		       0 AS TID, 
+		       '표준감사시간관리' AS RID, 
+		       B.KORNM AS RNAME, 
+		       B.INTEID||'@samil.com' AS RMAIL 
+		  FROM 
+		       (SELECT PRJTCD, 
+		              MAIL_TO 
+		         FROM 
+		              (SELECT A.PRJTCD, 
+		                     B.CHARGMGR, 
+		                     A.RCRD_MGR, 
+		                     A.RCRD_MGR2, 
+		                     A.RCRD_MGR3 
+		                FROM NMSP.WEB_SAT_PRJT A, 
+		                     NMSP.PMPRJTBS B 
+		               WHERE A.PRJTCD1 = B.PRJTCD1 
+		                     AND A.PRJTCD2 = B.PRJTCD2 
+		                     AND A.PRJTCD3 = B.PRJTCD3 
+		                     AND PRJTCD = #{prjtCd} 
+		              ) UNPIVOT (MAIL_TO FOR RCRD_MGR_TMP IN(CHARGMGR, RCRD_MGR, RCRD_MGR2, RCRD_MGR3)) 
+		       ) A, 
+		       NMSP.HREMP B 
+		 WHERE A.MAIL_TO = B.EMPLNO
+	</insert>
+ 
+	<insert id="approveProjectMailReceiverInsert_BK20190715" parameterType="map">
+		INSERT INTO SAC_NEWS.RTMS_RECIPIENTINFO(MID, SUBID, TID, RID, RNAME, RMAIL) 
+		(SELECT #{appCd}||#{mailID} AS MID, 0 AS SUBID, 0 AS TID, '표준감사시간관리' AS RID, 
+		c.KORNM AS RNAME, 
+		c.INTEID||'@samil.com' AS RMAIL
+		FROM NMSP.WEB_SAT_PRJT a, NMSP.PMPRJTBS b, NMSP.WEB_HTIF_V c
+		WHERE a.PRJTCD = #{prjtCd}
+		AND a.PRJTCD1 = b.PRJTCD1 AND a.PRJTCD2 = b.PRJTCD2 AND a.PRJTCD3 = b.PRJTCD3
+		AND b.CHARGMGR = c.emplno	
+		UNION
+		SELECT #{appCd}||#{mailID} AS MID, 0 AS SUBID, 0 AS TID, '표준감사시간관리' AS RID, 
+		c.KORNM AS RNAME, 
+		c.INTEID||'@samil.com' AS RMAIL
+		FROM NMSP.WEB_SAT_PRJT a, NMSP.WEB_HTIF_V c
+		WHERE a.PRJTCD = #{prjtCd} AND a.RCRD_MGR = c.EMPLNO
+		)
+	</insert>
+	
+	<insert id="approveProjectMailContentInsert" parameterType="map">
+		INSERT INTO SAC_NEWS.RTMS_MAILQUEUE(MID, SUBID, TID, SID, SNAME, SMAIL, RPOS, CTNPOS,  SUBJECT, CONTENTS, ISSECURE, SECURETEMPLATE)         
+		SELECT #{appCd}||#{mailID} AS MID, 0 AS SUBID, 0 AS TID, '표준감사시간관리' AS SID, 
+		#{session.korNm} AS SNAME, 
+		#{session.inteId}||'@samil.com' AS SMAIL,
+		'0' AS RPOS, '0' AS CTNPOS, 
+		#{subject} AS SUBJECT, 
+		#{mailContents1} ||b.PRJTNM|| #{mailContents2} || #{mailContents3}  AS CONTENTS,
+		'0' AS ISSECURE, null
+		FROM NMSP.WEB_SAT_PRJT a, NMSP.PMPRJTBS b
+		WHERE a.PRJTCD1 = b.PRJTCD1 AND a.PRJTCD2 = b.PRJTCD2 AND a.PRJTCD3 = b.PRJTCD3
+			 AND a.PRJTCD = #{prjtCd}
+	</insert>
+	
+	<!-- <insert id="approveProjectMailContentInsert" parameterType="map">
+		INSERT INTO SAC_NEWS.RTMS_MAILQUEUE(MID, SUBID, TID, SID, SNAME, SMAIL, RPOS, CTNPOS,  SUBJECT, CONTENTS, ISSECURE, SECURETEMPLATE)         
+		SELECT #{appCd}||#{mailID} AS MID, 0 AS SUBID, 0 AS TID, '표준감사시간관리' AS SID, 
+		c.KORNM AS SNAME, 
+		c.INTEID||'@samil.com' AS SMAIL,
+		'0' AS RPOS, '0' AS CTNPOS, 
+		'[표준감사시간관리]'||b.PRJTNM||' 프로젝트가 승인되었습니다' AS SUBJECT, 
+		#{mailContents1} ||b.PRJTNM|| #{mailContents2} || #{mailContents3}  AS CONTENTS,
+		'0' AS ISSECURE, null
+		FROM NMSP.WEB_SAT_PRJT a, NMSP.PMPRJTBS b, NMSP.WEB_HTIF_V c
+		WHERE b.CHARGPTR = c.EMPLNO 
+		AND a.PRJTCD1 = b.PRJTCD1 AND a.PRJTCD2 = b.PRJTCD2 AND a.PRJTCD3 = b.PRJTCD3
+				AND a.PRJTCD = #{prjtCd}
+	</insert> -->
+	
+	
+	
+	<insert id="aprvPrjtInfo" parameterType="map">
+		UPDATE NMSP.WEB_SAT_PRJT A
+		SET A.STAT = #{stat},
+			A.PREV_STAT = A.STAT,
+		<if test="rejectReason != null and !''.equals(rejectReason) ">
+			A.RJCT_CMNT = #{rejectReason},
+		</if>
+		<if test="stat.equals('CO')">
+			A.CMPLT_CNT = NVL(A.CMPLT_CNT, 0) + 1,
+		</if>
+			A.APRV_CMPLT_DT = SYSDATE
+		WHERE A.PRJTCD = #{prjtCd}
+	</insert>
+	
+	<insert id="addAprvMailReceiver"  parameterType="map">
+	INSERT INTO SAC_NEWS.RTMS_RECIPIENTINFO(MID, SUBID, TID, RID, RNAME, RMAIL) 
+	SELECT DISTINCT 
+		   #{mailID} AS MID, 
+	       0 AS SUBID, 
+	       0 AS TID, 
+	       '표준감사시간관리' AS RID, 
+	       B.KORNM AS RNAME, 
+	       B.INTEID||'@samil.com' AS RMAIL 
+	  FROM 
+	       (SELECT PRJTCD, 
+	              MAIL_TO 
+	         FROM 
+	              (SELECT A.PRJTCD, 
+	                     B.CHARGMGR, 
+	                     A.RCRD_MGR, 
+	                     A.RCRD_MGR2, 
+	                     A.RCRD_MGR3 
+	                FROM NMSP.WEB_SAT_PRJT A, 
+	                     NMSP.PMPRJTBS B 
+	               WHERE A.PRJTCD1 = B.PRJTCD1 
+	                     AND A.PRJTCD2 = B.PRJTCD2 
+	                     AND A.PRJTCD3 = B.PRJTCD3 
+	                     AND PRJTCD = #{prjtCd} 
+	              ) UNPIVOT (MAIL_TO FOR RCRD_MGR_TMP IN(CHARGMGR, RCRD_MGR, RCRD_MGR2, RCRD_MGR3)) 
+	       ) A, 
+	       NMSP.HREMP B 
+	 WHERE A.MAIL_TO = B.EMPLNO
+	</insert>
+	
+	<insert id="addAprvMailContent" parameterType="map">
+	INSERT INTO SAC_NEWS.RTMS_MAILQUEUE
+	(
+		MID, 
+		SUBID, 
+		TID, 
+		SID, 
+		SNAME, 
+		SMAIL, 
+		RPOS, 
+		CTNPOS,  
+		SUBJECT, 
+		CONTENTS, 
+		ISSECURE, 
+		SECURETEMPLATE
+	)
+	VALUES(
+		#{mailID},
+		0,
+		0,
+		'표준감사시간관리',
+		#{session.korNm},
+		#{session.inteId}||'@samil.com',
+		'0',
+		'0',
+		#{subject},
+		#{contents},
+		'0',
+		NULL
+	)
+	</insert>
+	
+	<!-- 20230216 남웅주 Budget 입력 주기 작업 -->
+	<select id="getApprovalDetailsV4" parameterType="hashmap" resultType="ProjectBudgetSummaryV4VO">
+		SELECT A.*
+			 , B.* 
+	 <choose>
+			<when test=" !'sysadmin'.equals(session.roleCd) and !'admin'.equals(session.roleCd)">
+			 , CASE WHEN A.CHARGPTR = #{session.emplNo} THEN '1' ELSE '0' END CAN_EDIT
+			</when>
+			<otherwise>
+			 , '1' CAN_EDIT
+			</otherwise>
+	  </choose>
+		     , SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', A.SATGRP_CD, 'NM') SATGRP_NM -- [표준감사대상 대상] 그룹명 
+		     ,(B.TOTAL_TM - B.EL_TM - B.PM_TM - B.QC_TM - B.QRP_TM - B.RA_TM - B.FULCRUM_TM - B.NEWSTAFF_TM) ADTTEAM_TM -- [Budget요약] 감사팀 
+		     , DECODE(B.SAT_BDGT_TM, 0, 0, DECODE(B.SAT_WKMNSP_BDGT, 0, 0, A.ET_DFN_SAT * A.BASE_WKMNSP /(B.SAT_WKMNSP_BDGT / B.SAT_BDGT_TM))) PLAN_SAT -- 계획단계 표준감사시간 
+		     , DECODE(B.TOTAL_TM, 0, 0, B.WKMNSP_BDGT / B.TOTAL_TM) EXP_WKMNSP /* 예상 팀 숙련도 */ 
+		     , DECODE(B.SAT_BDGT_TM, 0, 0, B.SAT_WKMNSP_BDGT / B.SAT_BDGT_TM) SAT_EXP_WKMNSP /* [표준감사대상 대상] 예상 팀 숙련도 */ 
+		     , A.TOT_CNTRT_FEE /* 총 계약금액 */ 
+		       + NVL(A.PRE_OTHBILAMT, 0) /* 예상 청구 부대비용 */ 
+		       - NVL(A.PRE_OUTEXPAMT, 0) /* 예상 외주비 */ 
+		       - NVL(A.PRE_OTHEXPAMT, 0) /* 예상 부대비용 */ 
+		       NET_RVNU 
+		     , ROUND((A.TOT_CNTRT_FEE /* 총 계약금액 */ 
+		       + NVL(A.PRE_OTHBILAMT, 0) /* 예상 청구 부대비용 */ 
+		       - NVL(A.PRE_OUTEXPAMT, 0) /* 예상 외주비 */ 
+		       - NVL(A.PRE_OTHEXPAMT, 0) /* 예상 부대비용 */ 
+		       - B.EMP_COST - B.COST) / 1000000) EXP_CM 
+		      
+		  FROM  
+		       (SELECT A.* 
+		            , A.CNTRT_FEE + 
+		              (SELECT NVL(SUM(B.CNTRT_FEE), 0) 
+		                FROM WEB_SAT_SUB_PRJT B 
+		               WHERE B.P_PRJTCD = A.PRJTCD 
+		                     AND EXISTS 
+		                     (SELECT 1 
+		                       FROM PMPRJTDT C 
+		                      WHERE C.PRJTCD1 = B.PRJTCD1 
+		                            AND C.PRJTCD2 = B.PRJTCD2 
+		                            AND C.PRJTCD3 = B.PRJTCD3 
+		                            AND C.CREATEDV IN('1', '3') 
+		                     ) 
+		              ) TOT_CNTRT_FEE 
+		            , (SELECT SUM(AA.CNTRT_ADT_TM) 
+		                FROM (<include refid="satSql.baseCisPrjt" />) AA 
+		                   , PMAUDITPJTD BB 
+		               WHERE AA.PRJTCD1 = BB.PRJTCD1 
+		                     AND AA.PRJTCD2 = BB.PRJTCD2 
+		                     AND AA.PRJTCD3 = BB.PRJTCD3 
+		                     AND BB.AUDITGB = 1 
+		                     AND AA.MAIN_PRJTCD = A.PRJTCD 
+		              ) CNTRT_ADT_TM 
+		            , NVL(B.PRE_OTHBILAMT, 0) PRE_OTHBILAMT /* 예상 청구 부대비용 */ 
+		            , NVL(B.PRE_OUTEXPAMT, 0) PRE_OUTEXPAMT /* 예상 외주비 */ 
+		            , NVL(B.PRE_OTHEXPAMT, 0) PRE_OTHEXPAMT /* 예상 부대비용 */ 
+		         FROM 
+		              (<include refid="satSql.aprvProjectInfo"></include>) A 
+		            , PMCONTEST B 
+		        WHERE A.PRJTCD1 = B.PRJTCD1(+) 
+		              AND A.PRJTCD2 = B.PRJTCD2(+) 
+		              AND A.PRJTCD3 = B.PRJTCD3(+) 
+		       ) A
+		     , 
+		       (SELECT A.PRJTCD 
+		            , SUM(EMP_COST) EMP_COST 
+		            , SUM(COST) COST 
+		            , NVL(SUM(A.ASGN_TM), 0) TOTAL_TM /* 전체 */ 
+		            , NVL(SUM(DECODE(A.MEMB_EMPLNO, A.CHARGPTR, A.ASGN_TM)), 0) EL_TM /* [Bud099284get요약] 담당이사 */ 
+		            , NVL(SUM(DECODE(A.MEMB_EMPLNO, A.CHARGMGR, A.ASGN_TM)), 0) PM_TM /* [Budget요약] PM */ 
+		            , NVL(SUM(DECODE(A.ACTV_CD, '12', A.ASGN_TM)), 0) QC_TM /* [Budget요약] QC */
+		            , NVL(SUM(DECODE(A.ACTV_CD, '16', A.ASGN_TM)), 0) QRP_TM /* [Budget요약] QRP */  
+		            , NVL(SUM(DECODE(A.ACTV_CD, '13', A.ASGN_TM)), 0) + NVL(SUM(DECODE(A.ACTV_CD, '09', A.ASGN_TM)), 0) RA_TM /* [Budget요약] RA */ 
+		            , NVL(SUM(DECODE(A.ACTV_CD, '14', A.ASGN_TM)), 0) FULCRUM_TM /* [Budget요약] Fulcrum */ 
+		            , NVL(SUM(CASE WHEN A.ACTV_CD = '15' AND A.TBD = 'Y' THEN A.ASGN_TM END), 0) NEWSTAFF_TM /* [Budget요약] New Staff */
+		            , NVL(SUM(DECODE(A.AUDITGB, '1', A.ASGN_TM)), 0) SAT_BDGT_TM /* [표준감사대상 대상] Budgeting hours */ 
+		            , SUM(DECODE(A.AUDITGB, '1', A.ASGN_TM) * A.WKMNSP) SAT_WKMNSP_BDGT 
+		            , SUM(A.ASGN_TM * A.WKMNSP) WKMNSP_BDGT 
+		         FROM 
+		              (SELECT A.PRJTCD 
+		                   , B.CHARGPTR 
+		                   , B.CHARGMGR 
+		                   , NVL(D.FIXPARATE * C.ASGN_TM, 0) EMP_COST 
+		                   , NVL(D.FIXPARATE * C.ASGN_TM * D.EXPRATE / 100, 0) COST 
+		                   , C.MEMB_EMPLNO 
+		                   , C.ASGN_TM 
+		                   , C.ACTV_CD 
+		                   , C.WKMNSP 
+		                   , C.AUDITGB 
+		                   , C.TBD
+		                FROM NMSP.WEB_SAT_PRJT A 
+		                   , NMSP.PMPRJTBS B 
+		                   , (<include refid="satSql.baseMemberBudget"></include>) C
+		                   , 
+		                     (SELECT A.YEARLY 
+		                          , A.GRADE CMGRADCD 
+		                          , A.BONBCD 
+		                          , A.FIXPARATE 
+		                          , B.EXPRATE 
+		                       FROM PMSTPAYRATE A 
+		                          , PMSTEXP B 
+		                      WHERE A.YEARLY = B.YEARLY 
+		                            AND A.BONBCD = B.BONBCD 
+		                     ) D 
+		               WHERE A.PRJTCD1 = B.PRJTCD1 
+		                     AND A.PRJTCD2 = B.PRJTCD2 
+		                     AND A.PRJTCD3 = B.PRJTCD3 
+		                     AND A.PRJTCD = C.PRJTCD(+) 
+		                     AND C.YEARLY_BY_WEEK = D.YEARLY(+) 
+		                     AND C.BONBCD = D.BONBCD(+) 
+		                     AND C.CMGRADCD = D.CMGRADCD(+) 
+		                     AND A.PRJTCD= #{prjtCd} 
+		              ) A 
+		        GROUP BY A.PRJTCD 
+		       ) B 
+		 WHERE A.PRJTCD = B.PRJTCD
+	</select>	
+	
+	
+	
+	
+</mapper>

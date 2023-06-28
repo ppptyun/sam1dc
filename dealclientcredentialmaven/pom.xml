@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>groupId</groupId>
+    <artifactId>DealClientCredential</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>war</packaging>
+        
+    <dependencies>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+        <dependency>
+    		<groupId>log4j</groupId>
+    		<artifactId>log4j</artifactId>
+    		<version>1.2.17</version>
+		</dependency>
+		<dependency>
+    		<groupId>org.apache.commons</groupId>
+    		<artifactId>commons-lang3</artifactId>
+    		<version>3.4</version>
+		</dependency>
+		<!-- dependency>
+    		<groupId>net.sourceforge.jexcelapi</groupId>
+    		<artifactId>jxl</artifactId>
+    		<version>2.6.12</version>
+		</dependency-->
+		<dependency>
+    		<groupId>com.googlecode.json-simple</groupId>
+    		<artifactId>json-simple</artifactId>
+    		<version>1.1</version>
+		</dependency>
+		<dependency>
+    		<groupId>commons-beanutils</groupId>
+    		<artifactId>commons-beanutils</artifactId>
+    		<version>1.9.4</version>
+		</dependency>
+		<dependency>
+    		<groupId>commons-fileupload</groupId>
+    		<artifactId>commons-fileupload</artifactId>
+    		<version>1.5</version>
+		</dependency>
+		<dependency>
+    		<groupId>com.fasterxml.jackson.core</groupId>
+    		<artifactId>jackson-databind</artifactId>
+    		<version>2.14.2</version>
+		</dependency>
+		<dependency>
+    		<groupId>org.docx4j</groupId>
+    		<artifactId>docx4j</artifactId>
+    		<version>6.1.2</version>
+		</dependency>
+		<dependency>
+    		<groupId>org.json</groupId>
+    		<artifactId>json</artifactId>
+    		<version>20230227</version>
+		</dependency>
+		
+			
+		<dependency>
+			<groupId>com.dhtmlx</groupId>
+        	<artifactId>javaplanner</artifactId>
+			<version>1.5</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/connector.jar</systemPath>
+			<!-- systemPath>C:/work/eclipse-workspace/DealClientCredential/WebContent/WEB-INF/lib/connector.jar</systemPath -->
+		</dependency>
+				
+		
+		<dependency>
+    		<groupId>net.sourceforge.jexcelapi</groupId>
+    		<artifactId>jxl</artifactId>
+    		<version>2.6.12</version>
+    		<scope>system</scope>
+    		<systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/jxl.jar</systemPath>
+    		<!-- systemPath>C:/work/eclipse-workspace/DealClientCredential/WebContent/WEB-INF/lib/jxl.jar</systemPath -->
+		</dependency>
+
+		<dependency>
+			<groupId>dev.bizisolution.lib.util</groupId>
+			<artifactId>bizi_decript</artifactId>
+			<version>50</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/bizi_decript.jar</systemPath>
+    		<!-- systemPath>C:/work/eclipse-workspace/DealClientCredential/WebContent/WEB-INF/lib/bizi_decript.jar</systemPath -->
+		</dependency>		
+		
+    </dependencies>
+
+	<build>
+    	<plugins>
+        	<plugin>
+            	<!-- groupId>org.apache.maven.plugins</groupId -->
+            	<!-- artifactId>maven-compiler-plugin</artifactId -->
+            	<!-- version>3.9.0</version -->
+            	<groupId>org.apache.maven.plugins</groupId>
+            	<artifactId>maven-war-plugin</artifactId>
+            	<version>3.2.2</version>
+            	<configuration>
+            		<webXml>${project.basedir}/src/main/webapp/WEB-INF/web.xml</webXml>
+                	<source>1.8</source>
+                	<target>1.8</target>
+                	<encoding>utf-8</encoding>
+            	</configuration>
+        	</plugin>
+    	</plugins>
+	</build>
+ 		
+</project>

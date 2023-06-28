@@ -1,0 +1,424 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.samil.stdadt.mapper.ProjectInfoV2Mapper">
+	<select id="getProjectInfo" parameterType="map" resultType="ProjectInfoV2VO">
+		SELECT 
+			   A.*,
+			   (SELECT MAX_RATIO FROM WEB_SAT_PRFL_GRP B WHERE B.PRFL_ID = A.PRFL_ID AND B.SATGRP_CD = A.SATGRP_CD) MAX_RATIO,
+			   NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'DESIG_ADT_YN', A.DESIG_ADT_YN, 'NM') DESIG_ADT_YN_NM,
+	           ((SELECT SUM(CNTRT_FEE) FROM NMSP.WEB_SAT_SUB_PRJT WHERE P_PRJTCD = A.PRJTCD) + A.CNTRT_FEE) TOT_CNTRT_FEE,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SAT_TRGT_YN', A.SAT_TRGT_YN, 'NM') SAT_TRGT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INDUS', A.INDUS_CD, 'NM') INDUS_NM,
+	           ROUND( (A.CONSO_SALES + A.CONSO_ASSET)/2, 0) COMP_SIZE,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LISTDV_V2', A.LIST_DV_CD, 'NM') LIST_DV_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'BIZRPRT_YN', A.BIZ_RPRT_YN, 'NM') BIZ_RPRT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP1_EXPT_YN', A.SATGRP1_EXPT_YN, 'NM') SATGRP1_EXPT_YN_NM,
+	           (SELECT MAX(SATGRP_CD) SATGRP_CD FROM WEB_SAT_PRFL_GRP_YEAR WHERE APLY_YEAR= SUBSTR(A.PRJT_FRDT, 0, 4)) MAX_SATGRP_CD, 
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'SATGRP', A.SATGRP_CD, 'NM') SATGRP_NM, 
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'USALIST_YN', A.USA_LIST_YN, 'NM') USA_LIST_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'HOLDINGS_DV', A.HOLDINGS_DIV_CD, 'NM') HOLDINGS_DIV_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'CONSO_YN', A.CONSO_FINSTAT_YN, 'NM') CONSO_FINSTAT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'FIRST_YN', A.FIRST_ADT_YN, 'NM') FIRST_ADT_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'IFRS_YN', A.IFRS_YN, 'NM') IFRS_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LOSS_YN', A.CURR_CONSO_LOSS_YN, 'NM') CURR_CONSO_LOSS_YN_NM,
+	           NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'ADTOPIN_YN', A.CURR_ADTOPIN_CD, 'NM') CURR_ADTOPIN_NM,
+	           (A.WKMNSP_SAT + A.ETC_BDGT_TM) TOT_PRJT_BDGT, 
+	           NMSP.SF_EMP_NAME(A.RA_BDGT_MGR) RA_BDGT_MGR_NM, 
+		       NMSP.SF_EMP_GRADNM(A.RA_BDGT_MGR) RA_BDGT_MGR_GRAD_NM,
+	           NMSP.SF_EMP_NAME(A.FLCM_BDGT_MGR) FLCM_BDGT_MGR_NM, 
+		       NMSP.SF_EMP_GRADNM(A.FLCM_BDGT_MGR) FLCM_BDGT_MGR_GRAD_NM,
+	           NMSP.SF_EMP_NAME(A.CREBY) CREBY_NM, 
+		       NMSP.SF_EMP_NAME(A.MODBY) MODBY_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INTR_ADT_YN', A.INTR_ADT_YN, 'NM') INTR_ADT_YN_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'CONTI_ADT_CNT', A.CONTI_ADT_CNT, 'NM') CONTI_ADT_CNT_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'INTR_ADT_YCNT', A.INTR_ADT_YCNT, 'NM') INTR_ADT_YCNT_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'KAM_YN', A.KAM_YN, 'NM') KAM_YN_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_ADTOPIN_CHG_YN', A.PRIOR_ADTOPIN_CHG_YN, 'NM') PRIOR_ADTOPIN_CHG_YN_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_LOSS_YN', A.PRIOR_LOSS_YN, 'NM') PRIOR_LOSS_YN_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'MIN_MAX_YN', A.MIN_MAX_YN, 'NM') MIN_MAX_YN_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'MIN_MAX_REASON', A.MIN_MAX_REASON_CD, 'NM') MIN_MAX_REASON_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'FST_ADT_TM_REASON', A.FST_ADT_TM_REASON_CD, 'NM') FST_ADT_TM_REASON_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'FST_WKMNSP_REASON', A.FST_WKMNSP_REASON_CD, 'NM') FST_WKMNSP_REASON_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_ADT_TM_REASON', A.PRIOR_ADT_TM_REASON_CD, 'NM') PRIOR_ADT_TM_REASON_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'PRIOR_WKMNSP_REASON', A.PRIOR_WKMNSP_REASON_CD, 'NM') PRIOR_WKMNSP_REASON_NM,
+		       NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'ADTR', A.PRIOR_ADTR_CD, 'NM') PRIOR_ADTR_NM
+		  FROM (<include refid="satSql.authProjectInfo" />) A
+	</select>
+	
+	<insert id="addProject" parameterType="com.samil.stdadt.dto.ProjectInfoV2Dto">
+		INSERT INTO NMSP.WEB_SAT_PRJT(
+				  PRJTCD
+				, COMP_NM
+				, PRFL_ID
+				, PRJTCD1
+				, PRJTCD2
+				, PRJTCD3
+				, RCRD_MGR
+				, RCRD_MGR2
+				, RCRD_MGR3
+				, CNTRT_FEE
+				, PRJT_FRDT
+				, PRJT_TODT
+				, BIZ_FRDT
+				, BIZ_TODT
+				, DESIG_ADT_YN
+				, SAT_TRGT_YN
+				, INDUS_CD
+				, LIST_DV_CD
+				, INDIV_ASSET
+				, BIZ_RPRT_YN
+				, CONSO_ASSET
+				, SATGRP1_EXPT_YN
+				, CONSO_SALES
+				, CONSO_ACCNT_RECEIV
+				, RPRT_SCDL_DT
+				, CONSO_INVNT
+				, SATGRP_CD
+				, FIRST_BIZ_DT
+				, CONTI_ADT_CNT
+				, INTR_ADT_YCNT
+				, REVW_CNT
+				, SAME_ADTR_SBSID_YN
+				, INTR_TRAN_ASSET_SALES
+				, RELAT_COMP_ASSET
+				, SBSID_ASSET_WITH_INTR_TRAN
+				, SBSID_SALES_WITH_INTR_TRAN
+				, IFRS_YN
+				, IFRS_FCTR
+				, HOLDINGS_DIV_CD
+				, HOLDINGS_FCTR
+				, FIRST_ADT_YN
+				, FIRST_ADT_FCTR
+				, USA_LIST_YN
+				, USA_LIST_FCTR
+				, RISK_FCTR
+				, KAM_YN
+				, KAM_FCTR
+				, CONSO_FINSTAT_YN
+				, CONSO_FINSTAT_FCTR
+				, SBSID_CNT
+				, SBSID_CNT_FCTR
+				, CURR_ADTOPIN_CD
+				, CURR_ADTOPIN_FCTR
+				, CURR_CONSO_LOSS_YN
+				, CURR_CONSO_LOSS_FCTR
+				, PRIOR_ADTOPIN_CHG_YN
+				, PRIOR_ADTOPIN_CHG_FCTR
+				, PRIOR_LOSS_YN
+				, PRIOR_LOSS_FCTR
+				, ETC_FCTR
+				, FACTOR_VAL
+				, MIN_MAX_YN
+				, MIN_MAX_REASON_CD
+				, MIN_MAX_REASON_DSCRT
+				, FST_MAX_TM
+				, FST_ADT_TM
+				, FST_ADTR_BASE_WKMNSP_YN
+				, FST_ADTR_WKMNSP
+				, FST_ADT_TM_REASON_CD
+				, FST_ADT_TM_REASON_DSCRT
+				, FST_WKMNSP_REASON_CD
+				, FST_WKMNSP_REASON_DSCRT
+				, PRIOR_ADTR_CD
+				, PRIOR_BASE_WKMNSP
+				, PRIOR_ADT_TM
+				, PRIOR_ADTR_BASE_WKMNSP_YN
+				, PRIOR_ADTR_WKMNSP
+				, PRIOR_ADT_TM_REASON_CD
+				, PRIOR_ADT_TM_REASON_DSCRT
+				, PRIOR_WKMNSP_REASON_CD
+				, PRIOR_WKMNSP_REASON_DSCRT
+				, INTR_ADT_YN
+				, INTR_ADT_TM
+				, MIN_TM
+				, MAX_TM
+				, INTPL_SAT
+				, CAL_RESULT
+				, YEAR_RATE
+				, CAL_ADT_TM
+				, INTR_ADT_FCTR
+				, BASE_WKMNSP
+				, ET_DFN_SAT
+				, ET_TRGT_ADT_TM
+				, ETC_BDGT_TM
+				, RA_BDGT_TM
+				, FLCM_BDGT_TM
+				, OTHER_BDGT_TM
+				, RJCT_CMNT
+				, NEW_STF_WKMNSP
+				, OTHER_WKMNSP
+				, FORM_DIV
+				, CALC_ONLY_YN
+				, STAT
+				, CREDT
+				, CREBY
+				, MODDT
+				, MODBY
+				)
+		VALUES (
+				  #{prjtCd}
+				, #{compNm}
+				, #{prflId}
+				, #{prjtCd1}
+				, #{prjtCd2}
+				, #{prjtCd3}
+				, #{rcrdMgr1.emplno}
+				, #{rcrdMgr2.emplno}
+				, #{rcrdMgr3.emplno}
+				, #{cntrtFee}
+				, #{prjtFrdt}
+				, #{prjtTodt}
+				, #{bizFrdt}
+				, #{bizTodt}
+				, #{desigAdtYn.cd}
+				, #{satTrgtYn.cd}
+				, #{indusDv.cd}
+				, #{listDv.cd}
+				, #{indivAsset}
+				, #{bizRprtYn.cd}
+				, #{consoAsset}
+				, #{satgrp1ExptYn.cd}
+				, #{consoSales}
+				, #{consoAccntReceiv}
+				, #{rprtScdlDt}
+				, #{consoInvnt}
+				, #{satgrp.cd}
+				, #{firstBizDt}
+				, #{contiAdtCnt.cd}
+				, #{intrAdtYcnt.cd}
+				, #{revwCnt}
+				, #{sameAdtrSbsidYnNm}
+				, #{intrTranAssetSales}
+				, #{relatCompAsset}
+				, #{sbsidAssetWithIntrTran}
+				, #{sbsidSalesWithIntrTran}
+				, #{ifrsYn.cd}
+				, #{ifrsFctr}
+				, #{holdingsDv.cd}
+				, #{holdingsFctr}
+				, #{firstAdtYn.cd}
+				, #{firstAdtFctr}
+				, #{usaListYn.cd}
+				, #{usaListFctr}
+				, #{riskFctr}
+				, #{kamYn.cd}
+				, #{kamFctr}
+				, #{consoFinstatYn.cd}
+				, #{consoFinstatFctr}
+				, #{sbsidCnt}
+				, #{sbsidCntFctr}
+				, #{currAdtopin.cd}
+				, #{currAdtopinFctr}
+				, #{currConsoLossYn.cd}
+				, #{currConsoLossFctr}
+				, #{priorAdtopinChgYn.cd}
+				, #{priorAdtopinChgFctr}
+				, #{priorLossYn.cd}
+				, #{priorLossFctr}
+				, #{etcFctr}
+				, #{factorVal}
+				, #{minMaxYn.cd}
+				, #{minMaxReason.cd}
+				, #{minMaxReasonDscrt}
+				, #{fstMaxTm}
+				, #{fstAdtTm}
+				, #{fstAdtrBaseWkmnspYnNm}
+				, #{fstAdtrWkmnsp}
+				, #{fstAdtTmReason.cd}
+				, #{fstAdtTmReasonDscrt}
+				, #{fstWkmnspReason.cd}
+				, #{fstWkmnspReasonDscrt}
+				, #{priorAdtr.cd}
+				, #{priorBaseWkmnsp}
+				, #{priorAdtTm}
+				, #{priorAdtrBaseWkmnspYnNm}
+				, #{priorAdtrWkmnsp}
+				, #{priorAdtTmReason.cd}
+				, #{priorAdtTmReasonDscrt}
+				, #{priorWkmnspReason.cd}
+				, #{priorWkmnspReasonDscrt}
+				, #{intrAdtYn.cd}
+				, #{intrAdtTm}
+				, #{minTm}
+				, #{maxTm}
+				, #{intplSat}
+				, #{calResult}
+				, #{yearRate}
+				, #{calAdtTm}
+				, #{intrAdtFctr}
+				, #{baseWkmnsp}
+				, #{etDfnSat}
+				, #{etTrgtAdtTm}
+				, #{etcBdgtTm}
+				, #{raBdgtTm}
+				, #{flcmBdgtTm}
+				, #{otherBdgtTm}
+				, #{rjctCmnt}
+				, #{newStfWkmnsp}
+				, #{otherWkmnsp}
+				, 'v2'
+				, #{calcOnlyYn}
+				, #{stat}
+				, SYSDATE
+				, #{session.emplNo}
+				, SYSDATE
+				, #{session.emplNo}
+		)      
+	</insert>
+	
+	<update id="updateProject" parameterType="com.samil.stdadt.dto.ProjectInfoV2Dto">
+		UPDATE NMSP.WEB_SAT_PRJT SET 
+			  COMP_NM = #{compNm}
+			, PRFL_ID = #{prflId}
+			, PRJTCD1 = #{prjtCd1}
+			, PRJTCD2 = #{prjtCd2}
+			, PRJTCD3 = #{prjtCd3}
+			, RCRD_MGR = #{rcrdMgr1.emplno}
+			, RCRD_MGR2 = #{rcrdMgr2.emplno}
+			, RCRD_MGR3 = #{rcrdMgr3.emplno}
+			, CNTRT_FEE = #{cntrtFee}
+			, PRJT_FRDT = #{prjtFrdt}
+			, PRJT_TODT = #{prjtTodt}
+			, BIZ_FRDT = #{bizFrdt}
+			, BIZ_TODT = #{bizTodt}
+			, DESIG_ADT_YN = #{desigAdtYn.cd}
+			, SAT_TRGT_YN = #{satTrgtYn.cd}
+			, INDUS_CD = #{indusDv.cd}
+			, LIST_DV_CD = #{listDv.cd}
+			, INDIV_ASSET = #{indivAsset}
+			, BIZ_RPRT_YN = #{bizRprtYn.cd}
+			, CONSO_ASSET = #{consoAsset}
+			, SATGRP1_EXPT_YN = #{satgrp1ExptYn.cd}
+			, CONSO_SALES = #{consoSales}
+			, CONSO_ACCNT_RECEIV = #{consoAccntReceiv}
+			, RPRT_SCDL_DT = #{rprtScdlDt}
+			, CONSO_INVNT = #{consoInvnt}
+			, SATGRP_CD = #{satgrp.cd}
+			, FIRST_BIZ_DT = #{firstBizDt}
+			, CONTI_ADT_CNT = #{contiAdtCnt.cd}
+			, INTR_ADT_YCNT = #{intrAdtYcnt.cd}
+			, REVW_CNT = #{revwCnt}
+			, SAME_ADTR_SBSID_YN = #{sameAdtrSbsidYnNm}
+			, INTR_TRAN_ASSET_SALES = #{intrTranAssetSales}
+			, RELAT_COMP_ASSET = #{relatCompAsset}
+			, SBSID_ASSET_WITH_INTR_TRAN = #{sbsidAssetWithIntrTran}
+			, SBSID_SALES_WITH_INTR_TRAN = #{sbsidSalesWithIntrTran}
+			, IFRS_YN = #{ifrsYn.cd}
+			, IFRS_FCTR = #{ifrsFctr}
+			, HOLDINGS_DIV_CD = #{holdingsDv.cd}
+			, HOLDINGS_FCTR = #{holdingsFctr}
+			, FIRST_ADT_YN = #{firstAdtYn.cd}
+			, FIRST_ADT_FCTR = #{firstAdtFctr}
+			, USA_LIST_YN = #{usaListYn.cd}
+			, USA_LIST_FCTR = #{usaListFctr}
+			, RISK_FCTR = #{riskFctr}
+			, KAM_YN = #{kamYn.cd}
+			, KAM_FCTR = #{kamFctr}
+			, CONSO_FINSTAT_YN = #{consoFinstatYn.cd}
+			, CONSO_FINSTAT_FCTR = #{consoFinstatFctr}
+			, SBSID_CNT = #{sbsidCnt}
+			, SBSID_CNT_FCTR = #{sbsidCntFctr}
+			, CURR_ADTOPIN_CD = #{currAdtopin.cd}
+			, CURR_ADTOPIN_FCTR = #{currAdtopinFctr}
+			, CURR_CONSO_LOSS_YN = #{currConsoLossYn.cd}
+			, CURR_CONSO_LOSS_FCTR = #{currConsoLossFctr}
+			, PRIOR_ADTOPIN_CHG_YN = #{priorAdtopinChgYn.cd}
+			, PRIOR_ADTOPIN_CHG_FCTR = #{priorAdtopinChgFctr}
+			, PRIOR_LOSS_YN = #{priorLossYn.cd}
+			, PRIOR_LOSS_FCTR = #{priorLossFctr}
+			, ETC_FCTR = #{etcFctr}
+			, FACTOR_VAL = #{factorVal}
+			, MIN_MAX_YN = #{minMaxYn.cd}
+			, MIN_MAX_REASON_CD = #{minMaxReason.cd}
+			, MIN_MAX_REASON_DSCRT = #{minMaxReasonDscrt}
+			, FST_MAX_TM = #{fstMaxTm}
+			, FST_ADT_TM = #{fstAdtTm}
+			, FST_ADTR_BASE_WKMNSP_YN = #{fstAdtrBaseWkmnspYnNm}
+			, FST_ADTR_WKMNSP = #{fstAdtrWkmnsp}
+			, FST_ADT_TM_REASON_CD = #{fstAdtTmReason.cd}
+			, FST_ADT_TM_REASON_DSCRT = #{fstAdtTmReasonDscrt}
+			, FST_WKMNSP_REASON_CD = #{fstWkmnspReason.cd}
+			, FST_WKMNSP_REASON_DSCRT = #{fstWkmnspReasonDscrt}
+			, PRIOR_ADTR_CD = #{priorAdtr.cd}
+			, PRIOR_BASE_WKMNSP = #{priorBaseWkmnsp}
+			, PRIOR_ADT_TM = #{priorAdtTm}
+			, PRIOR_ADTR_BASE_WKMNSP_YN = #{priorAdtrBaseWkmnspYnNm}
+			, PRIOR_ADTR_WKMNSP = #{priorAdtrWkmnsp}
+			, PRIOR_ADT_TM_REASON_CD = #{priorAdtTmReason.cd}
+			, PRIOR_ADT_TM_REASON_DSCRT = #{priorAdtTmReasonDscrt}
+			, PRIOR_WKMNSP_REASON_CD = #{priorWkmnspReason.cd}
+			, PRIOR_WKMNSP_REASON_DSCRT = #{priorWkmnspReasonDscrt}
+			, INTR_ADT_YN = #{intrAdtYn.cd}
+			, INTR_ADT_TM = #{intrAdtTm}
+			, MIN_TM = #{minTm}
+			, MAX_TM = #{maxTm}
+			, INTPL_SAT = #{intplSat}
+			, CAL_RESULT = #{calResult}
+			, YEAR_RATE = #{yearRate}
+			, CAL_ADT_TM = #{calAdtTm}
+			, INTR_ADT_FCTR = #{intrAdtFctr}
+			, BASE_WKMNSP = #{baseWkmnsp}
+			, ET_DFN_SAT = #{etDfnSat}
+			, ET_TRGT_ADT_TM = #{etTrgtAdtTm}
+			, ETC_BDGT_TM = #{etcBdgtTm}
+			, RA_BDGT_TM = #{raBdgtTm}
+			, FLCM_BDGT_TM = #{flcmBdgtTm}
+			, OTHER_BDGT_TM = #{otherBdgtTm}
+			, RJCT_CMNT = #{rjctCmnt}
+			, NEW_STF_WKMNSP = #{newStfWkmnsp}
+			, OTHER_WKMNSP = #{otherWkmnsp}
+			, FORM_DIV = 'v2'
+			, CALC_ONLY_YN = #{calcOnlyYn}
+			, STAT = #{stat}
+			, PREV_STAT = STAT
+			, CREDT = SYSDATE
+			, CREBY = #{session.emplNo}
+			, MODDT = SYSDATE
+			, MODBY = #{session.emplNo}
+		WHERE PRJTCD = #{prjtCd} 
+	</update>
+	
+	<select id="getSubProject" parameterType="map" resultType="SubProjectVO">
+		SELECT A.P_PRJTCD,
+			   A.PRJTCD,
+		       B.PRJTNM,
+		       B.CHARGPTR,
+		       NMSP.SF_EMP_NAME(B.CHARGPTR) CHARGPTR_NM,
+		       NMSP.SF_EMP_GRADNM(B.CHARGPTR) CHARGPTR_GRAD_NM,
+		       B.CHARGMGR,
+		       NMSP.SF_EMP_NAME(B.CHARGMGR) CHARGMGR_NM,
+		       NMSP.SF_EMP_GRADNM(B.CHARGMGR) CHARGMGR_GRAD_NM,
+		       A.CNTRT_FEE,
+		       A.ORDBY
+		  FROM nmsp.WEB_SAT_SUB_PRJT A,
+		       NMSP.PMPRJTBS B
+		  WHERE A.PRJTCD1 = B.PRJTCD1
+		       AND A.PRJTCD2 = B.PRJTCD2
+		       AND A.PRJTCD3 = B.PRJTCD3
+		       AND A.P_PRJTCD = #{prjtCd}
+		  ORDER BY ORDBY
+	</select>
+	
+	<insert id="addSubProject" parameterType="map">
+		INSERT ALL
+		<foreach collection="subPrjt" item="subPrjt" index="idx" >
+			INTO NMSP.WEB_SAT_SUB_PRJT(P_PRJTCD, PRJTCD, PRJTCD1, PRJTCD2, PRJTCD3, CNTRT_FEE, ORDBY, CREDT, CREBY, MODDT, MODBY)
+			VALUES(#{prjtCd}, #{subPrjt.prjtCd}, SUBSTR(#{subPrjt.prjtCd}, 1, 5), SUBSTR(#{subPrjt.prjtCd}, 7, 2), SUBSTR(#{subPrjt.prjtCd}, 10, 3), #{subPrjt.cntrtFee}, #{idx}, SYSDATE, #{session.emplNo}, SYSDATE, #{session.emplNo})
+		</foreach>
+		SELECT 1 FROM DUAL
+	</insert>
+	<delete id="delSubProject" parameterType="map">
+		DELETE FROM NMSP.WEB_SAT_SUB_PRJT WHERE
+		<choose>
+			<when test="prjtCd != null and !prjtCd.equals('')">
+			P_PRJTCD = #{prjtCd}
+			</when>
+			<when test="prjtCdList != null">
+			P_PRJTCD IN (<foreach collection="prjtCdList" item="prjtCd" separator=",">#{prjtCd}</foreach>)
+			</when>
+			<otherwise>1=2</otherwise>
+		</choose>
+	</delete>
+</mapper>

@@ -1,0 +1,49 @@
+html, body, .err-page {
+	height: 100%;
+	width: 100%;
+	padding: 0;
+	margin: 0;
+	font-family: "Malgun Gothic";
+	font-size: 16px;
+}
+
+.err-page{
+	/* justify-content: center; */
+}
+
+.err-page a,
+.err-page a:focus,  
+.err-page a:visited{
+	font-weight: 600;
+	color: #464646;
+}
+ 
+.err-page a:hover{
+	color: #E0301E;
+}
+
+
+.err-page {
+	background-color: #f7f7f7;
+	display: flex;
+	flex-direction: column;
+	/* align-items: center; */
+}
+
+.err-page .err-container {
+	margin-top: 5rem;
+}
+
+.err-code {
+	text-align: center;
+	font-size: 8rem;
+	font-weight: bold;
+	color: #464646;
+}
+
+.err-msg {
+	margin-top: 3rem;
+	font-size: 1rem;
+	color: #7D7D7D;
+	text-align: center;
+}

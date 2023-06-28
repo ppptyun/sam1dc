@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.samil.stdadt.mapper.ExcelImportMapper">
+
+	<insert id="inertMemberByExcel" parameterType="map">
+		INSERT ALL
+		<foreach collection="members" item="member" open="" separator=" " close="">
+		INTO WEB_SAT_MEMB(PRJTCD, TBD, MEMB_EMPLNO, ACTV_CD, LOCA_CD, GRADCD, WKMNSP, CREBY, MODBY)
+		VALUES(#{prjtCd}
+			, #{member.tbd}
+			, TO_CHAR(#{member.membEmplNo}, 'FM000000')
+			, #{member.actvCd}
+			, #{member.locaCd}
+			, (SELECT GRADCD FROM NMSP.HREMP WHERE EMPLNO = #{member.membEmplNo})
+			, DECODE(#{member.wkmnsp}, 0.0, NMSP.SF_WEB_SAT_GET_EMP_WKMNSP(#{prjtCd}, #{member.membEmplNo}), #{member.wkmnsp})
+			, #{session.emplNo}
+			, #{session.emplNo})
+		</foreach>
+		SELECT * FROM DUAL
+	</insert>
+	
+	<insert id="inertMemberBudgetByExcel" parameterType="map">
+		INSERT ALL
+		<foreach collection="bdgts" item="bdgt" open="" separator=" " close="">
+		INTO WEB_SAT_MEMB_BDGT(PRJTCD, MEMB_EMPLNO, ACTV_CD, LOCA_CD, WEEK_FRDT, ASGN_TM, CREBY, MODBY)
+		VALUES(#{prjtCd}, #{bdgt.membEmplNo}, #{bdgt.actvCd}, #{bdgt.locaCd}, #{bdgt.weekFrdt}, #{bdgt.asgnTm}, #{session.emplNo}, #{session.emplNo})
+		</foreach>
+		SELECT * FROM DUAL
+	</insert>
+	
+	<select id="getBudgetTargetPrjtCd" parameterType="string" resultType="string">
+		SELECT PRJTCD
+		  FROM
+		       (SELECT PRJTCD MAIN_PRJTCD
+		       			, PRJTCD
+		            , 'main' DIV 
+		            , BDGT_TRGT_YN 
+		         FROM NMSP.WEB_SAT_PRJT A 
+		        WHERE CALC_ONLY_YN = 'N' 
+		           UNION ALL 
+		       SELECT P_PRJTCD 
+		       			,	PRJTCD 
+		            , 'sub' 
+		            , BDGT_TRGT_YN 
+		         FROM NMSP.WEB_SAT_SUB_PRJT A 
+		       ) 
+		 WHERE MAIN_PRJTCD = #{prjtCd} 
+		       AND BDGT_TRGT_YN = 'Y'
+	</select>
+	
+	<insert id="inertMemberByExcelV3" parameterType="map">
+		INSERT ALL
+		<foreach collection="members" item="member" open="" separator=" " close="">
+		INTO WEB_SAT_MEMB(PRJTCD, TBD, MEMB_EMPLNO, ACTV_CD, LOCA_CD, GRADCD, WKMNSP, CREBY, MODBY, SUB_PRJTCD)
+		VALUES(#{prjtCd}
+			, #{member.tbd}
+			, TO_CHAR(#{member.membEmplNo}, 'FM000000')
+			, #{member.actvCd}
+			, #{member.locaCd}
+			, NVL(#{member.gradcd}, (SELECT GRADCD FROM NMSP.HREMP WHERE EMPLNO = #{member.membEmplNo}))
+			, DECODE(#{member.wkmnsp}, 0.0, NMSP.SF_WEB_SAT_GET_EMP_WKMNSP(#{prjtCd}, #{member.membEmplNo}), #{member.wkmnsp})
+			, #{session.emplNo}
+			, #{session.emplNo}
+			, #{member.prjtcd})
+		</foreach>
+		SELECT * FROM DUAL
+	</insert>
+	
+	<insert id="inertMemberByExcelV3_bk" parameterType="map">
+		INSERT ALL
+		<foreach collection="members" item="member" open="" separator=" " close="">
+		INTO WEB_SAT_MEMB(PRJTCD, TBD, MEMB_EMPLNO, ACTV_CD, LOCA_CD, GRADCD, WKMNSP, CREBY, MODBY, SUB_PRJTCD)
+		VALUES(#{prjtCd}
+			, #{member.tbd}
+			, TO_CHAR(#{member.membEmplNo}, 'FM000000')
+			, #{member.actvCd}
+			, #{member.locaCd}
+			, CASE WHEN #{member.tbd} = 'Y' AND #{member.actvCd} IN ('09','12','13','14','15','16') THEN SF_APPMNG_GET_COMMCD(#{appCd}, 'DFT_BDGT_ROLE', #{member.actvCd}, 'VAL1')
+       		       ELSE NVL
+     		       	(
+     		       		(SELECT GRADCD FROM HRGRAD WHERE GRADNM = #{member.Grade})
+     		       	  , (SELECT GRADCD FROM NMSP.HREMP WHERE EMPLNO = #{member.membEmplNo})
+     		       	) 
+               END 
+			, CASE
+				WHEN #{member.wkmnsp} = 0.0 
+				THEN 
+					(CASE 
+						WHEN #{member.tbd} = 'Y' AND #{member.actvCd} IN ('09','12','13','14','15','16') 
+						THEN DECODE(SF_APPMNG_GET_COMMCD(#{appCd}, 'DFT_BDGT_ROLE', #{member.actvCd}, 'VAL3')
+									, 'BASE_WKMNSP', #{baseWkmnsp}, 
+									SF_APPMNG_GET_COMMCD(#{appCd}, 'DFT_BDGT_ROLE', #{member.actvCd}, 'VAL3')
+						)
+						ELSE NMSP.SF_WEB_SAT_GET_EMP_WKMNSP(#{prjtCd}, #{member.membEmplNo})
+					END)
+				ELSE #{member.wkmnsp}
+			  END
+			, #{session.emplNo}
+			, #{session.emplNo}
+			, #{member.prjtcd})
+		</foreach>
+		SELECT * FROM DUAL
+	</insert>
+	
+	<insert id="inertMemberBudgetByExcelV3" parameterType="map">
+		INSERT ALL
+		<foreach collection="bdgts" item="bdgt" open="" separator=" " close="">
+		INTO WEB_SAT_MEMB_BDGT(PRJTCD, MEMB_EMPLNO, ACTV_CD, LOCA_CD, WEEK_FRDT, ASGN_TM, CREBY, MODBY, SUB_PRJTCD)
+		VALUES(#{prjtCd}, #{bdgt.membEmplNo}, #{bdgt.actvCd}, #{bdgt.locaCd}, #{bdgt.weekFrdt}, #{bdgt.asgnTm}, #{session.emplNo}, #{session.emplNo}, #{bdgt.prjtcd})
+		</foreach>
+		SELECT * FROM DUAL
+	</insert>
+
+	<select id="selectEmp" parameterType="map" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT EMPLNO EMPL_NO FROM NMSP.HREMP WHERE EMPLNO IN (
+			<foreach collection="members" item="member" open="" separator="," close="">TO_CHAR(#{member.membEmplNo}, 'FM000000')</foreach>
+		)
+	</select>
+	
+	<select id="getWkmnspMinMax" resultType="com.samil.stdadt.comm.vo.CamelMap">
+		SELECT MIN(WKMNSP) MIN_WKMNSP, MAX(WKMNSP) MAX_WKMNSP FROM WEB_SAT_PRFL_WKMNSP
+	</select>
+</mapper>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+
+	<!-- 사용 해야할 Data Source를 가장 먼저 Import 해야 함. -->
+	<!-- ====================== Data Source ====================== --> 
+	<import resource="classpath:spring/datasource/datasource-oracle-prod.xml"/>
+	<import resource="classpath:spring/datasource/datasource-mssql-prod-retain.xml"/>
+	
+	<!-- ====================== 공통으로 적용할 Config ====================== -->
+	<import resource="classpath:spring/config/application.xml"/>
+	
+	<!-- ====================== 개별 적용 Config ====================== -->
+	<bean id="applicationConfig" class="com.samil.stdadt.comm.vo.ApplicationConfigVO">
+		<property name="env" value="production"></property>
+		<property name="appCd" value="stdadt"></property>
+		<property name="admUrl" value="https://office.samil.com/adm"></property>
+		<property name="portalUrl" value="https://portal.samil.com"></property>
+		<property name="uploadPath" value="/WEB-INF/upload"></property>
+		<property name="excelTemplatePath" value="/WEB-INF/resources/templates/"></property>
+	</bean>
+	
+	<!-- ====================== Scheduling ====================== -->
+	<!--Job -->
+	<bean id="transRetainDataJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<!-- 서비스 구현객체의 Bean 이름을 ref로 지정 -->
+		<property name="targetObject" ref="retainService" />
+		<!-- 실행할 메소드 이름을 ref로 지정 -->
+		<property name="targetMethod" value="schedSaveRetain" />
+		<!-- 동시 실행을 방지 -->
+		<property name="concurrent" value="false"></property>
+	</bean>    
+	
+	<!-- Trigger -->
+	<bean id="transRetainDataTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+		<property name="jobDetail" ref="transRetainDataJob" />
+		
+		<!-- CronTrigger를 사용하여 스케쥴 정의(초 분 시 날짜 월 요일 년)-->
+		<!-- 10분마다 실행 -->
+		<property name="cronExpression" value="0 0/10 * * * ?" />
+		
+		<!-- 매일 오전 2시에 실행 -->
+		<!-- <property name="cronExpression" value="0 0 2 * * ?" /> -->
+	</bean>
+	
+	<!-- Scheduler -->
+	<bean id="transRetainDataScheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<!-- 앞에서 설정한 트리거를 등록합니다. 필요하면 여러개 만들어서 등록하면 됩니다. -->
+			<list>
+				<ref bean="transRetainDataTrigger" />
+			</list>
+		</property>
+	</bean>
+</beans>

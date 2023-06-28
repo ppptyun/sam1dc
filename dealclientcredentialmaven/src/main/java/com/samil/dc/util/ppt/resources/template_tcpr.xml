@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<root>
+	<data id="firstRowCell">
+		<![CDATA[<a:tcPr xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" marL="36000" marR="36000" marT="36000" marB="36000"
+			anchor="ctr">
+			<a:lnL w="12700" cap="flat" cmpd="sng" algn="ctr">
+				<a:solidFill>
+					<a:schemeClr val="accent5">
+						<a:lumMod val="40000" />
+						<a:lumOff val="60000" />
+					</a:schemeClr>
+				</a:solidFill>
+				<a:prstDash val="solid" />
+				<a:round />
+				<a:headEnd type="none" w="med" len="med" />
+				<a:tailEnd type="none" w="med" len="med" />
+			</a:lnL>
+			<a:lnR w="12700" cap="flat" cmpd="sng" algn="ctr">
+				<a:solidFill>
+					<a:schemeClr val="accent5">
+						<a:lumMod val="40000" />
+						<a:lumOff val="60000" />
+					</a:schemeClr>
+				</a:solidFill>
+				<a:prstDash val="solid" />
+				<a:round />
+				<a:headEnd type="none" w="med" len="med" />
+				<a:tailEnd type="none" w="med" len="med" />
+			</a:lnR>
+			<a:lnT w="12700" cap="flat" cmpd="sng" algn="ctr">
+				<a:solidFill>
+					<a:schemeClr val="accent5">
+						<a:lumMod val="40000" />
+						<a:lumOff val="60000" />
+					</a:schemeClr>
+				</a:solidFill>
+				<a:prstDash val="solid" />
+				<a:round />
+				<a:headEnd type="none" w="med" len="med" />
+				<a:tailEnd type="none" w="med" len="med" />
+			</a:lnT>
+			<a:lnB w="12700" cap="flat" cmpd="sng" algn="ctr">
+				<a:noFill />
+				<a:prstDash val="solid" />
+				<a:round />
+				<a:headEnd type="none" w="med" len="med" />
+				<a:tailEnd type="none" w="med" len="med" />
+			</a:lnB>
+			<a:solidFill>
+				<a:schemeClr val="tx2" />
+			</a:solidFill>
+		</a:tcPr>
+	]]></data>
+	<data id="midRowCell"><![CDATA[
+		<a:tcPr xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+			marL="72000" marR="72000" marT="36000" marB="36000" anchor="ctr">
+			<a:lnL w="12700" cap="flat" cmpd="sng" algn="ctr">
+				<a:solidFill>
+					<a:schemeClr val="tx2">
+						<a:lumMod val="20000" />
+						<a:lumOff val="80000" />
+					</a:schemeClr>
+				</a:solidFill>
+				<a:prstDash val="sysDot" />
+				<a:round />
+				<a:headEnd type="none" w="med" len="med" />
+				<a:tailEnd type="none" w="med" len="med" />
+			</a:lnL>
+			<a:lnR w="12700" cap="flat" cmpd="sng" algn="ctr">
+				<a:noFill />
+				<a:prstDash val="solid" />
+				<a:round />
+				<a:headEnd type="none" w="med" len="med" />
+				<a:tailEnd type="none" w="med" len="med" />
+			</a:lnR>
+			<a:lnT w="12700" cap="flat" cmpd="sng" algn="ctr">
+				<a:solidFill>
+					<a:schemeClr val="tx2">
+						<a:lumMod val="20000" />
+						<a:lumOff val="80000" />
+					</a:schemeClr>
+				</a:solidFill>
+				<a:prstDash val="sysDot" />
+				<a:round />
+				<a:headEnd type="none" w="med" len="med" />
+				<a:tailEnd type="none" w="med" len="med" />
+			</a:lnT>
+			<a:lnB w="12700" cap="flat" cmpd="sng" algn="ctr">
+				<a:solidFill>
+					<a:schemeClr val="tx2">
+						<a:lumMod val="20000" />
+						<a:lumOff val="80000" />
+					</a:schemeClr>
+				</a:solidFill>
+				<a:prstDash val="sysDot" />
+				<a:round />
+				<a:headEnd type="none" w="med" len="med" />
+				<a:tailEnd type="none" w="med" len="med" />
+			</a:lnB>
+			<a:lnTlToBr w="12700" cmpd="sng">
+				<a:noFill />
+				<a:prstDash val="solid" />
+			</a:lnTlToBr>
+			<a:lnBlToTr w="12700" cmpd="sng">
+				<a:noFill />
+				<a:prstDash val="solid" />
+			</a:lnBlToTr>
+			<a:noFill />
+		</a:tcPr>]]>
+	</data>
+	<data id="lastRowCell">
+		<![CDATA[<a:tcPr xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" marL="72000" marR="72000" marT="36000" marB="36000"
+			anchor="ctr">
+			<a:lnL w="12700" cap="flat" cmpd="sng" algn="ctr">
+				<a:solidFill>
+					<a:schemeClr val="tx2">
+						<a:lumMod val="20000" />
+						<a:lumOff val="80000" />
+					</a:schemeClr>
+				</a:solidFill>
+				<a:prstDash val="sysDot" />
+				<a:round />
+				<a:headEnd type="none" w="med" len="med" />
+				<a:tailEnd type="none" w="med" len="med" />
+			</a:lnL>
+			<a:lnR w="12700" cap="flat" cmpd="sng" algn="ctr">
+				<a:solidFill>
+					<a:schemeClr val="tx2">
+						<a:lumMod val="20000" />
+						<a:lumOff val="80000" />
+					</a:schemeClr>
+				</a:solidFill>
+				<a:prstDash val="sysDot" />
+				<a:round />
+				<a:headEnd type="none" w="med" len="med" />
+				<a:tailEnd type="none" w="med" len="med" />
+			</a:lnR>
+			<a:lnT w="12700" cap="flat" cmpd="sng" algn="ctr">
+				<a:solidFill>
+					<a:schemeClr val="tx2">
+						<a:lumMod val="20000" />
+						<a:lumOff val="80000" />
+					</a:schemeClr>
+				</a:solidFill>
+				<a:prstDash val="sysDot" />
+				<a:round />
+				<a:headEnd type="none" w="med" len="med" />
+				<a:tailEnd type="none" w="med" len="med" />
+			</a:lnT>
+			<a:lnB w="12700" cap="flat" cmpd="sng" algn="ctr">
+				<a:solidFill>
+					<a:schemeClr val="tx2" />
+				</a:solidFill>
+				<a:prstDash val="solid" />
+				<a:round />
+				<a:headEnd type="none" w="med" len="med" />
+				<a:tailEnd type="none" w="med" len="med" />
+			</a:lnB>
+			<a:lnTlToBr w="12700" cmpd="sng">
+				<a:noFill />
+				<a:prstDash val="solid" />
+			</a:lnTlToBr>
+			<a:lnBlToTr w="12700" cmpd="sng">
+				<a:noFill />
+				<a:prstDash val="solid" />
+			</a:lnBlToTr>
+			<a:noFill />
+		</a:tcPr>]]>
+	</data>
+	<data id="noLineCell">
+		<![CDATA[<a:tcPr xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" marL="0" marR="0" marT="0" marB="0" anchor="ctr"
+			horzOverflow="overflow">
+			<a:lnL>
+				<a:noFill />
+			</a:lnL>
+			<a:lnR>
+				<a:noFill />
+			</a:lnR>
+			<a:lnT>
+				<a:noFill />
+			</a:lnT>
+			<a:lnB>
+				<a:noFill />
+			</a:lnB>
+			<a:lnTlToBr>
+				<a:noFill />
+			</a:lnTlToBr>
+			<a:lnBlToTr>
+				<a:noFill />
+			</a:lnBlToTr>
+			<a:solidFill>
+				<a:schemeClr val="bg1" />
+			</a:solidFill>
+		</a:tcPr>]]>
+	</data>
+</root>

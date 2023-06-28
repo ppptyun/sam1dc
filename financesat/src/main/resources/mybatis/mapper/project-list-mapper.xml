@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.samil.stdadt.mapper.ProjectListMapper">
+
+	<select id="getProjectListV3" parameterType="hashmap" resultType="ProjectListV3VO">
+		SELECT DECODE(FORM_DIV, 'v3'
+				   , (NVL(A.ET_TRGT_ADT_TM, 0) + NVL((SELECT SUM(CNTRT_ADT_TM) FROM WEB_SAT_SUB_PRJT SUB WHERE SUB.P_PRJTCD = A.PRJTCD), 0))
+				    ,'v4'
+           			, (NVL(A.ET_TRGT_ADT_TM, 0) + NVL((SELECT SUM(CNTRT_ADT_TM) FROM WEB_SAT_SUB_PRJT SUB WHERE SUB.P_PRJTCD = A.PRJTCD), 0))
+				   , (NVL(A.ET_TRGT_ADT_TM, 0) + NVL(A.ETC_BDGT_TM, 0))
+			   ) CNTRT_ADT_TM  
+			 , A.PRJTCD ID 
+		     , A.PRJTCD BTN 
+		     , A.PRJTCD 
+		     , A.PRJTNM 
+		     , A.CHARGPTR 
+		     , A.CHARGPTR_NM 
+		     , A.CHARGMGR 
+		     , A.CHARGMGR_NM
+		     , NVL(SUM(B.ASGN_TM), 0) TOT_BDGT_TM 
+		     , NVL(DECODE(A.FORM_DIV, 'v3', SUM(CASE WHEN B.ACTV_CD IN ('09', '13') THEN B.ASGN_TM END), 'v4', SUM(CASE WHEN B.ACTV_CD IN ('09', '13') THEN B.ASGN_TM END), A.RA_BDGT_TM), 0) SPA_BDGT_TM
+		     , NVL(DECODE(A.FORM_DIV, 'v3', SUM(CASE WHEN B.ACTV_CD = '14' THEN B.ASGN_TM END), 'v4', SUM(CASE WHEN B.ACTV_CD = '14' THEN B.ASGN_TM END), A.FLCM_BDGT_TM), 0) FLCM_BDGT_TM
+		     , NVL(DECODE(A.FORM_DIV, 'v3', SUM(CASE WHEN B.ACTV_CD = '15' AND B.TBD='Y' THEN B.ASGN_TM END), 'v4', SUM(CASE WHEN B.ACTV_CD = '15' AND B.TBD='Y' THEN B.ASGN_TM END), NEW_STF_BDGT_TM), 0) NEW_STF_BDGT_TM
+		     , A.STAT 
+		     , SF_APPMNG_GET_COMMCD(#{appCd}, 'PRJT_STAT', A.STAT, 'NM') STAT_NM 
+		  FROM (<include refid="satSql.accessAuthProject" />) A
+		     , (SELECT A.PRJTCD 
+		            , A.ACTV_CD 
+		            , A.TBD 
+		            , SUM(B.ASGN_TM) ASGN_TM 
+		         FROM NMSP.WEB_SAT_MEMB A 
+		            , NMSP.WEB_SAT_MEMB_BDGT B 
+		        WHERE A.PRJTCD = B.PRJTCD 
+		              AND A.ACTV_CD = B.ACTV_CD 
+		              AND A.LOCA_CD = B.LOCA_CD 
+		              AND A.MEMB_EMPLNO = B.MEMB_EMPLNO 
+		              AND A.SUB_PRJTCD  = B.SUB_PRJTCD 
+		          GROUP BY A.PRJTCD 
+		            , A.TBD 
+		            , A.ACTV_CD
+		       ) B 
+		 WHERE A.PRJTCD = B.PRJTCD(+) 
+		       AND A.BIZ_TODT LIKE #{year}||'%' 
+		   GROUP BY A.PRJTCD 
+		     , A.PRJTNM 
+		     , A.CHARGPTR 
+		     , A.CHARGPTR_NM 
+		     , A.CHARGMGR 
+		     , A.CHARGMGR_NM
+		     , A.RA_BDGT_TM
+		     , A.FLCM_BDGT_TM
+		     , A.NEW_STF_BDGT_TM
+		     , A.STAT 
+		     , A.FORM_DIV
+		     , A.ET_TRGT_ADT_TM 
+     		 , A.ETC_BDGT_TM
+		 ORDER BY 1 DESC
+	</select>
+	
+	<select id="getProjectList" parameterType="hashmap" resultType="ProjectListVO">
+		SELECT A.*,
+		       CASE WHEN TOT_BDGT = 0 OR TOT_BDGT_WKMNSP = 0 OR WKMNSP_SAT = 0 THEN NULL ELSE ROUND(WKMNSP_SAT / (TOT_BDGT_WKMNSP/ TOT_BDGT), 2) END PLAN_SAT,
+		       CASE WHEN TOT_BDGT = 0 OR TOT_BDGT_WKMNSP = 0 OR WKMNSP_SAT = 0 THEN NULL ELSE ROUND(TOT_BDGT /(A.WKMNSP_SAT / (TOT_BDGT_WKMNSP/ TOT_BDGT)) * 100, 2) END ACHV_RATE
+		FROM (SELECT A.*, 
+					SUM_MEMB_BDGT + RA_BDGT_TM + FLCM_BDGT_TM + NEW_STF_BDGT_TM + OTHER_BDGT_TM TOT_BDGT,
+		      ROUND(SUM_MEMB_BDGT_WKMNSP + (RA_BDGT_TM * BASE_WKMNSP)  + (FLCM_BDGT_TM * BASE_WKMNSP) + (NEW_STF_BDGT_TM * NEW_STF_WKMNSP) + (OTHER_BDGT_TM * OTHER_WKMNSP), 2) TOT_BDGT_WKMNSP
+				FROM (
+				  SELECT A.PRJTCD ID,
+						 A.PRJTCD BTN,
+						 A.PRJTCD,
+					     A.PRJTNM,
+					     A.CHARGPTR,
+					     A.CHARGPTR_NM,
+					     A.CHARGMGR,
+					     A.CHARGMGR_NM,
+					     A.RCRD_MGR,
+					     A.RCRD_MGR_NM,
+					     A.RCRD_MGR2,
+					     A.RCRD_MGR_NM2,
+					     A.RCRD_MGR3,
+					     A.RCRD_MGR_NM3,
+					     A.LIST_DV_CD,
+					     NMSP.SF_APPMNG_GET_COMMCD(#{appCd}, 'LISTDV', A.LIST_DV_CD, 'NM') LIST_DV_NM,
+					     DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.BASE_WKMNSP, 0), 1) BASE_WKMNSP,
+		         	     DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.NEW_STF_WKMNSP, 0), TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'NEWSTAFF', 'VAL1'))) NEW_STF_WKMNSP,
+		         	     DECODE(A.SAT_TRGT_YN, 'Y', NVL(A.OTHER_WKMNSP, 0), TO_NUMBER(SF_APPMNG_GET_COMMCD(#{appCd}, 'OTHER_WKMNSP', 'OHTER', 'VAL1'))) OTHER_WKMNSP,
+		             	 NVL(A.WKMNSP_SAT, 0) WKMNSP_SAT,
+		             	 NVL(A.ET_DFN_SAT, 0) ET_DFN_SAT,
+		             	 NVL(A.ET_TRGT_ADT_TM, 0) ET_TRGT_ADT_TM,
+		              	 NVL(B.SUM_MEMB_BDGT, 0) SUM_MEMB_BDGT,
+					   	 NVL(B.SUM_MEMB_BDGT_WKMNSP, 0) SUM_MEMB_BDGT_WKMNSP,
+		              	 NVL(A.RA_BDGT_TM, 0) RA_BDGT_TM,
+					   	 NVL(A.FLCM_BDGT_TM, 0) FLCM_BDGT_TM,
+					   	 NVL(A.NEW_STF_BDGT_TM, 0) NEW_STF_BDGT_TM,
+					   	 NVL(A.OTHER_BDGT_TM, 0) OTHER_BDGT_TM,
+					     A.STAT,
+					     SF_APPMNG_GET_COMMCD(#{appCd}, 'PRJT_STAT', A.STAT, 'NM') STAT_NM,
+					     A.FORM_DIV -- 20200423 추가
+					FROM (<include refid="satSql.authProjectInfo" />) A,
+			             (SELECT A.PRJTCD, SUM(B.ASGN_TM) SUM_MEMB_BDGT, SUM(A.WKMNSP * B.ASGN_TM) SUM_MEMB_BDGT_WKMNSP
+			               FROM NMSP.WEB_SAT_MEMB A, 
+			                    NMSP.WEB_SAT_MEMB_BDGT B
+			              WHERE A.PRJTCD= B.PRJTCD 
+	                       	    AND A.ACTV_CD = B.ACTV_CD 
+			                    AND A.LOCA_CD = B.LOCA_CD 
+			                    AND A.MEMB_EMPLNO = B.MEMB_EMPLNO
+			              GROUP BY A.PRJTCD) B
+					 WHERE A.PRJTCD = B.PRJTCD(+)
+					 <if test="year != null and !year.equals('')">
+					 	AND A.BIZ_TODT LIKE #{year}||'%'
+					 </if>
+					 <if test="satTrgtYn != null and !''.equals(satTrgtYn)">
+					 	AND A.SAT_TRGT_YN = #{satTrgtYn}
+					 </if>
+		       ) A
+		) A
+		ORDER BY ET_TRGT_ADT_TM DESC
+	</select>
+	
+	<select id="getProjectDraftList" parameterType="hashmap" resultType="com.samil.stdadt.comm.vo.CamelMap">
+	  SELECT A.PRJTCD ID,
+			 A.PRJTCD BTN,
+			 A.PRJTCD PRJT_CD,
+		     A.PRJTNM PRJT_NM,
+		     A.CHARGPTR,
+		     A.CHARGPTR_NM CHARG_PTR_NM,
+		     A.CHARGMGR,
+		     A.CHARGMGR_NM CHARG_MGR_NM,
+		     CREBY, 
+       		 SF_EMP_NAME(CREBY) CREBY_NM,
+		     TO_CHAR(A.CREDT, 'YYYY-MM-DD HH24:MI:SS') CREDT,
+		     MODBY,
+       		 SF_EMP_NAME(MODBY) MODBY_NM,
+		     TO_CHAR(A.MODDT, 'YYYY-MM-DD HH24:MI:SS') MODDT
+		FROM (<include refid="satSql.authProjectInfo" />) A
+		 <if test="year != null and !year.equals('')">
+		 	AND A.BIZ_TODT LIKE #{year}||'%'
+		 </if>
+		ORDER BY A.CREDT DESC
+	</select>
+	
+	<select id="getYear" parameterType="map" resultType="string">
+		SELECT DISTINCT SUBSTR(BIZ_TODT, 0, 4) 
+		  FROM NMSP.WEB_SAT_PRJT 
+		 WHERE BIZ_TODT IS NOT NULL
+		   AND STAT IN ('RG', 'RQ', 'RJ', 'CO')
+		   AND CALC_ONLY_YN = 'N'
+		<if test=" formDiv != null">
+	   	   AND FORM_DIV IN <foreach collection="formDiv" item="div" separator="," open="(" close=")">#{div}</foreach>
+	    </if> 		   
+		ORDER BY SUBSTR(BIZ_TODT, 0, 4) DESC
+	</select>
+	
+	<update id="saveReCalculate" parameterType="map">
+	MERGE INTO NMSP.WEB_SAT_PRJT A
+	USING (
+		<foreach collection="list" item="prjt" separator=" UNION ALL ">
+		SELECT 	#{prjt.prjtCd} PRJTCD, 
+				#{prjt.baseWkmnsp} BASE_WKMNSP,
+				#{prjt.newStfWkmnsp} NEW_STF_WKMNSP,
+				#{prjt.otherWkmnsp} OTHER_WKMNSP,
+				#{prjt.factorVal} FACTOR_VAL, 
+				#{prjt.intrAdtYn} INTR_ADT_YN, 
+				#{prjt.intrAdtTm} INTR_ADT_TM, 
+				#{prjt.calAdtTm} CAL_ADT_TM 
+		FROM DUAL
+		</foreach>
+	) B
+	ON (A.PRJTCD = B.PRJTCD)
+	WHEN MATCHED THEN
+		UPDATE SET 
+			A.BASE_WKMNSP = B.BASE_WKMNSP,
+			A.NEW_STF_WKMNSP = B.NEW_STF_WKMNSP,
+			A.OTHER_WKMNSP = B.OTHER_WKMNSP,
+			A.FACTOR_VAL = B.FACTOR_VAL,
+			A.INTR_ADT_YN = B.INTR_ADT_YN,
+			A.INTR_ADT_TM = B.INTR_ADT_TM,
+			A.CAL_ADT_TM = B.CAL_ADT_TM
+	</update>
+	
+	<delete id="delDraftPrjtList" parameterType="map">
+		DELETE FROM WEB_SAT_PRJT WHERE CREBY = ${session.emplNo}  AND STAT='DR'
+		<choose>
+			<when test="prjtCd != null and !prjtCd.equals('')">
+			AND PRJTCD = #{prjtCd}
+			</when>
+			<when test="prjtCdList != null">
+			AND PRJTCD IN (<foreach collection="prjtCdList" item="prjtCd" separator=",">#{prjtCd}</foreach>)
+			</when>
+			<otherwise>AND 1=2</otherwise>
+		</choose>
+	</delete>
+</mapper>

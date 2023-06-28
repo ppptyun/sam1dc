@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	
+	<!-- 사용 해야할 Data Source를 가장 먼저 Import 해야 함. -->
+	<!-- ====================== Data Source ====================== --> 
+	<import resource="classpath:spring/datasource/datasource-oracle-test.xml"/>
+	<import resource="classpath:spring/datasource/datasource-mssql-prod-retain.xml"/>
+	
+	<!-- ====================== 공통으로 적용할 Config ====================== -->
+	<import resource="classpath:spring/config/application.xml"/>
+	
+	<!-- ====================== 개별 적용 Config ====================== -->
+	<bean id="applicationConfig" class="com.samil.stdadt.comm.vo.ApplicationConfigVO">
+		<property name="env" value="test"></property>
+		<property name="appCd" value="stdadt"></property>
+		<property name="admUrl" value="http://toffice.samil.com/adm"></property>
+		<property name="portalUrl" value="http://tportal.samil.com"></property>
+		<property name="uploadPath" value="/WEB-INF/upload"></property>
+		<property name="excelTemplatePath" value="/WEB-INF/resources/templates/"></property>
+	</bean>
+</beans>
